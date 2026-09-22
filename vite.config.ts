@@ -7,5 +7,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: true, // Listen on all network interfaces (0.0.0.0)
+    allowedHosts: ['anxiocare.onrender.com', '.onrender.com'],
+  },
+  preview: {
+    host: true,
+    allowedHosts: ['anxiocare.onrender.com', '.onrender.com'],
   },
 })
