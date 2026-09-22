@@ -1,24 +1,19 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import type { UserProfile, ScoreResult } from "./types/assessment";
-import { LandingPage } from "./components/LandingPage";
-import { OnboardingPage } from "./components/OnboardingPage";
-import { AssessmentQuiz } from "./components/AssessmentQuiz";
-import { ResultsDashboard } from "./components/ResultsDashboard";
-import { BreathingExercise } from "./components/BreathingExercise";
-import { SoundscapePlayer } from "./components/SoundscapePlayer";
-import { HistoryChart } from "./components/HistoryChart";
-import { CrisisResources } from "./components/CrisisResources";
+import { LandingPage }        from "./components/LandingPage";
+import { OnboardingPage }     from "./components/OnboardingPage";
+import { AssessmentQuiz }     from "./components/AssessmentQuiz";
+import { ResultsDashboard }   from "./components/ResultsDashboard";
+import { BreathingExercise }  from "./components/BreathingExercise";
+import { SoundscapePlayer }   from "./components/SoundscapePlayer";
+import { HistoryChart }       from "./components/HistoryChart";
+import { CrisisResources }    from "./components/CrisisResources";
 import {
-  Activity,
-  Award,
-  Wind,
-  TrendingUp,
-  ShieldAlert,
-  User,
-  Brain,
-  Volume2,
-  Home
+  Activity, Award, Wind, TrendingUp,
+  ShieldAlert, User, Brain, Volume2, Home,
 } from "lucide-react";
+
+type Tab = "landing" | "onboarding" | "assessment" | "results" | "coping" | "history" | "resources";
 
 export function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
@@ -36,9 +31,10 @@ export function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [activeTab, setActiveTab] = useState<"landing" | "onboarding" | "assessment" | "results" | "coping" | "history" | "resources">("landing");
+  const [activeTab, setActiveTab] = useState<Tab>("landing");
   const [copingSubTab, setCopingSubTab] = useState<"breathing" | "soundscape">("breathing");
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSaveProfile = (profile: UserProfile) => {
     setUserProfile(profile);
     localStorage.setItem("anxio_user_profile", JSON.stringify(profile));
@@ -46,163 +42,154 @@ export function App() {
   };
 
   const handleStartAssessmentClick = () => {
-    if (!userProfile) {
-      setActiveTab("onboarding");
-    } else {
-      setActiveTab("assessment");
-    }
+    if (!userProfile) setActiveTab("onboarding");
+    else             setActiveTab("assessment");
   };
 
   const handleLoadDemoResult = (demoResult: ScoreResult) => {
     setUserProfile(demoResult.userProfile);
     localStorage.setItem("anxio_user_profile", JSON.stringify(demoResult.userProfile));
-
     setCurrentResult(demoResult);
     localStorage.setItem("anxio_latest_result", JSON.stringify(demoResult));
-
     const updatedHistory = [demoResult, ...history.filter((h) => h.id !== demoResult.id)];
     setHistory(updatedHistory);
     localStorage.setItem("anxio_history", JSON.stringify(updatedHistory));
-
     setActiveTab("results");
   };
 
   const handleAssessmentComplete = (result: ScoreResult) => {
     setCurrentResult(result);
     localStorage.setItem("anxio_latest_result", JSON.stringify(result));
-
     const updatedHistory = [result, ...history];
     setHistory(updatedHistory);
     localStorage.setItem("anxio_history", JSON.stringify(updatedHistory));
-
     setActiveTab("results");
   };
 
   const handleClearHistory = () => {
-    if (window.confirm("Are you sure you want to clear your assessment history?")) {
+    if (window.confirm("Clear all assessment history?")) {
       setHistory([]);
       localStorage.removeItem("anxio_history");
     }
   };
 
+  // ── Nav helpers ───────────────────────────────────────────────────────────
+  const desktopNavItems = [
+    { id: "landing",    label: "Overview",                   Icon: Home,        crisis: false, disabled: false },
+    { id: "assessment", label: "Assessment",                 Icon: Activity,    crisis: false, disabled: false, onClick: handleStartAssessmentClick },
+    { id: "results",    label: "Results",                   Icon: Award,       crisis: false, disabled: !currentResult },
+    { id: "coping",     label: "Relief Toolkit",            Icon: Wind,        crisis: false, disabled: false },
+    { id: "history",    label: `Trends (${history.length})`,Icon: TrendingUp,  crisis: false, disabled: false },
+    { id: "resources",  label: "Crisis Support",            Icon: ShieldAlert, crisis: true,  disabled: false },
+  ];
+
+  const mobileNavItems = [
+    { id: "landing",    label: "Home",    Icon: Home,        crisis: false, disabled: false },
+    { id: "assessment", label: "Screen",  Icon: Activity,    crisis: false, disabled: false, onClick: handleStartAssessmentClick },
+    { id: "results",    label: "Results", Icon: Award,       crisis: false, disabled: !currentResult },
+    { id: "coping",     label: "Toolkit", Icon: Wind,        crisis: false, disabled: false },
+    { id: "history",    label: "Trends",  Icon: TrendingUp,  crisis: false, disabled: false },
+    { id: "resources",  label: "Crisis",  Icon: ShieldAlert, crisis: true,  disabled: false },
+  ];
+
+  const isAssessmentActive = activeTab === "assessment" || activeTab === "onboarding";
+
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-slate-950 text-slate-100 selection:bg-violet-500 selection:text-white">
-      {/* Header Navbar */}
-      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/80 no-print py-3">
-        <div className="layout-wrapper h-16 flex items-center justify-between gap-4">
+    <div className="min-h-screen flex flex-col font-sans bg-slate-950 text-slate-100">
+
+      {/* ══════════════════════════════════════════
+          DESKTOP + TABLET HEADER
+      ══════════════════════════════════════════ */}
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/70 no-print">
+        <div className="layout-wrapper flex items-center justify-between gap-4 h-16">
+
           {/* Logo */}
           <button
             onClick={() => setActiveTab("landing")}
-            className="flex items-center gap-3 shrink-0 text-left group"
+            className="flex items-center gap-2.5 shrink-0 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-violet-500/25 group-hover:scale-105 transition-transform">
-              <Brain size={22} />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-violet-500/30 group-hover:scale-105 transition-transform shrink-0">
+              <Brain size={20} />
             </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-extrabold font-heading text-gradient-violet leading-none">
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-extrabold font-heading text-gradient-violet leading-none">
                 AnxioCare
               </h1>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide block mt-1 hidden sm:block">
+              <span className="text-[10px] text-slate-500 font-medium tracking-wide block mt-0.5 leading-none">
                 Anxiety Screening Engine
               </span>
             </div>
           </button>
 
-          {/* Desktop Nav Pills */}
-          <div className="h-9 w-[40vw] flex items-center gap-3 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs">
-            <button
-              onClick={() => setActiveTab("landing")}
-              className={`h-9 w-22 rounded-xl flex items-center gap-1.5 font-medium transition-all whitespace-nowrap ${
-                activeTab === "landing"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-              }`}
-            >
-              <Home className="ml-4 h-5 w-5" />
-              <span>Overview</span>
-            </button>
+          {/* Desktop Nav — hidden on small mobile */}
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-950/70 rounded-2xl border border-slate-800/80 px-2 py-1.5">
+            {desktopNavItems.map(({ id, label, Icon, crisis, disabled, ...rest }) => {
+              const isActive = id === "assessment"
+                ? isAssessmentActive
+                : activeTab === id;
+              const onClick = (rest as any).onClick ?? (() => setActiveTab(id as Tab));
+              return (
+                <button
+                  key={id}
+                  onClick={onClick}
+                  disabled={disabled}
+                  className={`nav-pill disabled:opacity-35 disabled:cursor-not-allowed ${
+                    isActive
+                      ? crisis ? "nav-pill-crisis-active" : "nav-pill-active"
+                      : crisis ? "nav-pill-crisis" : ""
+                  }`}
+                >
+                  <Icon size={14} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-            <button
-              onClick={handleStartAssessmentClick}
-              className={`h-9 w-22 rounded-xl flex items-center gap-1.5 font-medium transition-all whitespace-nowrap ${
-                activeTab === "assessment" || activeTab === "onboarding"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-              }`}
-            >
-              <Activity size={14} />
-              <span>Assessment</span>
-            </button>
+          {/* Tablet nav — md to lg */}
+          <nav className="hidden md:flex lg:hidden items-center gap-1 bg-slate-950/70 rounded-xl border border-slate-800/80 px-1.5 py-1">
+            {desktopNavItems.map(({ id, label: _label, Icon, crisis, disabled, ...rest }) => {
+              const isActive = id === "assessment"
+                ? isAssessmentActive
+                : activeTab === id;
+              const onClick = (rest as any).onClick ?? (() => setActiveTab(id as Tab));
+              return (
+                <button
+                  key={id}
+                  onClick={onClick}
+                  disabled={disabled}
+                  title={_label}
+                  className={`nav-pill disabled:opacity-35 disabled:cursor-not-allowed ${
+                    isActive
+                      ? crisis ? "nav-pill-crisis-active" : "nav-pill-active"
+                      : crisis ? "nav-pill-crisis" : ""
+                  }`}
+                >
+                  <Icon size={16} />
+                </button>
+              );
+            })}
+          </nav>
 
-            <button
-              onClick={() => setActiveTab("results")}
-              disabled={!currentResult}
-              className={`h-9 w-22 rounded-xl flex items-center gap-1.5 font-medium transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
-                activeTab === "results"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-              }`}
-            >
-              <Award size={14} />
-              <span>Results</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("coping")}
-              className={`h-9 w-22 rounded-xl flex items-center gap-1.5 font-medium transition-all whitespace-nowrap ${
-                activeTab === "coping"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-              }`}
-            >
-              <Wind size={14} />
-              <span>Relief Toolkit</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("history")}
-              className={`h-9 w-22 rounded-xl flex items-center gap-1.5 font-medium transition-all whitespace-nowrap ${
-                activeTab === "history"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-              }`}
-            >
-              <TrendingUp size={14} />
-              <span>Trends ({history.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("resources")}
-              className={`h-9 w-22 rounded-xl flex items-center gap-1.5 font-medium transition-all whitespace-nowrap ${
-                activeTab === "resources"
-                  ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white font-semibold shadow-md shadow-rose-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-              }`}
-            >
-              <ShieldAlert size={14} />
-              <span>Crisis Support</span>
-            </button>
-          </div>
-
-          {/* User Profile Button */}
+          {/* Profile button — right side */}
           <div className="flex items-center gap-2 shrink-0">
             {userProfile ? (
               <button
                 onClick={() => setActiveTab("onboarding")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all shadow-sm ${
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs transition-all ${
                   activeTab === "onboarding"
-                    ? "bg-violet-600/30 border-violet-400 text-white"
-                    : "bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-slate-100"
+                    ? "bg-violet-600/25 border-violet-400/60 text-white"
+                    : "bg-slate-800/70 hover:bg-slate-800 border-slate-700/70 text-slate-100"
                 }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-inner shrink-0">
                   {userProfile.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-left hidden sm:block">
-                  <span className="font-semibold text-slate-100 block leading-tight truncate max-w-[110px]">
+                  <span className="font-semibold text-slate-100 block leading-tight truncate max-w-[100px]">
                     {userProfile.name}
                   </span>
-                  <span className="text-[10px] text-slate-400 block truncate max-w-[110px]">
+                  <span className="text-[10px] text-slate-400 block truncate max-w-[100px]">
                     {userProfile.occupation}
                   </span>
                 </div>
@@ -213,137 +200,88 @@ export function App() {
                 className="btn-violet text-xs py-2 px-4"
               >
                 <User size={14} />
-                <span className="hidden sm:inline">Profile / Sign In</span>
-                <span className="sm:hidden">Profile</span>
+                <span className="hidden sm:inline">Get Started</span>
+                <span className="sm:hidden">Start</span>
               </button>
             )}
           </div>
         </div>
-
-        {/* Mobile / Tablet Nav Row */}
-        <div className="lg:hidden mt-2 px-4 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-[11px] w-max mx-auto">
-            <button
-              onClick={() => setActiveTab("landing")}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${
-                activeTab === "landing" ? "bg-violet-600 text-white font-semibold" : "text-slate-400"
-              }`}
-            >
-              <Home size={13} />
-              <span>Home</span>
-            </button>
-            <button
-              onClick={handleStartAssessmentClick}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${
-                activeTab === "assessment" || activeTab === "onboarding" ? "bg-violet-600 text-white font-semibold" : "text-slate-400"
-              }`}
-            >
-              <Activity size={13} />
-              <span>Quiz</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("results")}
-              disabled={!currentResult}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap disabled:opacity-30 ${
-                activeTab === "results" ? "bg-violet-600 text-white font-semibold" : "text-slate-400"
-              }`}
-            >
-              <Award size={13} />
-              <span>Results</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("coping")}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${
-                activeTab === "coping" ? "bg-violet-600 text-white font-semibold" : "text-slate-400"
-              }`}
-            >
-              <Wind size={13} />
-              <span>Toolkit</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("history")}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${
-                activeTab === "history" ? "bg-violet-600 text-white font-semibold" : "text-slate-400"
-              }`}
-            >
-              <TrendingUp size={13} />
-              <span>History</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("resources")}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1 whitespace-nowrap ${
-                activeTab === "resources" ? "bg-rose-600 text-white font-semibold" : "text-slate-400"
-              }`}
-            >
-              <ShieldAlert size={13} />
-              <span>Crisis</span>
-            </button>
-          </div>
-        </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 py-6 sm:py-8 layout-wrapper w-full">
-        {/* View 1: Landing Page */}
+      {/* ══════════════════════════════════════════
+          MAIN CONTENT
+      ══════════════════════════════════════════ */}
+      <main className="main-content layout-wrapper w-full">
+
+        {/* Landing */}
         {activeTab === "landing" && (
-          <LandingPage
-            onStartAssessment={handleStartAssessmentClick}
-            onLoadDemoResult={handleLoadDemoResult}
-            onExploreToolkit={() => setActiveTab("coping")}
-          />
+          <div className="page-transition">
+            <LandingPage
+              onStartAssessment={handleStartAssessmentClick}
+              onLoadDemoResult={handleLoadDemoResult}
+              onExploreToolkit={() => setActiveTab("coping")}
+            />
+          </div>
         )}
 
-        {/* View 2: Onboarding Page (Full Page Intake Form) */}
+        {/* Onboarding */}
         {activeTab === "onboarding" && (
-          <OnboardingPage
-            initialProfile={userProfile}
-            onSave={handleSaveProfile}
-            onCancel={() => setActiveTab(userProfile ? "assessment" : "landing")}
-          />
+          <div className="page-transition">
+            <OnboardingPage
+              initialProfile={userProfile}
+              onSave={handleSaveProfile}
+              onCancel={() => setActiveTab(userProfile ? "assessment" : "landing")}
+            />
+          </div>
         )}
 
-        {/* View 3: Assessment Quiz */}
+        {/* Assessment Quiz */}
         {activeTab === "assessment" && userProfile && (
-          <AssessmentQuiz
-            userProfile={userProfile}
-            onComplete={handleAssessmentComplete}
-            onEditProfile={() => setActiveTab("onboarding")}
-          />
+          <div className="page-transition">
+            <AssessmentQuiz
+              userProfile={userProfile}
+              onComplete={handleAssessmentComplete}
+              onEditProfile={() => setActiveTab("onboarding")}
+            />
+          </div>
         )}
 
-        {/* View 4: Results Dashboard */}
+        {/* Results Dashboard */}
         {activeTab === "results" && currentResult && (
-          <ResultsDashboard
-            result={currentResult}
-            onRetake={handleStartAssessmentClick}
-            onGoToCoping={() => setActiveTab("coping")}
-          />
+          <div className="page-transition">
+            <ResultsDashboard
+              result={currentResult}
+              onRetake={handleStartAssessmentClick}
+              onGoToCoping={() => setActiveTab("coping")}
+            />
+          </div>
         )}
 
-        {/* View 5: Coping Toolkit */}
+        {/* Relief Toolkit */}
         {activeTab === "coping" && (
-          <div className="space-y-6 max-w-4xl mx-auto fade-in-up">
-            <div className="flex justify-center gap-3 border-b border-slate-800/80 pb-4 no-print">
+          <div className="page-transition max-w-4xl mx-auto space-y-6">
+            {/* Sub-tab toggle */}
+            <div className="flex justify-center gap-3 no-print">
               <button
                 onClick={() => setCopingSubTab("breathing")}
-                className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+                className={`px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all min-h-[44px] ${
                   copingSubTab === "breathing"
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10"
                     : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
                 }`}
               >
-                <Wind size={15} />
+                <Wind size={16} />
                 <span>4-7-8 Breathing</span>
               </button>
               <button
                 onClick={() => setCopingSubTab("soundscape")}
-                className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+                className={`px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all min-h-[44px] ${
                   copingSubTab === "soundscape"
                     ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-lg shadow-purple-500/10"
                     : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
                 }`}
               >
-                <Volume2 size={15} />
+                <Volume2 size={16} />
                 <span>Ambient Soundscapes</span>
               </button>
             </div>
@@ -352,29 +290,95 @@ export function App() {
           </div>
         )}
 
-        {/* View 6: History */}
+        {/* History */}
         {activeTab === "history" && (
-          <HistoryChart
-            history={history}
-            onSelectResult={(res) => {
-              setCurrentResult(res);
-              setActiveTab("results");
-            }}
-            onClearHistory={handleClearHistory}
-          />
+          <div className="page-transition">
+            <HistoryChart
+              history={history}
+              onSelectResult={(res) => {
+                setCurrentResult(res);
+                setActiveTab("results");
+              }}
+              onClearHistory={handleClearHistory}
+            />
+          </div>
         )}
 
-        {/* View 7: Crisis Support */}
-        {activeTab === "resources" && <CrisisResources />}
+        {/* Crisis Resources */}
+        {activeTab === "resources" && (
+          <div className="page-transition">
+            <CrisisResources />
+          </div>
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-6 text-center text-xs text-slate-500 space-y-1 no-print">
-        <p className="font-medium text-slate-400">AnxioCare Mental Health Assessment &copy; {new Date().getFullYear()}</p>
-        <p className="text-[11px] opacity-75">
-          Validated GAD-7 screening engine & Web Audio relaxation tools.
-        </p>
+      {/* ══════════════════════════════════════════
+          FOOTER — desktop only visible
+      ══════════════════════════════════════════ */}
+      <footer className="border-t border-slate-800/60 bg-slate-950/80 no-print hidden md:block">
+        <div className="layout-wrapper py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Brand */}
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center">
+                <Brain size={16} className="text-white" />
+              </div>
+              <div>
+                <span className="text-sm font-bold font-heading text-gradient-violet">AnxioCare</span>
+                <span className="text-[11px] text-slate-500 block">Mental Health Assessment</span>
+              </div>
+            </div>
+
+            {/* Links */}
+            <div className="flex items-center gap-5 text-xs text-slate-500">
+              <button onClick={() => setActiveTab("landing")} className="hover:text-slate-300 transition-colors">Overview</button>
+              <button onClick={handleStartAssessmentClick} className="hover:text-slate-300 transition-colors">Assessment</button>
+              <button onClick={() => setActiveTab("coping")} className="hover:text-slate-300 transition-colors">Toolkit</button>
+              <button onClick={() => setActiveTab("resources")} className="hover:text-rose-400 transition-colors">Crisis Support</button>
+            </div>
+
+            {/* Legal */}
+            <p className="text-[11px] text-slate-600 text-center sm:text-right">
+              Validated GAD-7 · {new Date().getFullYear()} · Not a substitute for clinical care
+            </p>
+          </div>
+        </div>
       </footer>
+
+      {/* ══════════════════════════════════════════
+          MOBILE BOTTOM NAV — visible below lg
+      ══════════════════════════════════════════ */}
+      <nav className="bottom-nav lg:hidden no-print">
+        <div className="bottom-nav-inner">
+          {mobileNavItems.map(({ id, label, Icon, crisis, disabled, ...rest }) => {
+            const isActive = id === "assessment" ? isAssessmentActive : activeTab === id;
+            const onClick = (rest as any).onClick ?? (() => setActiveTab(id as Tab));
+            return (
+              <button
+                key={id}
+                onClick={onClick}
+                disabled={disabled}
+                className={`bottom-nav-item ${
+                  isActive
+                    ? crisis ? "bottom-nav-item-crisis-active" : "bottom-nav-item-active"
+                    : ""
+                } disabled:opacity-30 disabled:cursor-not-allowed`}
+              >
+                <div className={`${
+                  isActive
+                    ? crisis
+                      ? "bottom-nav-item-crisis-icon"
+                      : "bottom-nav-item-active-icon"
+                    : ""
+                } transition-all`}>
+                  <Icon size={18} />
+                </div>
+                <span className="leading-none">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
