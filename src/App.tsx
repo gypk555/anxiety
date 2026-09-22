@@ -261,10 +261,10 @@ export function App() {
         {activeTab === "coping" && (
           <div className="page-transition max-w-4xl mx-auto space-y-6">
             {/* Sub-tab toggle */}
-            <div className="flex justify-center gap-3 no-print">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 no-print">
               <button
                 onClick={() => setCopingSubTab("breathing")}
-                className={`px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all min-h-[44px] ${
+                className={`flex-1 sm:flex-none justify-center px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all min-h-[44px] ${
                   copingSubTab === "breathing"
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10"
                     : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
@@ -275,7 +275,7 @@ export function App() {
               </button>
               <button
                 onClick={() => setCopingSubTab("soundscape")}
-                className={`px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all min-h-[44px] ${
+                className={`flex-1 sm:flex-none justify-center px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all min-h-[44px] ${
                   copingSubTab === "soundscape"
                     ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-lg shadow-purple-500/10"
                     : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"

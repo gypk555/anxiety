@@ -57,7 +57,7 @@ export const OnboardingPage: React.FC<Props> = ({ initialProfile, onSave, onCanc
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-8 fade-in-up pb-12">
+    <div className="onboarding-page w-full max-w-4xl mx-auto flex flex-col gap-8 fade-in-up pb-12">
 
       {/* ── PAGE HEADER ── */}
       <div className="text-center space-y-4 pt-2">

@@ -116,7 +116,7 @@ export const HistoryChart: React.FC<Props> = ({ history, onSelectResult, onClear
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 fade-in-up pb-12">
+    <div className="history-page max-w-5xl mx-auto space-y-6 fade-in-up pb-12">
 
       {/* ── STATS ROW ── */}
       <div className="grid grid-cols-3 gap-3 sm:gap-5">

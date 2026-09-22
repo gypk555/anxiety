@@ -71,21 +71,21 @@ export const LandingPage: React.FC<Props> = ({ onStartAssessment, onLoadDemoResu
   ];
 
   return (
-    <div className="max-w-7xl mx-auto w-full space-y-14 sm:space-y-20 fade-in-up py-4 sm:py-8">
+    <div className="landing-page max-w-7xl mx-auto w-full min-w-0 space-y-12 sm:space-y-20 fade-in-up py-2 sm:py-8">
 
       {/* ── HERO — two-column on large screens ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-9 lg:gap-16 items-center">
 
         {/* Left: copy + CTAs */}
-        <div className="space-y-7">
+        <div className="min-w-0 space-y-6 sm:space-y-7">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/22 text-violet-300 text-xs font-semibold uppercase tracking-widest shadow-sm">
+          <div className="hero-eyebrow inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/22 text-violet-300 text-xs font-semibold uppercase tracking-wider shadow-sm">
             <Sparkles size={13} className="text-violet-400" />
             <span>Clinically Validated · GAD-7 Screening Engine</span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold font-heading text-slate-50 leading-[1.1] tracking-tight">
+          <h1 className="text-[2.35rem] sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold font-heading text-slate-50 leading-[1.08] tracking-tight">
             Understand<br className="hidden sm:block" /> Your Mind.{" "}
             <span className="text-gradient-violet">Measure &amp; Calm Anxiety.</span>
           </h1>
@@ -107,7 +107,7 @@ export const LandingPage: React.FC<Props> = ({ onStartAssessment, onLoadDemoResu
           </ul>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-1">
+          <div className="landing-actions flex flex-col sm:flex-row gap-3 pt-1">
             <button
               onClick={onStartAssessment}
               className="btn-violet px-8 py-4 text-base shadow-xl shadow-violet-500/25"
@@ -136,12 +136,12 @@ export const LandingPage: React.FC<Props> = ({ onStartAssessment, onLoadDemoResu
         </div>
 
         {/* Right: animated orb + stat pills */}
-        <div className="relative flex items-center justify-center lg:justify-end">
+        <div className="relative flex min-w-0 items-center justify-center lg:justify-end">
           {/* Ambient glow background */}
           <div className="absolute inset-0 rounded-full blur-3xl bg-violet-500/10 scale-75 pointer-events-none" />
 
           {/* Orb container */}
-          <div className="hero-orb relative w-72 h-72 sm:w-80 sm:h-80 lg:w-96 lg:h-96">
+          <div className="hero-orb relative w-56 h-56 sm:w-80 sm:h-80 lg:w-96 lg:h-96">
             {/* Pulse rings */}
             <div className="pulse-ring absolute inset-8 rounded-full border border-violet-500/25" />
             <div className="pulse-ring-delay absolute inset-8 rounded-full border border-violet-500/20" />
@@ -158,17 +158,17 @@ export const LandingPage: React.FC<Props> = ({ onStartAssessment, onLoadDemoResu
             </div>
 
             {/* Floating stat badges */}
-            <div className="absolute -top-2 -right-4 sm:-right-8 bg-slate-900/90 border border-slate-700/60 rounded-2xl px-3 py-2 shadow-lg backdrop-blur-sm">
+            <div className="absolute -top-2 -right-2 sm:-right-8 bg-slate-900/90 border border-slate-700/60 rounded-2xl px-3 py-2 shadow-lg backdrop-blur-sm">
               <span className="text-xs font-bold text-violet-300 block">GAD-7 Score</span>
               <span className="text-xl font-extrabold font-heading text-white">11<span className="text-sm text-slate-400">/21</span></span>
             </div>
 
-            <div className="absolute -bottom-2 -left-4 sm:-left-8 bg-slate-900/90 border border-slate-700/60 rounded-2xl px-3 py-2 shadow-lg backdrop-blur-sm">
+            <div className="absolute -bottom-2 -left-2 sm:-left-8 bg-slate-900/90 border border-slate-700/60 rounded-2xl px-3 py-2 shadow-lg backdrop-blur-sm">
               <span className="text-xs font-bold text-cyan-300 block">Severity</span>
               <span className="text-base font-extrabold font-heading text-amber-300">Moderate</span>
             </div>
 
-            <div className="absolute top-1/2 -left-6 sm:-left-12 -translate-y-1/2 bg-slate-900/90 border border-slate-700/60 rounded-2xl px-3 py-2 shadow-lg backdrop-blur-sm">
+            <div className="absolute top-1/2 -left-1 sm:-left-12 -translate-y-1/2 bg-slate-900/90 border border-slate-700/60 rounded-2xl px-3 py-2 shadow-lg backdrop-blur-sm">
               <span className="text-xs font-bold text-emerald-300 block">Privacy</span>
               <span className="text-base font-extrabold font-heading text-white">100%</span>
             </div>
@@ -177,7 +177,7 @@ export const LandingPage: React.FC<Props> = ({ onStartAssessment, onLoadDemoResu
       </div>
 
       {/* ── STATS ROW ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="landing-trust-grid grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((s) => {
           const Icon = s.icon;
           return (
@@ -195,28 +195,29 @@ export const LandingPage: React.FC<Props> = ({ onStartAssessment, onLoadDemoResu
       </div>
 
       {/* ── FEATURE CARDS ─── */}
-      <div className="space-y-5">
-        <div className="text-center space-y-2">
+      <section className="landing-how-it-works space-y-5" aria-labelledby="how-it-works-heading">
+        <div className="landing-section-intro text-center space-y-2">
+          <span className="landing-section-eyebrow">A simple, private process</span>
           <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-slate-100">
-            How AnxioCare Works
+            <span id="how-it-works-heading">How AnxioCare works</span>
           </h2>
           <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">
-            Three integrated modules to assess, understand, and manage your mental wellness.
+            Three clear steps to check in, understand your result, and choose a supportive next step.
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
+        <div className="landing-steps grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
           {features.map((f) => {
             const Icon = f.icon;
             return (
               <div
                 key={f.title}
-                className={`premium-card premium-card-interactive p-6 sm:p-8 space-y-4 border ${f.border} ${f.hover} transition-all group`}
+                className={`landing-step premium-card p-5 sm:p-6 space-y-3 border ${f.border} ${f.hover} transition-all group`}
               >
                 <div className="flex items-center justify-between">
-                  <div className={`w-12 h-12 rounded-2xl ${f.bg} border ${f.border} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <Icon size={24} className={f.color} />
+                  <div className={`w-11 h-11 rounded-xl ${f.bg} border ${f.border} flex items-center justify-center`}>
+                    <Icon size={21} className={f.color} />
                   </div>
-                  <span className="text-4xl font-extrabold font-heading text-slate-800 select-none">{f.step}</span>
+                  <span className="landing-step-number">{f.step}</span>
                 </div>
                 <h3 className="text-lg font-bold font-heading text-slate-100">{f.title}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
@@ -224,7 +225,7 @@ export const LandingPage: React.FC<Props> = ({ onStartAssessment, onLoadDemoResu
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* ── DEMO BANNER ─── */}
       <div

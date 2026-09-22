@@ -81,7 +81,7 @@ export const BreathingExercise: React.FC = () => {
   const dashOff = arcLen * (1 - progress / 100);
 
   return (
-    <div className="glass-panel p-6 sm:p-10 max-w-4xl mx-auto border-cyan-500/15 fade-in-up">
+    <div className="breathing-page glass-panel p-6 sm:p-10 max-w-4xl mx-auto border-cyan-500/15 fade-in-up">
 
       {/* ── HEADER ── */}
       <div className="text-center space-y-3 mb-8">
@@ -97,11 +97,11 @@ export const BreathingExercise: React.FC = () => {
         </p>
       </div>
 
-      {/* ── MAIN AREA — orb + controls side by side on desktop ── */}
-      <div className="flex flex-col lg:flex-row items-center justify-center gap-10 lg:gap-16">
+        {/* Orb + controls side by side on desktop */}
+        <div className="breathing-content flex flex-col lg:flex-row items-center justify-center gap-10 lg:gap-16">
 
         {/* Orb */}
-        <div className="relative shrink-0" style={{ width: 320, height: 320 }}>
+        <div className="breathing-orb relative shrink-0" style={{ width: 320, height: 320 }}>
           {/* Outer ambient glow */}
           <div
             className="absolute inset-0 rounded-full blur-3xl opacity-25 transition-all duration-1000"

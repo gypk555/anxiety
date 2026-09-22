@@ -150,7 +150,7 @@ export const SoundscapePlayer: React.FC = () => {
   const activeTrackObj = TRACKS.find((t) => t.id === activeTrack && isPlaying);
 
   return (
-    <div className="glass-panel p-6 sm:p-10 max-w-4xl mx-auto border-purple-500/15 fade-in-up">
+    <div className="soundscape-page glass-panel p-6 sm:p-10 max-w-4xl mx-auto border-purple-500/15 fade-in-up">
 
       {/* ── HEADER ── */}
       <div className="flex items-center gap-4 mb-8">

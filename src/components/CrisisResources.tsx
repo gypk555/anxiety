@@ -90,7 +90,7 @@ export const CrisisResources: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-7 fade-in-up pb-12">
+    <div className="crisis-page max-w-5xl mx-auto space-y-7 fade-in-up pb-12">
 
       {/* ── DISCLAIMER ── */}
       <div className="flex items-start gap-4 p-5 rounded-2xl bg-amber-500/08 border border-amber-500/22 shadow-sm">
@@ -119,7 +119,7 @@ export const CrisisResources: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="crisis-card-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
           {helplines.map((h) => {
             const Icon = h.icon;
             return (
@@ -170,13 +170,13 @@ export const CrisisResources: React.FC = () => {
         </div>
 
         {/* Steps — horizontal scroll on small, full grid on larger */}
-        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
           {groundingSteps.map((s) => {
             const Icon = s.icon;
             return (
               <div
                 key={s.num}
-                className={`p-3 sm:p-4 rounded-2xl border ${s.bg} ${s.border} flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.04] cursor-default`}
+                className={`p-3 sm:p-4 rounded-2xl border ${s.bg} ${s.border} flex flex-col items-center text-center gap-2 transition-all hover:scale-[1.04] cursor-default last:col-span-2 sm:last:col-span-1`}
               >
                 <span className={`text-2xl sm:text-4xl font-extrabold font-heading ${s.color}`}>{s.num}</span>
                 <Icon size={16} className={`${s.color} shrink-0`} />

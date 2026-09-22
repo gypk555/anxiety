@@ -72,7 +72,7 @@ export const AssessmentQuiz: React.FC<Props> = ({ userProfile, onComplete, onEdi
   };
 
   return (
-    <div className="max-w-5xl mx-auto w-full space-y-5 fade-in-up pb-12">
+    <div className="assessment-page max-w-5xl mx-auto w-full space-y-5 fade-in-up pb-12">
 
       {/* ── TOP BANNER ── */}
       <div className="premium-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

@@ -63,6 +63,16 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Keyboard users should receive the same clear feedback as pointer users. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(34, 211, 238, 0.95);
+  outline-offset: 3px;
+}
+
 h1, h2, h3, h4, h5, .font-heading {
   font-family: var(--font-heading);
   letter-spacing: -0.02em;
@@ -135,6 +145,16 @@ h1, h2, h3, h4, h5, .font-heading {
   flex: 1;
   padding-top: 1.5rem;
   padding-bottom: 2rem;
+}
+
+/* Flex and grid items otherwise preserve the width of long labels on narrow
+   devices, producing a horizontal page overflow. */
+.main-content,
+.page-transition,
+.landing-page,
+.landing-page > *,
+.layout-wrapper {
+  min-width: 0;
 }
 
 @media (max-width: 1023px) {
@@ -579,8 +599,100 @@ select.custom-input option {
   font-size: 0.6rem;
   font-weight: 500;
   transition: all 0.18s ease;
-  min-width: 44px;
+  min-width: 0;
   min-height: 48px;
+}
+
+@media (max-width: 639px) {
+  .layout-wrapper {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .hero-eyebrow {
+    max-width: 100%;
+    font-size: 0.625rem;
+    line-height: 1.25;
+    letter-spacing: 0.08em;
+    white-space: normal;
+  }
+
+  .landing-actions > button {
+    width: 100%;
+    min-height: 3rem;
+  }
+
+  .hero-orb {
+    margin-top: 0.25rem;
+  }
+
+  .bottom-nav-inner {
+    padding-left: 0.125rem;
+    padding-right: 0.125rem;
+  }
+
+  .bottom-nav-item {
+    padding-left: 0.125rem;
+    padding-right: 0.125rem;
+    font-size: 0.56rem;
+  }
+
+  .bottom-nav-item-active-icon,
+  .bottom-nav-item-crisis-icon {
+    padding: 0.3rem 0.45rem;
+  }
+
+  /* Make every remaining screen read as a calm mobile flow, rather than a
+     reduced desktop dashboard. */
+  .main-content { padding-top: 1rem; }
+  .premium-card, .glass-panel { border-radius: 1.15rem; box-shadow: 0 10px 28px -14px rgba(0,0,0,0.7); }
+  .premium-card-interactive:hover { transform: none; }
+  .stat-card { border-radius: 1rem; padding: 0.9rem; }
+  .stat-card .text-xs { font-size: 0.65rem; line-height: 1.2; }
+  .quiz-option-card { padding: 1rem; }
+  .quiz-option-card:hover { transform: none; }
+  .sidebar-layout { gap: 1rem; }
+  .step-dot { height: 28px; width: 28px; }
+  .step-line { max-width: 46px; }
+
+  .breathing-orb { height: 255px !important; width: 255px !important; }
+  .breathing-orb .absolute.inset-10 { inset: 2.25rem; }
+
+  .onboarding-page { gap: 1.25rem; }
+  .onboarding-page > :first-child { padding-top: 0; }
+  .onboarding-page form { gap: 1rem; }
+  .onboarding-page .premium-card { padding: 1.15rem; }
+
+  .assessment-page { space-y: 1rem; }
+  .assessment-page .premium-card { padding: 1.1rem; }
+  .assessment-page .sidebar-layout .premium-card { padding: 1.25rem; }
+  .assessment-page .sidebar-layout h3 { font-size: 1.3rem; }
+  .assessment-page .btn-ghost, .assessment-page .btn-violet { min-height: 2.75rem; }
+
+  .breathing-page, .soundscape-page { padding: 1.25rem; }
+  .breathing-page > .text-center { margin-bottom: 1.5rem; }
+  .breathing-page .breathing-content { gap: 1.75rem; }
+  .soundscape-page > .flex.items-center { align-items: flex-start; gap: 0.75rem; margin-bottom: 1.5rem; }
+
+  .history-page, .crisis-page { space-y: 1rem; }
+  .history-page .stat-card { padding: 0.8rem 0.45rem; }
+  .history-page .glass-panel, .crisis-page .glass-panel { padding: 1.15rem; }
+  .history-page .h-56 { height: 13rem; }
+  .crisis-page > .flex.items-start { border-radius: 1rem; padding: 1rem; }
+  .crisis-page .crisis-card-grid { gap: 0.75rem; }
+  .crisis-page .crisis-card-grid > div { padding: 1rem; }
+
+  /* Charts and long history metadata need space to be readable. */
+  canvas { max-width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .bottom-nav-item:hover {
@@ -767,6 +879,55 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .score-reveal { animation: countUp 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+/* RESULTS — calm, mobile-first reading flow */
+.results-page { display: grid; gap: 1rem; }
+.results-intro { padding: 0.25rem 0.125rem 0.5rem; }
+.results-intro h1 { color: #f8fafc; font-size: clamp(1.7rem, 6vw, 2.25rem); font-weight: 800; margin-top: 0.35rem; }
+.results-intro p { color: #94a3b8; font-size: 0.9rem; line-height: 1.55; margin-top: 0.35rem; max-width: 38rem; }
+.results-kicker { color: #a78bfa; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.results-score-card, .results-section, .results-next-step { border: 1px solid rgba(148,163,184,0.15); border-radius: 1.25rem; }
+.results-score-card { background: linear-gradient(145deg, rgba(91,33,182,0.27), rgba(12,17,42,0.95) 56%); overflow: hidden; }
+.results-score-content { display: grid; gap: 0.5rem; padding: 1.25rem 1.25rem 0.75rem; }
+.results-gauge-wrap { display: flex; justify-content: center; margin: -0.25rem auto -0.5rem; }
+.results-score-footer { border-top: 1px solid rgba(167,139,250,0.16); color: #94a3b8; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.72rem; line-height: 1.45; padding: 0.75rem 1.25rem; }
+.results-next-step { background: linear-gradient(130deg, rgba(6,78,59,0.38), rgba(12,17,42,0.9)); display: grid; gap: 1rem; padding: 1.25rem; }
+.results-next-step h2, .results-section h2 { color: #f1f5f9; font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; line-height: 1.2; margin-top: 0.1rem; }
+.results-next-step p:not(.results-kicker) { color: #a7b5c9; font-size: 0.82rem; line-height: 1.5; margin-top: 0.35rem; max-width: 34rem; }
+.results-primary-action { min-height: 3.1rem; width: 100%; }
+.results-content-grid { display: grid; gap: 1rem; }
+.results-section { background: rgba(12,17,42,0.78); padding: 1.2rem; }
+.results-section-heading { align-items: center; display: flex; gap: 0.75rem; }
+.results-section-icon { align-items: center; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.75rem; color: #c4b5fd; display: flex; flex: 0 0 auto; height: 2.35rem; justify-content: center; width: 2.35rem; }
+.results-section-icon-green { background: rgba(16,185,129,0.13); border-color: rgba(16,185,129,0.28); color: #6ee7b7; }
+.results-section-icon-cyan { background: rgba(6,182,212,0.13); border-color: rgba(6,182,212,0.28); color: #67e8f9; }
+.results-recommendations { display: grid; gap: 0.75rem; list-style: none; margin-top: 1.1rem; }
+.results-recommendations li { align-items: flex-start; display: flex; gap: 0.75rem; }
+.results-recommendations li > span { align-items: center; background: rgba(16,185,129,0.14); border-radius: 999px; color: #6ee7b7; display: flex; flex: 0 0 auto; font-size: 0.7rem; font-weight: 700; height: 1.45rem; justify-content: center; width: 1.45rem; }
+.results-recommendations p { color: #cbd5e1; font-size: 0.84rem; line-height: 1.48; padding-top: 0.05rem; }
+.results-dimensions { display: grid; gap: 0.9rem; margin-top: 1.15rem; }
+.results-dimension-row > div:first-child { color: #94a3b8; font-size: 0.78rem; font-weight: 600; }
+.results-dimension-track { background: rgba(2,6,23,0.82); border-radius: 999px; height: 0.45rem; margin-top: 0.38rem; overflow: hidden; }
+.results-dimension-track > div { border-radius: inherit; height: 100%; }
+.results-context-copy { color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; margin-top: 1rem; }
+.results-tags { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1rem; }
+.results-tags span { background: rgba(30,41,59,0.68); border: 1px solid rgba(148,163,184,0.15); border-radius: 999px; color: #cbd5e1; font-size: 0.7rem; line-height: 1.3; padding: 0.42rem 0.65rem; }
+.results-utility-actions { display: flex; gap: 0.75rem; justify-content: center; padding: 0.5rem 0 0; }
+.results-utility-actions .btn-ghost { font-size: 0.75rem; padding: 0.65rem 0.85rem; }
+
+@media (min-width: 640px) {
+  .results-page { gap: 1.25rem; }
+  .results-score-content { align-items: center; grid-template-columns: minmax(0, 1fr) 300px; padding: 1.75rem; }
+  .results-gauge-wrap { margin: -0.5rem 0; }
+  .results-score-footer { padding: 0.8rem 1.75rem; }
+  .results-next-step { align-items: center; grid-template-columns: minmax(0, 1fr) auto; padding: 1.5rem 1.75rem; }
+  .results-primary-action { width: auto; }
+  .results-section { padding: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .results-content-grid { grid-template-columns: 1fr 1fr; }
+}
 
 /* ═══════════════════════════════════════════════
    PRINT STYLES
