@@ -1,0 +1,110 @@
+# App shell and routing
+
+## Purpose
+
+The frame around every screen, the URL map, access guards, global error and session handling, and how data is fetched on the client.
+
+## User-facing behaviour
+
+- Header: wordmark and "Get help", plus tabs at the `md` breakpoint.
+- Bottom tab bar on phones: Home, Tools, Journal, Trends, Settings. One-task screens hide it. "Get help" never goes away.
+- Real URLs, and a working back button. Focus moves to the new screen's heading after navigation, and scroll resets except on back.
+- Skeletons while loading, error states with "Go to Help", and a 404 screen with Home and Help.
+
+## How it works
+
+**Routes**, from [router.tsx](../../apps/web/src/router.tsx). `Help` and `Home` are in the first bundle. All others are `lazy`.
+
+| Path | Screen | Needs account | Handle |
+| --- | --- | --- | --- |
+| `/` | Home | No | |
+| `/help` | Help | No | wide |
+| `/check-in` | Check-in intro | No | focus |
+| `/check-in/:step` | Question or difficulty | No | focus |
+| `/result` | Guest result | No | |
+| `/result/:id` | Saved result | **Yes** | |
+| `/tools` | Tools | No | |
+| `/tools/breathe` | Breathe | No | focus, night |
+| `/tools/ground` | Grounding | No | focus |
+| `/tools/sounds` | Sounds | No | |
+| `/trends` | Trends | **Yes** | |
+| `/journal` | Journal list | **Yes** | |
+| `/journal/new` | New entry | **Yes** | focus |
+| `/journal/:id` | Entry | **Yes** | |
+| `/journal/:id/edit` | Edit | **Yes** | focus |
+| `/settings` | Settings | No | |
+| `/sign-in` | Email | No | focus |
+| `/sign-in/code` | Code | No | focus |
+| `/consent` | Consent | Handled itself | focus, wide |
+| `/privacy`, `/terms`, `/about` | Legal | No | wide |
+| `*` | Not found | No | |
+
+Handles (`RouteHandle`): `focus` hides the tab bar, `night` forces the dark canvas, `wide` widens the column.
+
+**Guard.** `RequireAccount` waits for `/me`, then redirects to `/sign-in?next=...` or `/consent?next=...`, or shows the error state. It doesn't treat a network failure as signed out. `safeNext` allows only same-origin paths, and never loops back into sign-in or consent.
+
+**Errors.** `RouteError` sits inside the shell, so a failing screen keeps "Get help". It recognises chunk-load errors. `RootError` is the last resort, using plain links.
+
+**Data.** `queryClient` in [queries.ts](../../apps/web/src/lib/queries.ts) is in memory only. Settings: `staleTime` 30 seconds (`/me` 5 minutes, `/meta` 1 hour), `gcTime` 10 minutes, no refetch on focus, retry once on `NetworkError`. Nothing is persisted.
+
+[`api.ts`](../../apps/web/src/lib/api.ts) wraps fetch: base `/api/v1`, 20-second timeout, CSRF header on anything but GET, `credentials: 'same-origin'`, and parses problem documents into `ApiError`. `errorMessage` turns codes into words for people, and never shows raw server text. Responses are validated against the shared schemas.
+
+**Global handling.** `handleApiError` is attached to the query and mutation caches. A 401 redirects once to sign-in, and calls `sessionEnded`. A 403 `consent_required` refreshes `/me` and redirects to consent.
+
+**Startup.** `main.tsx` imports `zod-config` first, which sets `jitless`, since Zod's JIT would otherwise probe `new Function` and trip the CSP.
+
+## Key files
+
+- [apps/web/src/main.tsx](../../apps/web/src/main.tsx)
+- [apps/web/src/router.tsx](../../apps/web/src/router.tsx)
+- [apps/web/src/shell/Shell.tsx](../../apps/web/src/shell/Shell.tsx)
+- [apps/web/src/shell/Guards.tsx](../../apps/web/src/shell/Guards.tsx)
+- [apps/web/src/shell/RouteError.tsx](../../apps/web/src/shell/RouteError.tsx)
+- [apps/web/src/lib/api.ts](../../apps/web/src/lib/api.ts)
+- [apps/web/src/lib/queries.ts](../../apps/web/src/lib/queries.ts)
+- [apps/web/src/lib/held.ts](../../apps/web/src/lib/held.ts)
+- [apps/web/src/lib/next-path.ts](../../apps/web/src/lib/next-path.ts)
+- [apps/web/src/lib/zod-config.ts](../../apps/web/src/lib/zod-config.ts)
+- [apps/web/src/ui/PageTitle.tsx](../../apps/web/src/ui/PageTitle.tsx)
+
+## Data and API used
+
+`GET /me` on most screens, through `useMe`. A signed-out person gets a 401, which is a normal state. Browser storage rules: [PWA and offline](pwa-and-offline.md), [check-in](check-in-and-scoring.md).
+
+## Security/privacy notes
+
+- The session cookie is `HttpOnly`, so JavaScript can't read it. All "am I signed in" logic comes from `/me`.
+- The cache is memory only and is wiped at sign-out.
+- The URL never holds personal data. `next` holds a path.
+- Guards are about experience. The server enforces access on every request.
+- `/result/:id` shows not-found for any row that isn't yours.
+
+## Edge cases and failure behaviour
+
+| Situation | What happens |
+| --- | --- |
+| Network failure on `/me` on a guarded route | Offline state, not a sign-in screen |
+| Several 401s together | Only the first redirects, so `next` isn't overwritten by `/sign-in` |
+| Guest gets a 401 from `/me` | Guest data is kept |
+| Session ended mid-work | Work is held in memory, and restored only for the same user id |
+| Someone else signs in on the same tab | Nothing of the last person remains |
+| Chunk fails to load | `RouteError` explains, answers are still there, and Help opens |
+| A response fails schema validation | Treated as a query error |
+| Request takes over 20 seconds | `NetworkError` |
+
+## Tests that cover it
+
+- [apps/web/src/shell/guards.test.tsx](../../apps/web/src/shell/guards.test.tsx)
+- [apps/web/src/shell/Shell.test.tsx](../../apps/web/src/shell/Shell.test.tsx)
+- [apps/web/src/lib/api.test.ts](../../apps/web/src/lib/api.test.ts)
+- [apps/web/src/lib/held.test.ts](../../apps/web/src/lib/held.test.ts)
+- [apps/web/src/lib/misc.test.ts](../../apps/web/src/lib/misc.test.ts) (`safeNext`)
+- [apps/web/e2e/live/navigation.spec.ts](../../apps/web/e2e/live/navigation.spec.ts)
+- [apps/web/e2e/live/authorisation.spec.ts](../../apps/web/e2e/live/authorisation.spec.ts)
+- [apps/web/e2e/live/failures.spec.ts](../../apps/web/e2e/live/failures.spec.ts)
+
+## Known limits
+
+- Journal and Trends tabs show to guests, then lead to sign-in, with a one-line reason.
+- `sessionList` in `queries.ts` accepts an array or `{ items }`, although the API only returns `{ items }`. Harmless.
+- No route-level data loaders: each screen fetches on render.

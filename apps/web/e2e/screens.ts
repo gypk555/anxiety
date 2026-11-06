@@ -1,0 +1,111 @@
+import { expect, type Page } from '@playwright/test';
+import { A1, CHECKIN_KEY, GUEST_RESULT, J1, RESULT_KEY, mockApi, progress, seedSession, type MockOptions } from './fixtures';
+
+export interface Screen {
+  name: string;
+  path: string;
+  api?: MockOptions;
+  seed?: (page: Page) => Promise<unknown>;
+  /** Runs after load: open a sheet, start a session and so on. */
+  act?: (page: Page) => Promise<unknown>;
+  state?: Record<string, unknown>;
+}
+
+const signedIn: MockOptions = { signedIn: true };
+const nulls = [null, null, null, null, null, null, null];
+const result = (answers: number[], difficulty: number | null) => (page: Page) => seedSession(page, RESULT_KEY, GUEST_RESULT(answers, difficulty));
+
+export const SCREENS: Screen[] = [
+  { name: 'home-first-run', path: '/' },
+  { name: 'checkin-intro', path: '/check-in' },
+  { name: 'checkin-q1', path: '/check-in/1', seed: (p) => seedSession(p, CHECKIN_KEY, progress(nulls)) },
+  { name: 'checkin-q2-long', path: '/check-in/5', seed: (p) => seedSession(p, CHECKIN_KEY, progress([1, 1, 1, 1, null, null, null])) },
+  { name: 'checkin-q7', path: '/check-in/7', seed: (p) => seedSession(p, CHECKIN_KEY, progress([1, 2, 1, 2, 0, 1, null])) },
+  { name: 'checkin-difficulty', path: '/check-in/difficulty', seed: (p) => seedSession(p, CHECKIN_KEY, progress([1, 2, 1, 2, 0, 1, 1])) },
+  { name: 'result-minimal', path: '/result', seed: result([0, 1, 0, 0, 0, 1, 0], 0) },
+  { name: 'result-mild', path: '/result', seed: result([1, 1, 1, 1, 1, 1, 1], 1) },
+  { name: 'result-moderate', path: '/result', seed: result([2, 2, 2, 1, 1, 2, 2], 2) },
+  { name: 'result-severe', path: '/result', seed: result([3, 3, 3, 2, 2, 3, 3], 3) },
+  { name: 'result-save-offer', path: '/result', api: signedIn, seed: result([2, 2, 2, 1, 1, 2, 2], 2) },
+  { name: 'result-saved', path: `/result/${A1}`, api: signedIn },
+  { name: 'tools', path: '/tools' },
+  { name: 'breathe-setup', path: '/tools/breathe' },
+  {
+    name: 'breathe-in',
+    path: '/tools/breathe',
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Begin' }).click();
+      await p.waitForTimeout(6800); // lead-in, then near the top of the breath
+    },
+  },
+  {
+    name: 'breathe-out',
+    path: '/tools/breathe',
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Begin' }).click();
+      await p.waitForTimeout(12400);
+    },
+  },
+  { name: 'ground', path: '/tools/ground' },
+  { name: 'sounds', path: '/tools/sounds' },
+  { name: 'help', path: '/help' },
+  { name: 'sign-in', path: '/sign-in' },
+  { name: 'sign-in-why', path: '/sign-in?next=%2Fjournal' },
+  {
+    name: 'sign-in-code',
+    path: '/sign-in',
+    act: async (p) => {
+      await p.getByLabel('Email address').fill('asha.menon@example.in');
+      await p.getByRole('button', { name: 'Email me a code' }).click();
+      await p.getByLabel('8-digit code').fill('1234');
+    },
+  },
+  { name: 'consent', path: '/consent', api: { signedIn: true, consentRequired: true } },
+  { name: 'consent-reprompt', path: '/consent', api: { signedIn: true, consentRequired: true, acceptedConsentVersion: '2000-01-01' } },
+  { name: 'settings-consent-reprompt', path: '/settings', api: { signedIn: true, consentRequired: true, acceptedConsentVersion: '2000-01-01' } },
+  { name: 'settings-consent-new', path: '/settings', api: { signedIn: true, consentRequired: true } },
+  { name: 'settings-guest', path: '/settings' },
+  { name: 'privacy', path: '/privacy' },
+  { name: 'terms', path: '/terms' },
+  { name: 'about', path: '/about' },
+  { name: 'not-found', path: '/no-such-page' },
+  { name: 'home-account', path: '/', api: signedIn },
+  { name: 'home-account-empty', path: '/', api: { signedIn: true, empty: true } },
+  { name: 'trends', path: '/trends', api: signedIn },
+  { name: 'trends-table', path: '/trends', api: signedIn, act: (p) => p.getByRole('button', { name: 'Show these as a table' }).click() },
+  { name: 'trends-empty', path: '/trends', api: { signedIn: true, empty: true } },
+  { name: 'journal', path: '/journal', api: signedIn },
+  { name: 'journal-empty', path: '/journal', api: { signedIn: true, empty: true } },
+  { name: 'journal-detail', path: `/journal/${J1}`, api: signedIn },
+  { name: 'journal-step1', path: '/journal/new', api: signedIn },
+  { name: 'journal-step2', path: '/journal/new?step=2', api: signedIn },
+  { name: 'journal-step3', path: '/journal/new?step=3', api: signedIn },
+  { name: 'journal-step4', path: '/journal/new?step=4', api: signedIn },
+  { name: 'journal-step5', path: '/journal/new?step=5', api: signedIn },
+  {
+    name: 'journal-discard',
+    path: '/journal/new',
+    api: signedIn,
+    act: async (p) => {
+      await p.getByRole('textbox').fill('At work, before a meeting.');
+      await p.getByRole('button', { name: 'Close' }).click();
+    },
+  },
+  { name: 'settings-account', path: '/settings', api: signedIn },
+  {
+    name: 'settings-delete',
+    path: '/settings',
+    api: signedIn,
+    act: (p) => p.getByRole('button', { name: 'Delete my account' }).click(),
+  },
+];
+
+export async function openScreen(page: Page, screen: Screen) {
+  await mockApi(page, screen.api);
+  await screen.seed?.(page);
+  await page.goto(screen.path);
+  await expect(page.locator('h1').first()).toBeAttached();
+  await page.waitForLoadState('networkidle');
+  await screen.act?.(page);
+  await page.waitForTimeout(250);
+}
