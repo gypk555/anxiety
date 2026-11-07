@@ -369,7 +369,7 @@ describe('client address behind a proxy', () => {
     expect(remaining(b)).toBe(remaining(a) - 1);
   });
 
-  it('logs the class of address once, never the address, and ignores health checks', async () => {
+  it('logs each pattern of address headers once, never an address, and ignores health checks', async () => {
     const fresh = await createHarness({ CLIENT_IP_HEADER: 'cf-connecting-ip' });
     try {
       for (const url of ['/healthz', '/readyz']) await fresh.app.inject({ method: 'GET', url, remoteAddress: '10.226.0.9' });
@@ -380,6 +380,15 @@ describe('client address behind a proxy', () => {
       expect(lines).toHaveLength(2);
       expect(lines[0]).toContain('client ip resolved: public IPv4 via header');
       expect(lines[1]).toContain('client ip resolved: private/proxy via hops');
+      // Which headers arrived, and the kind of each forwarded entry: what's needed to choose the setting.
+      expect(lines[0]).toContain('"clientIpHeaders":[');
+      expect(lines[0]).toContain('"cf-connecting-ip"');
+      expect(lines[1]).toContain('"clientIpHeaders":[]');
+      // A forged, junk header is a new pattern: logged once, as a kind, never echoed.
+      await fresh.app.inject({ method: 'GET', url: `${API}/meta`, remoteAddress: '10.226.0.9', headers: { 'x-forwarded-for': 'evil-junk-value' } });
+      const junk = fresh.logs.filter((l) => l.includes('client ip resolved')).at(-1)!;
+      expect(junk).toContain('"forwardedFor":["not an address"]');
+      expect(fresh.logs.join('')).not.toContain('evil-junk-value');
       expect(fresh.logs.join('')).not.toMatch(/198\.51\.100|10\.226/);
     } finally {
       await fresh.close();

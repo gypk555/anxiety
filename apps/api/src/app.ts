@@ -87,7 +87,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     );
   });
 
-  // The deploy-time self-check: a single line for each kind of client address seen, never the address.
+  // The deploy-time self-check: one line for each distinct pattern of client address headers, never an address.
   // Health probes come from the platform and say nothing about real clients.
   const seenClientKinds = new Set<string>();
   const kindOf = (value: string) => (isIP(value.replace(/^::ffff:/, '')) ? classifyIp(value) : 'not an address');
@@ -96,10 +96,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     if (path === '/healthz' || path === '/readyz') return;
     const { ip, source } = resolveClient(request, config.clientIpHeader);
     const kind = `${classifyIp(ip)} via ${source}`;
-    if (seenClientKinds.has(kind) || seenClientKinds.size >= 8) return;
-    seenClientKinds.add(kind);
     // What the platform delivers, to choose the right setting: which candidate headers are present, and the kind
-    // of each X-Forwarded-For entry, left to right. Never an address.
+    // of each X-Forwarded-For entry, left to right. Never an address. One line per distinct pattern, so a platform
+    // probe with no headers does not hide what real browser traffic looks like.
     const present = ['cf-connecting-ip', 'true-client-ip', 'x-real-ip', 'x-forwarded-for', 'forwarded', 'cf-ray']
       .filter((name) => request.headers[name] !== undefined);
     const forwarded = String(request.headers['x-forwarded-for'] ?? '')
@@ -107,6 +106,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       .map((entry) => entry.trim())
       .filter(Boolean)
       .map(kindOf);
+    const pattern = `${kind}|${present.join(',')}|${forwarded.join(',')}`;
+    if (seenClientKinds.has(pattern) || seenClientKinds.size >= 12) return;
+    seenClientKinds.add(pattern);
     request.log.info({ clientIpHeaders: present, forwardedFor: forwarded, socket: kindOf(request.socket.remoteAddress ?? '') }, `client ip resolved: ${kind}`);
   });
 
