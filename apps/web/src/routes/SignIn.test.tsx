@@ -273,7 +273,8 @@ describe('create account', () => {
     await user.type(screen.getByLabelText('Password'), PASSWORD);
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.type(await screen.findByLabelText('6-digit code'), '123456');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Pick another one.');
+    // The code screen may flash a general message first; the form then comes back with the server's own words.
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Pick another one.'));
     expect(screen.getByRole('heading', { name: 'Create an account' })).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toHaveValue('');
     expect(screen.getByLabelText('Email address')).toHaveValue('asha@example.in');

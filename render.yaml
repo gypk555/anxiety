@@ -50,8 +50,12 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # smtp, or brevo (HTTPS API) on hosts that block outbound SMTP.
       - key: MAIL_TRANSPORT
         value: smtp
+      # Only for MAIL_TRANSPORT=brevo.
+      - key: BREVO_API_KEY
+        sync: false
       - key: MAIL_FROM
         sync: false
       - key: MAIL_PROVIDER

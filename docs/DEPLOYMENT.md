@@ -182,7 +182,15 @@ Start at `p=none`. After two weeks of clean reports, move to `p=quarantine`, and
 
 Also set `MAIL_PROVIDER` to the provider's name, such as `Amazon Web Services`. It appears in the privacy notice. Left blank, it reads "our email provider".
 
-**Cannot use a free Render instance.** Render blocks outbound SMTP ports 25, 465 and 587 on free web services ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)). A paid instance is required, and `render.yaml` asks for one. Port 25 may be blocked anyway. Use 587 or 465.
+**SMTP doesn't work on a free Render instance.** Render blocks outbound SMTP ports 25, 465 and 587 on free web services ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)). Either use a paid instance, which `render.yaml` asks for, or send through **Brevo's HTTPS API**, which works on any plan:
+
+1. Create a free Brevo account (300 emails a day at the time of writing).
+2. **Senders**: add the address you will use in `MAIL_FROM`, and verify it from the email Brevo sends.
+3. **SMTP & API, API keys**: create a key.
+4. Set `MAIL_TRANSPORT=brevo`, `BREVO_API_KEY=<the key>`, `MAIL_PROVIDER=Brevo`. `SMTP_*` are then not needed.
+5. `npm run doctor -- --file=.env.production.local` checks the key and that the sender is verified, and sends nothing.
+
+Brevo then processes every recipient's address and the mail text. `MAIL_PROVIDER` puts its name in the privacy notice.
 
 ## Step 5a: optional, Google sign-in
 

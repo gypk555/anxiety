@@ -35,6 +35,8 @@ If mail doesn't arrive, the person sees no error. The screens say to check spam,
 
 **`smtp`.** Nodemailer. Port 465 uses implicit TLS, any other port requires STARTTLS. TLS 1.2 minimum, certificates verified. Credentials from `SMTP_USER` and `SMTP_PASS`.
 
+**`brevo`.** Brevo's transactional API, `POST https://api.brevo.com/v3/smtp/email`, over HTTPS, for hosts that block outbound SMTP. The key goes in the `api-key` header only. Each call has a deadline (`BREVO_TIMEOUT_MS`, default 15 s) and refuses redirects. A refusal becomes an error naming only the HTTP status and Brevo's error code, never the key, the recipient or Brevo's reply text. `doctor` reads `/v3/account` and `/v3/senders` to check the key and that `MAIL_FROM` is a verified, active sender, and sends nothing. `BREVO_API_BASE_URL` exists for tests and is refused in production. Tested in `apps/api/test/brevo.test.ts`.
+
 **`file:<path>`.** Development and e2e only. Appends one JSON object per line with mode 600:
 
 ```json

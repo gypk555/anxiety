@@ -126,7 +126,7 @@ const envSchema = z
     // Development and tests only, so they can run a fake provider. Refused in production.
     GOOGLE_OIDC_BASE_URL: blankIsUnset(z.string().url().optional()),
 
-    MAIL_TRANSPORT: z.string().regex(/^(smtp|file:.+)$/, 'must be smtp or file:<path>'),
+    MAIL_TRANSPORT: z.string().regex(/^(smtp|brevo|file:.+)$/, 'must be smtp, brevo or file:<path>'),
     MAIL_FROM: z.string().min(3),
     MAIL_FROM_NAME: blankIsUnset(z.string().trim().regex(/^[^"<>\r\n]{1,60}$/, 'must be a short plain name').optional()),
     MAIL_PROVIDER: blankIsUnset(z.string().trim().min(1).max(100).default('our email provider')),
@@ -134,6 +134,11 @@ const envSchema = z
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASS: z.string().min(1).optional(),
+    // Brevo's transactional email API, over HTTPS. For hosts that block outbound SMTP, such as Render's free plan.
+    BREVO_API_KEY: blankIsUnset(z.string().trim().min(40, 'does not look like a Brevo API key').regex(/^[\x21-\x7e]+$/, 'must be one token').optional()),
+    // Tests only, to reach a fake Brevo. Refused in production.
+    BREVO_API_BASE_URL: blankIsUnset(z.string().url().optional()),
+    BREVO_TIMEOUT_MS: blankIsUnset(z.coerce.number().int().min(100).max(60_000).default(15_000)),
 
     OPERATOR_NAME: z.string().trim().min(1).max(200),
     GRIEVANCE_EMAIL: z.email(),
@@ -163,6 +168,7 @@ const envSchema = z
     }
 
     if (env.MAIL_TRANSPORT === 'smtp' && !env.SMTP_HOST) issue('SMTP_HOST', 'is required for the smtp transport');
+    if (env.MAIL_TRANSPORT === 'brevo' && !env.BREVO_API_KEY) issue('BREVO_API_KEY', 'is required for the brevo transport');
     if (env.DATABASE_CA_CERT && normaliseCaCert(env.DATABASE_CA_CERT) === null) {
       issue('DATABASE_CA_CERT', 'must be a PEM certificate, or base64 of one');
     }
@@ -177,8 +183,9 @@ const envSchema = z
 
     if (!env.PUBLIC_ORIGIN.startsWith('https://')) issue('PUBLIC_ORIGIN', 'must be https in production');
     if (env.DEV_ORIGINS) issue('DEV_ORIGINS', 'is not allowed in production');
-    if (env.MAIL_TRANSPORT !== 'smtp') issue('MAIL_TRANSPORT', 'dev mail transports are refused in production');
-    if (!env.SMTP_USER || !env.SMTP_PASS) issue('SMTP_USER', 'SMTP credentials are required in production');
+    if (env.MAIL_TRANSPORT !== 'smtp' && env.MAIL_TRANSPORT !== 'brevo') issue('MAIL_TRANSPORT', 'dev mail transports are refused in production');
+    if (env.MAIL_TRANSPORT === 'smtp' && (!env.SMTP_USER || !env.SMTP_PASS)) issue('SMTP_USER', 'SMTP credentials are required in production');
+    if (env.BREVO_API_BASE_URL) issue('BREVO_API_BASE_URL', 'is not allowed in production: mail must go to Brevo itself');
     if (!env.DATABASE_CA_CERT) issue('DATABASE_CA_CERT', 'is required in production (TLS verify-full)');
     if (new URL(env.DATABASE_URL).searchParams.get('sslmode') === 'disable') {
       issue('DATABASE_URL', 'must not disable TLS in production');
@@ -199,6 +206,7 @@ const envSchema = z
 
 export type MailConfig =
   | { kind: 'smtp'; from: string; host: string; port: number; user?: string; pass?: string }
+  | { kind: 'brevo'; from: string; fromName: string; fromAddress: string; apiKey: string; baseUrl: string; timeoutMs: number }
   | { kind: 'file'; from: string; path: string };
 
 export interface Config {
@@ -281,7 +289,17 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   const sender = parseSender(e.MAIL_FROM, e.MAIL_FROM_NAME);
   const from = `${sender.name} <${sender.address}>`;
   const mail: MailConfig =
-    e.MAIL_TRANSPORT === 'smtp'
+    e.MAIL_TRANSPORT === 'brevo'
+      ? {
+          kind: 'brevo',
+          from,
+          fromName: sender.name,
+          fromAddress: sender.address,
+          apiKey: e.BREVO_API_KEY!,
+          baseUrl: (e.BREVO_API_BASE_URL ?? 'https://api.brevo.com').replace(/\/+$/, ''),
+          timeoutMs: e.BREVO_TIMEOUT_MS,
+        }
+      : e.MAIL_TRANSPORT === 'smtp'
       ? {
           kind: 'smtp',
           from,

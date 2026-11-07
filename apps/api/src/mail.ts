@@ -189,8 +189,99 @@ function smtpMailer(config: Extract<Config['mail'], { kind: 'smtp' }>): Mailer {
   };
 }
 
+type BrevoConfig = Extract<Config['mail'], { kind: 'brevo' }>;
+
+/**
+ * Calls Brevo's API with a deadline. Any failure becomes an Error naming only the status and Brevo's error code:
+ * a reply can quote the recipient or echo the request, and the key is never put into a message.
+ */
+async function brevoRequest(config: BrevoConfig, method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(`${config.baseUrl}${path}`, {
+      method,
+      headers: {
+        accept: 'application/json',
+        'api-key': config.apiKey,
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      signal: AbortSignal.timeout(config.timeoutMs),
+      redirect: 'error',
+    });
+  } catch (err) {
+    const name = (err as { name?: string }).name;
+    if (name === 'TimeoutError' || name === 'AbortError') throw new Error(`Brevo ${method} ${path} timed out after ${config.timeoutMs} ms`);
+    throw new Error(`Brevo ${method} ${path} could not connect (${String((err as { cause?: { code?: string } }).cause?.code ?? name ?? 'error')})`);
+  }
+  const text = await response.text().catch(() => '');
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = null;
+  }
+  if (!response.ok) {
+    const code = typeof (parsed as { code?: unknown })?.code === 'string' && /^[a-z_]{1,40}$/.test((parsed as { code: string }).code)
+      ? (parsed as { code: string }).code
+      : 'error';
+    throw Object.assign(new Error(`Brevo ${method} ${path} refused: ${response.status} ${code}`), { status: response.status });
+  }
+  return parsed;
+}
+
+function brevoMailer(config: BrevoConfig): Mailer {
+  return {
+    async send(message) {
+      await brevoRequest(config, 'POST', '/v3/smtp/email', {
+        sender: { name: config.fromName, email: config.fromAddress },
+        to: [{ email: message.to }],
+        subject: message.subject,
+        textContent: message.text,
+      });
+    },
+  };
+}
+
+/** For `npm run doctor`: the key works, and MAIL_FROM is a verified, active sender. Reads only; sends nothing. */
+export async function brevoCheck(config: Config): Promise<{ name: string; ok: boolean; detail: string; fix?: string }> {
+  const name = 'Brevo';
+  if (config.mail.kind !== 'brevo') return { name, ok: false, detail: 'not using brevo', fix: 'Set MAIL_TRANSPORT=brevo.' };
+  const mail = config.mail;
+  try {
+    await brevoRequest(mail, 'GET', '/v3/account');
+  } catch (err) {
+    const status = (err as { status?: number }).status;
+    return {
+      name,
+      ok: false,
+      detail: (err as Error).message,
+      fix: status === 401 || status === 403
+        ? 'Check BREVO_API_KEY: create an API key in Brevo under SMTP & API, and paste it whole.'
+        : 'Check this server can reach api.brevo.com over HTTPS.',
+    };
+  }
+  try {
+    const result = (await brevoRequest(mail, 'GET', '/v3/senders')) as { senders?: { email?: string; active?: boolean }[] } | null;
+    const wanted = mail.fromAddress.toLowerCase();
+    const sender = result?.senders?.find((s) => String(s.email ?? '').toLowerCase() === wanted);
+    if (!sender?.active) {
+      return {
+        name,
+        ok: false,
+        detail: sender ? 'the MAIL_FROM address is added at Brevo but not verified yet' : 'the MAIL_FROM address is not a sender at Brevo',
+        fix: 'In Brevo, open Senders, add the MAIL_FROM address and verify it from the email Brevo sends, or change MAIL_FROM to a verified one.',
+      };
+    }
+  } catch (err) {
+    return { name, ok: false, detail: (err as Error).message, fix: 'Check that the API key may read senders.' };
+  }
+  return { name, ok: true, detail: 'API key accepted, and MAIL_FROM is a verified sender. Nothing was sent' };
+}
+
 export function createMailer(config: Config): Mailer {
   if (config.mail.kind === 'smtp') return smtpMailer(config.mail);
+  if (config.mail.kind === 'brevo') return brevoMailer(config.mail);
   // Config validation refuses this in production; keep a second check at the point of use.
   if (config.env === 'production') throw new Error('file mail transport is refused in production');
   return fileMailer(config.mail.path, config.mail.from, config.env === 'development');

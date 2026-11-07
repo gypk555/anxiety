@@ -6,7 +6,7 @@ import { parseEnv } from 'node:util';
 import { ConfigError, loadConfig, type Config } from '../src/config.ts';
 import { assertRuntimeRole, createSql, RuntimeRoleError } from '../src/db.ts';
 import { printChecks, type Check } from '../src/db-checks.ts';
-import { smtpTransport } from '../src/mail.ts';
+import { brevoCheck, smtpTransport } from '../src/mail.ts';
 import { describeConnectionError } from '../src/setup.ts';
 
 const FIXES: Record<string, string> = {
@@ -26,7 +26,9 @@ const FIXES: Record<string, string> = {
   GOOGLE_CLIENT_SECRET: 'Set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or neither to leave Google off.',
   GOOGLE_OIDC_BASE_URL: 'Remove it. It exists only for tests, to reach a fake provider.',
   DEV_ORIGINS: 'Remove it. It exists only for development.',
-  MAIL_TRANSPORT: 'Set it to smtp.',
+  MAIL_TRANSPORT: 'Set it to smtp, or to brevo on hosts that block outbound SMTP (such as Render\'s free plan).',
+  BREVO_API_KEY: 'Create an API key in Brevo under SMTP & API, and paste it whole.',
+  BREVO_API_BASE_URL: 'Remove it. It exists only for tests, to reach a fake Brevo.',
   MAIL_FROM: 'Use a neutral sender that does not name the service or its subject, for example no-reply@mail.yourdomain.example.',
   SMTP_HOST: "Use your mail provider's SMTP host.",
   SMTP_USER: "Set SMTP_USER and SMTP_PASS from your mail provider's SMTP credentials.",
@@ -120,9 +122,9 @@ function originCheck(config: Config): Check {
 const { check, config } = configCheck(loadEnv());
 const checks: Check[] = [check];
 if (config) {
-  checks.push(await databaseCheck(config), await smtpCheck(config), googleCheck(config), originCheck(config));
+  checks.push(await databaseCheck(config), config.mail.kind === 'brevo' ? await brevoCheck(config) : await smtpCheck(config), googleCheck(config), originCheck(config));
 } else {
-  console.log('Database, SMTP, Google and the public origin are checked once the config is valid.\n');
+  console.log('Database, mail (SMTP or Brevo), Google and the public origin are checked once the config is valid.\n');
 }
 const ok = printChecks(checks);
 process.exit(ok ? 0 : 1);
