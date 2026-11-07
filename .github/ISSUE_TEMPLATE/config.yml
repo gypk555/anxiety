@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security or privacy problem
+    url: https://github.com/gypk555/anxiety/blob/main/SECURITY.md
+    about: Do not open a public issue. Follow SECURITY.md instead.
+  - name: Need help now?
+    url: https://telemanas.mohfw.gov.in/
+    about: This tracker is not monitored for crises. In India, call 112 for emergencies, or Tele-MANAS on 14416.

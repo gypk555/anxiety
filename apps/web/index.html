@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>AnxioCare: a private anxiety check-in</title>
+    <meta name="description" content="A free, private check-in for anxiety, calming tools you can use right now, and helplines in India. A screening, not a diagnosis." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6e9e3" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#16163c" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="AnxioCare" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-180.png" />
+    <!-- Sets the stored theme before first paint. External file: the CSP forbids inline script. -->
+    <script src="/theme-init.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Replaced when the app starts. If that takes a while, the call links fade in. -->
+      <div class="boot">
+        <p class="boot-mark">AnxioCare</p>
+        <div class="boot-late">
+          <p>Still loading. If you need someone to talk to now, you can call:</p>
+          <!--help-links-->
+        </div>
+      </div>
+    </div>
+    <noscript>
+      <div class="boot boot-noscript">
+        <p>AnxioCare needs JavaScript for the check-in. You can still call for help:</p>
+        <!--help-links-->
+      </div>
+    </noscript>
+  </body>
+</html>

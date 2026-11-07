@@ -1,5 +1,0 @@
-/* App-level print utilities only — all layout styles are in index.css */
-
-@media print {
-  .no-print { display: none !important; }
-}

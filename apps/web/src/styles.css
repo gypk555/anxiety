@@ -1,0 +1,576 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/yrsa/wght.css';
+@import '@fontsource-variable/anek-latin/wght.css';
+
+/* ── Colour ─────────────────────────────────────────────────────────────
+   Taken from kantha: old saris, soft from washing, quilted with running stitch.
+   Light is faded madder-pink cotton with indigo ink. Dark is the same indigo
+   as a night quilt, never black. Haldi is the single warm note.
+   Severity is deliberately NOT mapped to these colours. */
+:root {
+  color-scheme: light;
+  --ground: #f6e9e3;
+  --surface: #fff8f4;
+  --surface-2: #eedcd3;
+  --ink: #1f1f58;
+  --ink-soft: #514d78;
+  --primary: #26266a;
+  --on-primary: #fff6ef;
+  --madder: #96294f;
+  --haldi: #eeb02b;
+  --haldi-deep: #c98a12;
+  --on-haldi: #1f1f58;
+  --thread: #a84a6b;
+  --thread-faint: #cfa9a9;
+  --line: #dcc4ba;
+  --focus: #96294f;
+  --scrim: rgb(31 31 88 / 0.45);
+  --google-fill: #ffffff;
+  --google-ink: #1f1f1f;
+  --google-outline: #747775;
+}
+
+/* Dark values live in one place by way of a repeated block: the system preference,
+   the stored override, and the always-night breathing canvas. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --ground: #16163c;
+    --surface: #20204e;
+    --surface-2: #2b2b60;
+    --ink: #f8ebe3;
+    --ink-soft: #c3bddb;
+    --primary: #f2bd4a;
+    --on-primary: #1a1a48;
+    --madder: #f2a9bf;
+    --haldi: #eeb02b;
+    --haldi-deep: #c98a12;
+    --on-haldi: #1f1f58;
+    --thread: #e78fab;
+    --thread-faint: #56507f;
+    --line: #3b3b74;
+    --focus: #f2bd4a;
+    --scrim: rgb(5 5 25 / 0.6);
+    --google-fill: #131314;
+    --google-ink: #e3e3e3;
+    --google-outline: #8e918f;
+  }
+}
+:root[data-theme='dark'],
+.night {
+  color-scheme: dark;
+  --ground: #16163c;
+  --surface: #20204e;
+  --surface-2: #2b2b60;
+  --ink: #f8ebe3;
+  --ink-soft: #c3bddb;
+  --primary: #f2bd4a;
+  --on-primary: #1a1a48;
+  --madder: #f2a9bf;
+  --haldi: #eeb02b;
+  --haldi-deep: #c98a12;
+  --on-haldi: #1f1f58;
+  --thread: #e78fab;
+  --thread-faint: #56507f;
+  --line: #3b3b74;
+  --focus: #f2bd4a;
+  --scrim: rgb(5 5 25 / 0.6);
+  --google-fill: #131314;
+  --google-ink: #e3e3e3;
+  --google-outline: #8e918f;
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-madder: var(--madder);
+  --color-haldi: var(--haldi);
+  --color-on-haldi: var(--on-haldi);
+  --color-thread: var(--thread);
+  --color-line: var(--line);
+
+  --font-display: 'Yrsa Variable', Georgia, 'Noto Serif', serif;
+  --font-body: 'Anek Latin Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.45;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.35;
+  --text-xl: 1.625rem;
+  --text-xl--line-height: 1.18;
+  --text-2xl: 2.125rem;
+  --text-2xl--line-height: 1.1;
+  --text-3xl: 2.75rem;
+  --text-3xl--line-height: 1.04;
+}
+
+@layer base {
+  html {
+    /* Room for the sticky header and the fixed tab bar, so a focused control is never scrolled under them: WCAG 2.4.11. */
+    scroll-padding-top: calc(4rem + env(safe-area-inset-top));
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    background: var(--ground);
+    scrollbar-gutter: stable;
+  }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 560;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  [tabindex='-1']:focus {
+    outline: none;
+  }
+  button,
+  summary {
+    cursor: pointer;
+  }
+  input,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+  ::selection {
+    background: var(--haldi);
+    color: var(--on-haldi);
+  }
+}
+
+@layer components {
+  /* Link with a stitched underline, used for inline links only. */
+  .link {
+    color: var(--madder);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-decoration-style: dashed;
+    text-underline-offset: 3px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 3.25rem;
+    padding: 0.5rem 1.25rem;
+    border: 2px solid transparent;
+    border-radius: 0.875rem;
+    font-weight: 560;
+    font-size: var(--text-base);
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 120ms, border-color 120ms, transform 120ms;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .btn:active {
+    transform: scale(0.985);
+  }
+  .btn[disabled] {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+  .btn-quiet {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  /* Google's branding guidelines: white with a grey outline on light, near-black on dark. A deliberate exception to the palette. */
+  .btn-google {
+    gap: 0.625rem;
+    background: var(--google-fill);
+    color: var(--google-ink);
+    border: 1px solid var(--google-outline);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  /* The "call" button: always haldi in both themes so it can be found by shape and colour. */
+  .btn-call {
+    background: var(--haldi);
+    color: var(--on-haldi);
+    font-size: var(--text-lg);
+    min-height: 3.5rem;
+  }
+  .btn-small {
+    min-height: 2.75rem;
+    padding: 0.25rem 0.875rem;
+    font-size: var(--text-sm);
+    border-radius: 0.75rem;
+  }
+
+  /* A patch: one piece of cloth set on the ground. No shadow, no gradient. */
+  .patch {
+    background: var(--surface);
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+  }
+  /* A patch quilted down with a line of running stitch, for the thing that matters most on a page. */
+  .patch-quilted {
+    position: relative;
+    background: var(--surface);
+    border-radius: 1.25rem;
+    padding: 1.5rem 1.375rem;
+    outline: 2px dashed var(--thread);
+    outline-offset: -7px;
+  }
+
+  /* Running stitch as a divider. */
+  .stitch-rule {
+    height: 2px;
+    border: 0;
+    margin: 0;
+    background-image: repeating-linear-gradient(90deg, var(--thread-faint) 0 12px, transparent 12px 20px);
+  }
+
+  .field {
+    display: block;
+    width: 100%;
+    min-height: 3.25rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.875rem;
+    border: 2px solid var(--ink-soft);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 1.0625rem; /* 16px+ stops iOS zooming on focus */
+  }
+  .field::placeholder {
+    color: var(--ink-soft);
+    opacity: 1;
+  }
+  .field[aria-invalid='true'] {
+    border-color: var(--madder);
+    border-width: 3px;
+  }
+
+  .skeleton {
+    background: var(--surface-2);
+    border-radius: 0.75rem;
+    animation: skeleton-pulse 1.8s ease-in-out infinite;
+  }
+
+  /* Option row in the check-in. Big target, tick when chosen, never colour alone. */
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0.5rem 1rem;
+    text-align: left;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 0.875rem;
+    font-size: var(--text-base);
+    font-weight: 500;
+    line-height: 1.2;
+    transition: background-color 120ms, border-color 120ms;
+  }
+  .option[aria-pressed='true'] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.75rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    padding: 0.25rem 0.875rem;
+    border-radius: 999px;
+    border: 2px solid var(--line);
+    background: var(--surface);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .chip[aria-pressed='true'],
+  .chip[aria-checked='true'] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .range {
+    width: 100%;
+    height: 2.75rem;
+    accent-color: var(--madder);
+    background: transparent;
+  }
+
+  /* Bottom sheet, built on <dialog> for the focus trap, Esc and inert background. */
+  .sheet {
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    max-width: 32rem;
+    max-height: 90dvh;
+    margin: auto auto 0;
+    padding: 0;
+    border: 0;
+    border-radius: 1.5rem 1.5rem 0 0;
+    background: var(--surface);
+    color: var(--ink);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .sheet[open] {
+    animation: sheet-up 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .sheet::backdrop {
+    background: var(--scrim);
+  }
+  @media (min-width: 48rem) {
+    .sheet {
+      inset: 0;
+      margin: auto;
+      border-radius: 1.5rem;
+      height: fit-content;
+    }
+  }
+
+  /* Static first paint, in index.html. */
+  .boot {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.25rem;
+    max-width: 26rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+  .boot-mark {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 560;
+  }
+  .boot-late {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    opacity: 0;
+    animation: boot-reveal 200ms linear 2.5s forwards;
+  }
+  .boot-late p,
+  .boot-noscript p {
+    margin: 0;
+  }
+  .boot-call {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.875rem;
+    background: var(--haldi);
+    color: var(--on-haldi);
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+  }
+  .boot-noscript {
+    min-height: auto;
+  }
+}
+
+/* ── Breathing: the hero moment ──────────────────────────────────────────
+   Each ring is its own layer so scaling stays on the compositor on cheap phones. */
+.breath-stage {
+  position: relative;
+  aspect-ratio: 1;
+  width: min(92vw, 50dvh, 26rem);
+}
+.breath-stage-small {
+  width: min(62vw, 30dvh, 17rem);
+}
+.breath-layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+  transition-property: transform, opacity;
+  transition-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+}
+.breath-layer svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.breath-spin {
+  animation: slow-spin 180s linear infinite;
+}
+.breath-spin-rev {
+  animation: slow-spin 240s linear infinite reverse;
+}
+
+.hero-rings {
+  animation: hero-settle 1.4s cubic-bezier(0.37, 0, 0.63, 1) both;
+}
+/* The headline starts just below the rings, however tall the phone, so they never cross
+   and the first button stays above the tab bar on a 320 by 568 screen. */
+.hero {
+  --hero-rings: clamp(9rem, calc(100dvh - 26rem), 18rem);
+}
+.hero-copy {
+  margin-top: calc(var(--hero-rings) - 4.25rem);
+}
+
+@keyframes slow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes hero-settle {
+  from {
+    transform: scale(0.96);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0.4;
+  }
+}
+@keyframes boot-reveal {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .breath-layer {
+    transition: none !important;
+  }
+}
+
+/* ── Print: the result, on one clean page, to show a doctor ─────────────── */
+.print-only {
+  display: none;
+}
+@media print {
+  /* Paper is always light: !important beats the dark-system and night rules. */
+  :root,
+  .night {
+    --ground: #fff !important;
+    --surface: #fff !important;
+    --surface-2: #fff !important;
+    --ink: #000 !important;
+    --ink-soft: #333 !important;
+    --thread: #000 !important;
+    --thread-faint: #777 !important;
+    --line: #999 !important;
+    color-scheme: light !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000;
+    font-size: 11pt;
+  }
+  /* The score scale is drawn with backgrounds, which browsers drop by default. */
+  figure,
+  figure * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  table {
+    break-inside: avoid;
+  }
+  @page {
+    margin: 18mm;
+  }
+}
+
+/* Score scale on the result: running stitch, one solid run for the band you're in. */
+.stitch-band {
+  background-image: repeating-linear-gradient(90deg, var(--thread-faint) 0 8px, transparent 8px 13px);
+  border-radius: 2px;
+}
+.stitch-band-on {
+  background-image: repeating-linear-gradient(90deg, var(--thread) 0 8px, transparent 8px 13px);
+}
+html.canvas-night,
+html.canvas-night body {
+  background: #16163c;
+}

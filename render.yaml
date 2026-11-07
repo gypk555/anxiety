@@ -1,0 +1,73 @@
+# Render has no Mumbai region; Singapore is the closest to the Supabase Mumbai database and to users in India.
+# preDeployCommand requires a paid instance type.
+services:
+  - type: web
+    name: anxiocare
+    runtime: node
+    region: singapore
+    plan: starter
+    branch: main
+    # Render sets NODE_ENV=production, which would skip the dev dependencies the build needs.
+    # No lifecycle scripts run: a compromised dependency's postinstall gets nothing here. The icons are committed.
+    buildCommand: npm ci --include=dev --ignore-scripts && npm run build
+    preDeployCommand: npm run migrate
+    # Pre-deploy shares this environment. The serving process does not need the migration role, so it never gets it.
+    startCommand: env -u DATABASE_MIGRATION_URL npm start
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render's edge is Cloudflare, which overwrites this header on every request. See apps/api/README.md.
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: USER_RATE_LIMIT_PER_MINUTE
+        value: "60"
+      - key: PUBLIC_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_MIGRATION_URL
+        sync: false
+      - key: DATABASE_CA_CERT
+        sync: false
+      - key: ENCRYPTION_KEYS
+        sync: false
+      - key: ENCRYPTION_ACTIVE_KEY
+        sync: false
+      - key: EMAIL_INDEX_KEY
+        sync: false
+      - key: OTP_PEPPER
+        sync: false
+      - key: AUDIT_KEY
+        sync: false
+      - key: PASSWORD_PEPPER
+        sync: false
+      # Both or neither. Left empty, the Google button is hidden.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: MAIL_TRANSPORT
+        value: smtp
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_PROVIDER
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: OPERATOR_NAME
+        sync: false
+      - key: GRIEVANCE_EMAIL
+        sync: false
+      # Owner to confirm against the Supabase plan: Pro keeps 7 days of daily backups, Team 14.
+      - key: BACKUP_RETENTION_DAYS
+        value: "7"

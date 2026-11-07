@@ -1,0 +1,13 @@
+{
+  "name": "@anxiocare/shared",
+  "version": "1.0.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./passwords": "./src/passwords.ts" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": { "zod": "^4.0.0" }
+}
