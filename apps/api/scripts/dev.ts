@@ -6,7 +6,7 @@
 //   DEV_PG_DIR, DEV_PG_PORT, PORT, MAIL_TRANSPORT, PUBLIC_ORIGIN, DEV_ORIGINS  override defaults
 import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { closeSync, existsSync, fchmodSync, ftruncateSync, openSync, readFileSync, rmSync, writeSync } from 'node:fs';
+import { closeSync, constants, existsSync, fchmodSync, ftruncateSync, openSync, readFileSync, rmSync, writeSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import EmbeddedPostgres from 'embedded-postgres';
@@ -42,14 +42,9 @@ function loadSecrets(): DevSecrets {
     AUDIT_KEY: key(),
     PASSWORD_PEPPER: key(),
   });
-  // One handle from check to write, so the file cannot be swapped in between. Created owner-only and exclusively.
-  let fd: number;
-  try {
-    fd = openSync(secretsFile, 'wx+', 0o600);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-    fd = openSync(secretsFile, 'r+');
-  }
+  // One open call, creating the file owner-only if it is missing, and never through a symlink. Everything after
+  // goes through this handle, so there is no check-then-use gap for the file to be swapped in.
+  const fd = openSync(secretsFile, constants.O_RDWR | constants.O_CREAT | constants.O_NOFOLLOW, 0o600);
   try {
     fchmodSync(fd, 0o600);
     const existing = readFileSync(fd, 'utf8');

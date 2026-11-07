@@ -25,7 +25,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // CI keeps a report for failures. Everything in it is test data, from throwaway accounts on throwaway databases.
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
-  use: { trace: 'off', screenshot: process.env.CI ? 'only-on-failure' : 'off' },
+  // In CI, a failing test keeps a trace: every request, response and page state, for diagnosis. Test data only.
+  use: { trace: process.env.CI ? 'retain-on-failure' : 'off', screenshot: process.env.CI ? 'only-on-failure' : 'off' },
   projects: [
     { name: 'iphone', testIgnore: /(live|https)\//, use: { ...devices['iPhone 14'], baseURL: MOCK_ORIGIN } },
     { name: 'pixel', testIgnore: /(live|https)\//, use: { ...devices['Pixel 7'], baseURL: MOCK_ORIGIN } },

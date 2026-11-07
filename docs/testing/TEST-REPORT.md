@@ -91,6 +91,10 @@ The grand total of runs is 1,401: 835 Vitest and 566 Playwright. Unique tests: 1
 
 171 requirements are mapped in [TEST-CASES.md](TEST-CASES.md), including 28 from the accounts spec and its second review: 125 covered on the stack the tests run on, 30 partial, 16 with no automated test. "Covered" there means localhost and emulation, not production.
 
+## Known issues
+
+**Google sign-in round trip on Linux WebKit (CI only).** In GitHub Actions, three tests that return from the fake Google provider never complete the redirect back to the app on WebKit for Linux (GNOME Web's engine): `accounts.spec.ts` "connect from Settings…" and "open redirect…", and `https.spec.ts` "the Lax state cookie survives…". Waiting 20 seconds made no difference, so it is not slowness. The same tests pass in CI on Chromium, and on macOS WebKit (the engine iPhone Safari uses), including with CI's screenshot settings. They are marked `test.fixme` for `webkit` on `linux` only, so they still run everywhere else. Root cause not found: it could not be reproduced outside Linux. CI now keeps a trace for any failing test. Before launch, a real Google sign-in on a real iPhone covers this (`MANUAL-TEST-CASES.md`).
+
 ## Known warnings
 
 Lint gives 18 warnings, and no errors. None was fixed. The linter doesn't fail on warnings.

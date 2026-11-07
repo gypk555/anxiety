@@ -1,5 +1,5 @@
 import { createHash, createHmac, pbkdf2Sync, randomBytes } from 'node:crypto';
-import { closeSync, existsSync, fchmodSync, openSync, readFileSync, writeSync } from 'node:fs';
+import { closeSync, constants, existsSync, fchmodSync, fstatSync, openSync, readFileSync, writeSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
@@ -80,19 +80,12 @@ export interface GeneratedSecrets {
  * because replacing it could make data unreadable for good.
  */
 export function ensureSecrets(path: string, adminUrl: string): GeneratedSecrets {
-  // One handle for the whole job, so nothing can swap the file between reading it and writing it. A new file is
-  // created owner-only and exclusively; an existing one is opened for appending, never truncated.
-  let fd: number;
-  let existed = false;
+  // One open call for the whole job: created owner-only if missing, appended to and never truncated if present,
+  // and never followed through a symlink. Reading and writing both go through this handle, so nothing can swap the
+  // file in between. An empty file counts as new.
+  const fd = openSync(path, constants.O_RDWR | constants.O_CREAT | constants.O_APPEND | constants.O_NOFOLLOW, 0o600);
   try {
-    fd = openSync(path, 'wx', 0o600);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-    fd = openSync(path, 'a+');
-    existed = true;
-  }
-  try {
-    return writeSecrets(fd, existed, path, adminUrl);
+    return writeSecrets(fd, fstatSync(fd).size > 0, path, adminUrl);
   } finally {
     closeSync(fd);
   }
