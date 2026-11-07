@@ -75,6 +75,16 @@ describe('Brevo config', () => {
     expect(config.mail).toMatchObject({ kind: 'brevo', fromAddress: SENDER, fromName: 'Accounts', baseUrl: base });
   });
 
+  it('forgives what a dashboard paste adds: surrounding spaces and capitals in MAIL_TRANSPORT', () => {
+    for (const MAIL_TRANSPORT of [' brevo', 'brevo ', 'Brevo', ' BREVO\t']) {
+      expect(loadConfig(brevoEnv({ MAIL_TRANSPORT })).mail.kind, JSON.stringify(MAIL_TRANSPORT)).toBe('brevo');
+    }
+    expect(loadConfig(baseEnv({ MAIL_TRANSPORT: ' SMTP ', SMTP_HOST: 'smtp.example.com' })).mail.kind).toBe('smtp');
+    // Still strict about anything else.
+    expect(problems(brevoEnv({ MAIL_TRANSPORT: '"brevo"' }))).toContain('MAIL_TRANSPORT');
+    expect(problems(brevoEnv({ MAIL_TRANSPORT: 'brevo2' }))).toContain('MAIL_TRANSPORT');
+  });
+
   it('requires BREVO_API_KEY for the brevo transport, naming it but never echoing a value', () => {
     expect(problems(brevoEnv({ BREVO_API_KEY: undefined }))).toContain('BREVO_API_KEY');
     const weak = 'short';

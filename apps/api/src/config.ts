@@ -126,7 +126,13 @@ const envSchema = z
     // Development and tests only, so they can run a fake provider. Refused in production.
     GOOGLE_OIDC_BASE_URL: blankIsUnset(z.string().url().optional()),
 
-    MAIL_TRANSPORT: z.string().regex(/^(smtp|brevo|file:.+)$/, 'must be smtp, brevo or file:<path>'),
+    // Pasted into a hosting dashboard, a value can pick up spaces or capitals. Forgive those for the two named
+    // transports only; a file: path keeps its case.
+    MAIL_TRANSPORT: z.preprocess((v) => {
+      if (typeof v !== 'string') return v;
+      const trimmed = v.trim();
+      return /^(smtp|brevo)$/i.test(trimmed) ? trimmed.toLowerCase() : trimmed;
+    }, z.string().regex(/^(smtp|brevo|file:.+)$/, 'must be smtp, brevo or file:<path>')),
     MAIL_FROM: z.string().min(3),
     MAIL_FROM_NAME: blankIsUnset(z.string().trim().regex(/^[^"<>\r\n]{1,60}$/, 'must be a short plain name').optional()),
     MAIL_PROVIDER: blankIsUnset(z.string().trim().min(1).max(100).default('our email provider')),
