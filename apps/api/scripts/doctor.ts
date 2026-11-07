@@ -1,6 +1,7 @@
 // npm run doctor: checks a full production environment without starting the server. Sends no mail, changes nothing.
-// Reads the process environment, plus --env-file=<path>. Each failure says how to fix it, and no secret value is printed.
+// Reads the process environment, plus --file=<path> (not --env-file, which Node itself intercepts). Each failure says how to fix it, and no secret value is printed.
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { parseEnv } from 'node:util';
 import { ConfigError, loadConfig, type Config } from '../src/config.ts';
 import { assertRuntimeRole, createSql, RuntimeRoleError } from '../src/db.ts';
@@ -34,8 +35,10 @@ const FIXES: Record<string, string> = {
 };
 
 function loadEnv(): Record<string, string | undefined> {
-  const flag = process.argv.find((arg) => arg.startsWith('--env-file='));
-  const fromFile = flag ? parseEnv(readFileSync(flag.slice('--env-file='.length), 'utf8')) : {};
+  const flag = process.argv.find((arg) => arg.startsWith('--file='));
+  // npm runs this from apps/api, so a relative path means relative to where the person typed the command.
+  const path = flag ? resolve(process.env.INIT_CWD ?? process.cwd(), flag.slice('--file='.length)) : null;
+  const fromFile = path ? parseEnv(readFileSync(path, 'utf8')) : {};
   // What this checks is production, whatever this machine happens to be set to.
   return { ...process.env, ...fromFile, NODE_ENV: 'production' };
 }

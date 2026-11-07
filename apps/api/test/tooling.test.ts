@@ -386,7 +386,15 @@ describe('npm run doctor', () => {
     const file = join(good.workdir, 'render.env');
     const { NODE_EXTRA_CA_CERTS: _ca, ...rest } = baseEnv;
     writeFileSync(file, Object.entries(rest).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join('\n'));
-    const r = await run('doctor.ts', [`--env-file=${file}`], { NODE_EXTRA_CA_CERTS: caPath });
+    const r = await run('doctor.ts', [`--file=${file}`], { NODE_EXTRA_CA_CERTS: caPath });
+    expect(r.code, r.output).toBe(0);
+  });
+
+  it('reads a relative env file from where npm was run (INIT_CWD), not from apps/api', async () => {
+    const file = join(good.workdir, 'relative.env');
+    const { NODE_EXTRA_CA_CERTS: _ca, ...rest } = baseEnv;
+    writeFileSync(file, Object.entries(rest).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join('\n'));
+    const r = await run('doctor.ts', ['--file=relative.env'], { NODE_EXTRA_CA_CERTS: caPath, INIT_CWD: good.workdir });
     expect(r.code, r.output).toBe(0);
   });
 

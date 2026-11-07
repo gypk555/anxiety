@@ -18,3 +18,6 @@ coverage
 test-results
 playwright-report
 apps/web/dev-dist
+
+# Database CA certificates downloaded for db:setup (not secret, but local)
+*.crt

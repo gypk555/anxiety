@@ -255,7 +255,7 @@ Optional. Not in `render.yaml`. Add under **Environment** only if needed:
 Before you press **Apply**, put the production values in a file git ignores, such as `.env.production.local`, and on your own computer run:
 
 ```sh
-npm run doctor -- --env-file=.env.production.local
+npm run doctor -- --file=.env.production.local
 ```
 
 It checks everything without starting the server, sends no mail and changes nothing: the config against production's rules, the database connection and role, SMTP connect and sign-in, Google's shape, and the public origin. Each failure says how to fix it, and no secret value is printed. **It has never met real Supabase, real SMTP or real Google.** `PUBLIC_ORIGIN` isn't known until the service exists, so run it again once it does.
