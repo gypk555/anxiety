@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
@@ -89,6 +90,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   // The deploy-time self-check: a single line for each kind of client address seen, never the address.
   // Health probes come from the platform and say nothing about real clients.
   const seenClientKinds = new Set<string>();
+  const kindOf = (value: string) => (isIP(value.replace(/^::ffff:/, '')) ? classifyIp(value) : 'not an address');
   app.addHook('onRequest', async (request) => {
     const path = request.url.split('?', 1)[0];
     if (path === '/healthz' || path === '/readyz') return;
@@ -96,7 +98,16 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     const kind = `${classifyIp(ip)} via ${source}`;
     if (seenClientKinds.has(kind) || seenClientKinds.size >= 8) return;
     seenClientKinds.add(kind);
-    request.log.info(`client ip resolved: ${kind}`);
+    // What the platform delivers, to choose the right setting: which candidate headers are present, and the kind
+    // of each X-Forwarded-For entry, left to right. Never an address.
+    const present = ['cf-connecting-ip', 'true-client-ip', 'x-real-ip', 'x-forwarded-for', 'forwarded', 'cf-ray']
+      .filter((name) => request.headers[name] !== undefined);
+    const forwarded = String(request.headers['x-forwarded-for'] ?? '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map(kindOf);
+    request.log.info({ clientIpHeaders: present, forwardedFor: forwarded, socket: kindOf(request.socket.remoteAddress ?? '') }, `client ip resolved: ${kind}`);
   });
 
   // Secure by default: only the static handler relaxes caching, for files it actually serves.

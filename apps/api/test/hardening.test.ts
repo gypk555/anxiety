@@ -163,7 +163,10 @@ describe('2 and 3. OTP strength and quotas', () => {
     await h.app.drainBackground();
     const delivered = h.mailer.sent.filter((m) => m.to.toLowerCase().includes(tag));
     expect(delivered).toHaveLength(5);
-    expect(delivered[0]!.to).toBe(variants[0]);
+    // Background sends finish in any order. What matters: each went to an address as someone typed it (lowercased,
+    // as every address is), never rewritten to the canonical form the quota uses.
+    const typed = variants.map((v) => v.toLowerCase());
+    for (const mail of delivered) expect(typed).toContain(mail.to);
   });
 
   it('computes the quota key by the canonical rules, and keeps identity on the normalised address', () => {
