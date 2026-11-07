@@ -1,4 +1,4 @@
-import { argon2, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { argon2, randomBytes, timingSafeEqual } from 'node:crypto';
 
 export interface Argon2Params {
   memory: number;
@@ -57,18 +57,19 @@ function parsePhc(phc: string): ParsedHash | null {
 
 const b64 = (bytes: Buffer) => bytes.toString('base64').replace(/=+$/, '');
 
-function derive(message: Buffer, salt: Buffer, params: Argon2Params, tagLength: number): Promise<Buffer> {
+function derive(message: Buffer, secret: Buffer, salt: Buffer, params: Argon2Params, tagLength: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     argon2(
       'argon2id',
-      { message, nonce: salt, parallelism: params.parallelism, tagLength, memory: params.memory, passes: params.passes },
+      // The pepper is Argon2's own keyed-hashing input (RFC 9106 section 3.1, "secret K"), not a separate pre-hash.
+      { message, secret, nonce: salt, parallelism: params.parallelism, tagLength, memory: params.memory, passes: params.passes },
       (err, derived) => (err ? reject(err) : resolve(derived)),
     );
   });
 }
 
 /**
- * Argon2id through node:crypto, peppered with an HMAC first. A dump of the table is not enough to attack the hashes
+ * Argon2id through node:crypto, keyed with the pepper as Argon2's secret input. A dump of the table is not enough to attack the hashes
  * without the pepper. Every hash and check holds a slot, and only a few run at once, because each one takes real
  * memory. What will not fit in the queue is refused at once, with no address-dependent difference. Sign-in attempts
  * are admitted first (see `admit`), so a flood is shed before it reaches the queue.
@@ -134,7 +135,7 @@ export class Passwords {
 
   #message(password: string): Buffer {
     // The same password on any device: a phone keyboard and a laptop can compose the same character differently.
-    return createHmac('sha256', this.#pepper).update(password.normalize('NFKC'), 'utf8').digest();
+    return Buffer.from(password.normalize('NFKC'), 'utf8');
   }
 
   async #acquire(known: boolean): Promise<void> {
@@ -186,7 +187,7 @@ export class Passwords {
 
   async #hash(password: string): Promise<string> {
     const salt = randomBytes(SALT_BYTES);
-    const tag = await derive(this.#message(password), salt, this.#params, TAG_BYTES);
+    const tag = await derive(this.#message(password), this.#pepper, salt, this.#params, TAG_BYTES);
     const { memory, passes, parallelism } = this.#params;
     return `$argon2id$v=${VERSION}$m=${memory},t=${passes},p=${parallelism}$${b64(salt)}$${b64(tag)}`;
   }
@@ -201,7 +202,7 @@ export class Passwords {
       this.#verifications += 1;
       const parsed = stored ? parsePhc(stored) : null;
       const target = parsed ?? parsePhc(await this.#dummyHash())!;
-      const tag = await derive(this.#message(password), target.salt, target, target.tag.length);
+      const tag = await derive(this.#message(password), this.#pepper, target.salt, target, target.tag.length);
       return parsed !== null && timingSafeEqual(tag, target.tag);
     } finally {
       this.#release();

@@ -6,7 +6,7 @@
 //   DEV_PG_DIR, DEV_PG_PORT, PORT, MAIL_TRANSPORT, PUBLIC_ORIGIN, DEV_ORIGINS  override defaults
 import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, fchmodSync, ftruncateSync, openSync, readFileSync, rmSync, writeSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import EmbeddedPostgres from 'embedded-postgres';
@@ -33,15 +33,7 @@ interface DevSecrets {
 
 function loadSecrets(): DevSecrets {
   const key = () => randomBytes(32).toString('base64');
-  if (existsSync(secretsFile)) {
-    const saved = JSON.parse(readFileSync(secretsFile, 'utf8')) as DevSecrets;
-    // A keys file from before password sign-in existed. Everything already in it stays as it is.
-    if (saved.PASSWORD_PEPPER) return saved;
-    const extended = { ...saved, PASSWORD_PEPPER: key() };
-    writeFileSync(secretsFile, JSON.stringify(extended, null, 2), { mode: 0o600 });
-    return extended;
-  }
-  const secrets: DevSecrets = {
+  const fresh = (): DevSecrets => ({
     superPassword: randomBytes(16).toString('hex'),
     runtimePassword: randomBytes(16).toString('hex'),
     ENCRYPTION_KEYS: `v1:${key()}`,
@@ -49,9 +41,28 @@ function loadSecrets(): DevSecrets {
     OTP_PEPPER: key(),
     AUDIT_KEY: key(),
     PASSWORD_PEPPER: key(),
-  };
-  writeFileSync(secretsFile, JSON.stringify(secrets, null, 2), { mode: 0o600 });
-  return secrets;
+  });
+  // One handle from check to write, so the file cannot be swapped in between. Created owner-only and exclusively.
+  let fd: number;
+  try {
+    fd = openSync(secretsFile, 'wx+', 0o600);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    fd = openSync(secretsFile, 'r+');
+  }
+  try {
+    fchmodSync(fd, 0o600);
+    const existing = readFileSync(fd, 'utf8');
+    const saved = existing ? (JSON.parse(existing) as DevSecrets) : null;
+    // A keys file from before password sign-in existed keeps everything already in it.
+    if (saved?.PASSWORD_PEPPER) return saved;
+    const secrets = saved ? { ...saved, PASSWORD_PEPPER: key() } : fresh();
+    ftruncateSync(fd, 0);
+    writeSync(fd, JSON.stringify(secrets, null, 2), 0);
+    return secrets;
+  } finally {
+    closeSync(fd);
+  }
 }
 
 /** A previous run killed outright leaves its postmaster behind, holding the data directory. */

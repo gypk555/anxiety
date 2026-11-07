@@ -166,6 +166,9 @@ test.describe('Google over real TLS', () => {
     await page.getByLabel('Fake account email').fill(email);
     await page.getByRole('button', { name: 'Continue' }).click();
     const callback = await sentOnReturn;
+    // As in continueAtProvider: the callback's token exchange is slow on CI machines, so wait for the page to leave
+    // the provider before looking for anything of ours.
+    await page.waitForURL((url) => !url.href.startsWith('http://127.0.0.1:54392'), { timeout: 20_000 });
     // The whole point of Lax: the browser sent this on a navigation that started on another site. Playwright only
     // shows request cookies on Chromium, but on both, the sign-in below succeeds only if the server received it.
     if (browserName === 'chromium') expect((await callback.allHeaders()).cookie ?? '').toContain('__Host-google-oauth=');

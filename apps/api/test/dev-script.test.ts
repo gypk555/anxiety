@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -123,5 +123,65 @@ describe('scripts/dev.ts when migrating fails', () => {
   it('prints no database credentials or keys', () => {
     expect(result.output).not.toContain(PASSWORD);
     expect(result.output).not.toContain('postgres://');
+  });
+});
+
+describe('dev.ts on a machine with no keys file yet', () => {
+  let dir: string;
+  let keysFile: string;
+  let output = '';
+
+  beforeAll(async () => {
+    dir = mkdtempSync(join(tmpdir(), 'anxiocare-devfresh-'));
+    const pgDir = join(dir, 'pg');
+    keysFile = `${pgDir}.keys.json`;
+    const port = await freePort();
+    // The keys file is written before Postgres starts, so stop as soon as it exists: this is about the file only.
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(process.execPath, ['scripts/dev.ts'], {
+        cwd: API_ROOT,
+        env: { ...process.env, DEV_PG_DIR: pgDir, DEV_PG_PORT: String(port), PORT: String(port + 1), DEV_FRESH: undefined },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      child.stdout.on('data', (d) => (output += String(d)));
+      child.stderr.on('data', (d) => (output += String(d)));
+      const timer = setInterval(() => {
+        if (existsSync(keysFile) && readFileSync(keysFile, 'utf8').length > 0) child.kill('SIGTERM');
+      }, 50);
+      const deadline = setTimeout(() => {
+        child.kill('SIGKILL');
+        reject(new Error(`dev.ts never wrote its keys file: ${output}`));
+      }, 60_000);
+      child.on('exit', () => {
+        clearInterval(timer);
+        clearTimeout(deadline);
+        resolve();
+      });
+    });
+  }, 120_000);
+
+  afterAll(async () => {
+    const pidFile = join(dir, 'pg', 'postmaster.pid');
+    if (existsSync(pidFile)) {
+      const pid = Number(readFileSync(pidFile, 'utf8').split('\n', 1)[0]);
+      if (Number.isInteger(pid) && pid > 0) {
+        try {
+          process.kill(pid, 'SIGTERM');
+        } catch {
+          /* Already gone. */
+        }
+        for (let i = 0; i < 50 && existsSync(pidFile); i += 1) await new Promise((r) => setTimeout(r, 100));
+      }
+    }
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('creates the keys file, owner-only, with every key, and without crashing on reading it back', () => {
+    expect(output).not.toMatch(/EBADF|bad file descriptor/);
+    const saved = JSON.parse(readFileSync(keysFile, 'utf8')) as Record<string, string>;
+    for (const name of ['superPassword', 'runtimePassword', 'ENCRYPTION_KEYS', 'EMAIL_INDEX_KEY', 'OTP_PEPPER', 'AUDIT_KEY', 'PASSWORD_PEPPER']) {
+      expect(saved[name], name).toBeTruthy();
+    }
+    expect(statSync(keysFile).mode & 0o777).toBe(0o600);
   });
 });

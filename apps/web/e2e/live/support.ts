@@ -29,6 +29,12 @@ export interface Guard {
   expectOfflineErrors(): void;
   /** While on, a CSP violation is expected: to prove the watcher works, or for a browser's own JSON viewer. */
   expectCspViolation(on?: boolean): void;
+  /**
+   * Stops watching a context that the test has finished with, just before it is closed. In CI, Playwright screenshots
+   * each page as its context closes, and does so by injecting a <style> into the page, which our CSP rightly refuses.
+   * That refusal is Playwright's, not the app's, so it must not fail the test.
+   */
+  release(context: BrowserContext): void;
   readonly problems: readonly string[];
 }
 
@@ -40,6 +46,7 @@ function makeGuard(): Guard {
   const expected: { path: RegExp; status: number }[] = [{ path: /^\/api\/v1\/me$/, status: 401 }];
   let offline = false;
   let cspExpected = false;
+  const released = new WeakSet<BrowserContext>();
 
   const networkLineIsExpected = (text: string, where: string) => {
     if (offline) return true;
@@ -62,6 +69,7 @@ function makeGuard(): Guard {
     expectCspViolation: (on = true) => {
       cspExpected = on;
     },
+    release: (context) => void released.add(context),
     async watch(context) {
       await context.addInitScript((mark) => {
         document.addEventListener('securitypolicyviolation', (e) => {
@@ -80,6 +88,7 @@ function makeGuard(): Guard {
         }
       });
       context.on('console', (message) => {
+        if (released.has(context)) return;
         const text = message.text();
         if (text.includes(CSP_MARK) || /content security policy/i.test(text)) {
           if (!cspExpected) problems.push(`CSP: ${text}`);
@@ -91,6 +100,7 @@ function makeGuard(): Guard {
         problems.push(`console error: ${text} (${where})`);
       });
       context.on('weberror', (error) => {
+        if (released.has(context)) return;
         problems.push(`uncaught: ${String(error.error())}`);
       });
     },
@@ -125,6 +135,7 @@ export const test = base.extend<Fixtures>({
       await guard.watch(context);
       return context;
     });
+    for (const c of opened) guard.release(c);
     await Promise.all(opened.map((c) => c.close()));
   },
 });
@@ -257,6 +268,9 @@ export async function continueAtProvider(page: Page, email: string) {
   await expect(page).toHaveURL(new RegExp(`^${FAKE_OIDC}/authorize`));
   await page.getByLabel('Fake account email').fill(email);
   await page.getByRole('button', { name: 'Continue' }).click();
+  // The round trip (provider, our callback's token exchange and key check, then the app) is slow on CI machines.
+  // Wait for it explicitly, so a browser that never comes back fails here, saying so, rather than on a later heading.
+  await page.waitForURL((url) => !url.href.startsWith(FAKE_OIDC), { timeout: 20_000 });
 }
 
 /** Watches every URL the page visits, for the rule that no password ever appears in one. */
