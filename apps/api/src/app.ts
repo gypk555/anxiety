@@ -15,8 +15,11 @@ import type { Sql } from './db.ts';
 import { ApiError, problem } from './errors.ts';
 import { createLogger } from './logger.ts';
 import type { Mailer } from './mail.ts';
+import { Passwords } from './passwords.ts';
+import { accountRoutes } from './routes/accounts.ts';
 import { assessmentRoutes } from './routes/assessments.ts';
 import { authRoutes } from './routes/auth.ts';
+import { googleRoutes } from './routes/google.ts';
 import { healthRoutes } from './routes/health.ts';
 import { journalRoutes } from './routes/journal.ts';
 import { meRoutes } from './routes/me.ts';
@@ -44,13 +47,16 @@ declare module 'fastify' {
   interface FastifyInstance {
     /** Resolves when deferred work (mail delivery) has finished. */
     drainBackground(): Promise<void>;
+    passwords: Passwords;
   }
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const { config, sql, mailer } = deps;
   const background = new Background();
-  const ctx: Ctx = { config, sql, mailer, background };
+  const passwords = new Passwords(config.keys.passwordPepper, config.passwordHash);
+  await passwords.ready();
+  const ctx: Ctx = { config, sql, mailer, background, passwords };
 
   const app = Fastify({
     loggerInstance: createLogger(config.logLevel, deps.logStream),
@@ -65,6 +71,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   }) as unknown as FastifyInstance;
 
   app.decorate('drainBackground', () => background.drain());
+  app.decorate('passwords', passwords);
   app.decorateRequest('auth', null);
 
   app.addHook('onResponse', async (request, reply) => {
@@ -178,6 +185,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(
     async (api) => {
       authRoutes(api, ctx, hooks);
+      accountRoutes(api, ctx, hooks);
+      googleRoutes(api, ctx, hooks);
       meRoutes(api, ctx, hooks);
       assessmentRoutes(api, ctx, hooks);
       journalRoutes(api, ctx, hooks);
@@ -186,6 +195,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
         grievanceEmail: config.grievanceEmail,
         consentVersion: CONSENT_VERSION,
         ...config.disclosure,
+        googleEnabled: config.google !== null,
       }));
     },
     { prefix: '/api/v1' },

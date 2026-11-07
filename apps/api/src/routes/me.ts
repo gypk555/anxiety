@@ -11,11 +11,13 @@ import { authOf, clearSessionCookie, type authHooks } from '../auth.ts';
 import { clientKey } from '../client-ip.ts';
 import type { Ctx } from '../context.ts';
 import { emailBlindIndex, openText, sealText } from '../crypto.ts';
+import { clearDeviceCookie } from '../devices.ts';
 import { ApiError, invalidCode } from '../errors.ts';
 import { emailChangedNotice } from '../mail.ts';
-import { consumeOtp, consumeOtps, deliverOtp, emailQuotaKey, otpTarget } from '../otp.ts';
+import { consumeOtp, consumeOtps, deliverOtp, emailQuotaKey, loginQuotaKey, otpTarget } from '../otp.ts';
 import { dekFor, emailOf, loadUser, toMe } from '../users.ts';
 import { emptyBody, parse } from '../validate.ts';
+import { signInMethods } from './accounts.ts';
 import { assessmentFromRow, type AssessmentRow } from './assessments.ts';
 import { journalFromRow, type JournalRow } from './journal.ts';
 
@@ -134,6 +136,7 @@ export function meRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typeo
     const body = {
       exportedAt: new Date().toISOString(),
       account,
+      signInMethods: await signInMethods(sql, user),
       consents: consents.map((c) => ({
         version: c.version,
         adultConfirmed: c.adult_confirmed,
@@ -183,18 +186,19 @@ export function meRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typeo
       if (!(await consumeOtp(sql, keys, otpTarget(keys, 'account_delete', email, user.id), code))) throw invalidCode();
 
       await sql.begin(async (tx) => {
-        // Cascades remove sessions, consents, assessments, journal and the user's codes. The wrapped
+        // Cascades remove sessions, consents, assessments, journal, Google identities, device tokens and the user's codes. The wrapped
         // data key goes with the row, so any stray copy of the ciphertext becomes unreadable.
         await tx`DELETE FROM app.users WHERE id = ${user.id}::uuid`;
         // Every spelling of the address, such as a +tag, shares the quota hash, and goes too.
         const quotaHash = emailQuotaKey(keys, email);
         await tx`DELETE FROM app.otp_codes WHERE email_hash = ${user.email_hash} OR quota_hash = ${quotaHash}`;
         await tx`DELETE FROM app.otp_failures WHERE quota_hash = ${quotaHash}`;
+        await tx`DELETE FROM app.login_failures WHERE quota_hash = ${loginQuotaKey(keys, email)}`;
         await audit(tx, keys, 'account_delete', user.id);
       });
       clearSessionCookie(reply, config);
+      clearDeviceCookie(reply, config);
       return reply.code(204).send();
     },
   );
-
 }

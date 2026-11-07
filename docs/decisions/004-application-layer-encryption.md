@@ -21,7 +21,7 @@ Details: [encryption](../modules/encryption.md).
 
 - **Disk or database encryption only.** Anyone able to query sees plaintext.
 - **Column encryption inside Postgres (pgcrypto).** Keys or plaintext would reach the database.
-- **End-to-end encryption with keys on the device.** Protects against the server too, but a lost phone would lose data, there's no password to derive a key from, and the server couldn't compute the score. Too much risk for this audience.
+- **End-to-end encryption with keys on the device.** Protects against the server too, but a lost phone would lose data, passwords are optional, and a password reset would lose everything if a key were derived from one, and the server couldn't compute the score. Too much risk for this audience.
 - **One key for all users.** Simpler, but deleting a person wouldn't destroy a key, and rotating would touch all data.
 
 ## Consequences

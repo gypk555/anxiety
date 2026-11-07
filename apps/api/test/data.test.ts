@@ -29,7 +29,7 @@ describe('consent gate', () => {
       ['DELETE', `/journal/${id}`],
       ['PATCH', '/me', { displayName: 'A' }],
       ['POST', '/me/email/request', { newEmail: 'x@example.com' }],
-      ['POST', '/me/email/verify', { newEmail: 'x@example.com', currentCode: '12345678', code: '12345678' }],
+      ['POST', '/me/email/verify', { newEmail: 'x@example.com', currentCode: '123456', code: '123456' }],
     ];
     for (const [method, path, body] of gated) {
       const r = await client.request({ method: method as 'GET', url: `${API}${path}`, ...(body ? { payload: body as object } : {}) });

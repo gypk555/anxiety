@@ -16,7 +16,7 @@ Without an account:
 - Help screen: emergency 112 and helplines as `tel:` links. It needs no login and works offline after one visit. "Get help" is in the header of every screen.
 - Privacy, Terms and About pages. Light and dark themes. Installable as a PWA.
 
-With an account (email code, no password):
+With an account (password, Google, or an emailed code):
 
 - Save check-ins, including a result taken before signing in.
 - Trends: a chart with a table alternative, a history list, and deleting an entry.
@@ -38,7 +38,7 @@ Not in the app, on purpose: diagnosis, AI advice, streaks or celebration of scor
 
 ## Requirements
 
-- Node 24 or newer (`engines` in [package.json](package.json)). [.node-version](.node-version) pins 26, which CI and Render use.
+- Node 24.7 or newer, for `crypto.argon2` (`engines` in [package.json](package.json)). [.node-version](.node-version) pins 26, which CI and Render use.
 - npm, which comes with Node.
 - For the end-to-end tests only: Playwright browsers and `openssl`.
 
@@ -55,7 +55,7 @@ npm run dev:web    # terminal 2: app on http://localhost:5173
 
 `dev:api` needs no setup and no `.env` file. It starts an embedded Postgres on port 54329, creates the runtime role, runs the migrations, generates local keys, and writes mail to a file. Its data stays in `apps/api/.pgdata-dev*`, which git ignores.
 
-To sign in locally, enter any address. The code is printed in the API terminal, and also added to `.e2e-outbox/mail.jsonl`.
+To sign in locally, create an account or enter any address and choose **Email me a code instead**. The code is printed in the API terminal, and also added to `.e2e-outbox/mail.jsonl`.
 
 If `dev:api` stops with `checksum mismatch for applied migration`, your local database was made from an older migration file. `DEV_FRESH=1 npm run dev:api` wipes the local database and keys and starts again.
 
@@ -83,6 +83,9 @@ Workspace commands:
 
 | Command | What it does |
 | --- | --- |
+| `npm run db:setup` | From `.env.setup`, makes a real database ready: secrets once, runtime role, migrations, verification. Idempotent |
+| `npm run db:verify` | Read-only pass or fail report on that database |
+| `npm run doctor` | Checks a full production environment, without starting the server |
 | `npm run generate-secrets -w @anxiocare/api` | Prints new keys and the SQL for the runtime role. The output is secret |
 | `npm run purge -w @anxiocare/api` | One purge run. Needs the full environment |
 | `npm run rotate-keys -w @anxiocare/api` | Rewraps all data keys under the active master key. Needs the full environment |
@@ -129,7 +132,7 @@ render.yaml         Render service definition
 
 **Decisions**
 
-1. [Email codes instead of passwords](docs/decisions/001-email-codes-instead-of-passwords.md)
+1. [Email codes instead of passwords](docs/decisions/001-email-codes-instead-of-passwords.md) (superseded by 012)
 2. [Single origin](docs/decisions/002-single-origin.md)
 3. [Supabase as plain Postgres, private schema](docs/decisions/003-supabase-as-plain-postgres.md)
 4. [Application-layer encryption with per-user keys](docs/decisions/004-application-layer-encryption.md)
@@ -138,8 +141,9 @@ render.yaml         Render service definition
 7. [Exact GAD-7, extended scale removed](docs/decisions/007-exact-gad7.md)
 8. [No third-party analytics](docs/decisions/008-no-third-party-analytics.md)
 9. [Guest check-in](docs/decisions/009-guest-check-in.md)
-10. [Eight-digit codes and quotas](docs/decisions/010-eight-digit-codes-and-quotas.md)
+10. [Eight-digit codes and quotas](docs/decisions/010-eight-digit-codes-and-quotas.md) (partly superseded by 012)
 11. [Hand-built SVG chart](docs/decisions/011-hand-built-svg-chart.md)
+12. [Passwords, Google and six-digit codes](docs/decisions/012-passwords-google-and-six-digit-codes.md)
 
 **Security, privacy and safety**
 

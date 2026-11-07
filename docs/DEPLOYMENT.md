@@ -78,35 +78,46 @@ Merge into `main`.
 
    You should get a prompt, and `\conninfo` should mention SSL. **If you get a certificate error, do not turn verification off.** Download the certificate again, then ask Supabase support which CA signs the pooler. **Could not be confirmed from here:** whether the CA in the dashboard signs the pooler's certificate for every project. The app has no setting to skip verification, and it should not gain one.
 
-## Step 3: generate secrets
+## Step 3: set up the database
+
+**`db:setup` and `db:verify` have never met a real Supabase project.** They are tested only against embedded Postgres, set up to resemble it: a non-superuser admin role and TLS with a pinned certificate. Read what they print. If anything looks wrong, stop.
 
 On your own computer, in the repository:
 
 ```sh
 npm ci
-npm run generate-secrets -w @anxiocare/api
+cp .env.setup.example .env.setup
 ```
 
-It prints `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY`, `EMAIL_INDEX_KEY`, `OTP_PEPPER`, `AUDIT_KEY`, a runtime role password, and a block of SQL.
+Git ignores `.env.setup`. Open it in an editor, on your machine:
 
-- **Copy all of it into the secret store now.** Run this only once. A second run prints different values.
-- Put the runtime password into `DATABASE_URL`. It is hex, so needs no encoding.
-- Close the terminal when you finish. Do not paste this into chat, email, tickets, or a file in the repository.
+- `ADMIN_DATABASE_URL`: the migration URL from step 2, with your database password.
+- `DATABASE_CA_PATH`: the certificate you downloaded in step 2.
 
-## Step 4: create the runtime role
+Your secrets stay on your machine. Never paste them into a chat, an issue or a ticket, including to an assistant helping you.
 
-In Supabase: **SQL Editor**, **New query**. Paste only the `DO $$ ... $$;` block from step 3, and run it. It runs as `postgres`, and creates `anxiocare_runtime` as a login role with no special powers.
+Then:
 
-Check it:
-
-```sql
-SELECT rolname, rolcanlogin, rolsuper, rolcreaterole, rolcreatedb, rolbypassrls, rolconnlimit
-FROM pg_roles WHERE rolname = 'anxiocare_runtime';
+```sh
+npm run db:setup
 ```
 
-Expect `true` for `rolcanlogin`, `false` for the other flags, and 40 for the limit.
+It connects with TLS verified against your certificate, generates the app secrets once into `.env.secrets`, which git also ignores and which it keeps readable by you alone (mode `0600`, fixed on every run if a copy was made looser), creates or updates the `anxiocare_runtime` role, runs the migrations, and runs the verification. It's safe to run again: it never overwrites a secret, and only adds a name that's missing. It never prints your connection password. It also leaves the generated values out of the terminal, so they can't end up in scrollback or a pasted log, and says where they are. `--show-secrets` prints them if you need that.
 
-The SQL editor keeps query history. The password is now in it, so you may wish to clear that query.
+- **Copy `.env.secrets` into the secret store now, and keep a second copy of `ENCRYPTION_KEYS` and `PASSWORD_PEPPER`.** Losing `ENCRYPTION_KEYS` makes all user data unreadable. Losing `PASSWORD_PEPPER` makes everyone reset their password.
+- The role's password goes to Postgres as a SCRAM verifier, so the plain password isn't in the SQL editor history or the server's statement log.
+
+**If you'd rather do this by hand:** `npm run generate-secrets -w @anxiocare/api` prints the same secrets once, and SQL to run in the SQL editor, which then holds that password in its history.
+
+**A first-run check: the runtime role.** If `db:setup` stops at the role with a permissions error, tell Supabase's support you are creating a login role as `postgres`. Do not give the runtime role more power to get past it.
+
+## Step 4: check the database
+
+```sh
+npm run db:verify
+```
+
+A read-only report. Every line must say `PASS`: TLS verified, Postgres version, schema `app` exists, nothing of ours in `public`, RLS on all tables, policies limited to the runtime role, runtime role attributes and grants, migrations applied with checksums, and `anon` and `authenticated` denied. A `FAIL` has a `Fix:` line under it. Run it again at any time. It changes nothing.
 
 ## Step 5: set up mail
 
@@ -173,6 +184,16 @@ Also set `MAIL_PROVIDER` to the provider's name, such as `Amazon Web Services`. 
 
 **Cannot use a free Render instance.** Render blocks outbound SMTP ports 25, 465 and 587 on free web services ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)). A paid instance is required, and `render.yaml` asks for one. Port 25 may be blocked anyway. Use 587 or 465.
 
+## Step 5a: optional, Google sign-in
+
+Skip this and the button stays hidden. You can add it later. Choosing Google tells Google a person uses this service, which is why it's only ever their choice, and the screen and notice say so. **This has never run against real Google.** Tests use a fake provider.
+
+1. At [console.cloud.google.com](https://console.cloud.google.com), create a project of its own for this service.
+2. **Google Auth Platform**, **Branding**: fill in the OAuth consent screen. The app name people see there will appear on their screen, so think about who may be looking at it. **Audience:** External, then publish it. ([docs](https://support.google.com/cloud/answer/10311615))
+3. **Data access:** add only the `openid` and `.../auth/userinfo.email` scopes. No others, so Google doesn't send a name or photo.
+4. **Clients:** create an OAuth client of type **Web application**. Add this **Authorized redirect URI**, exactly, and no others: `https://<your origin>/api/v1/auth/google/callback`. `npm run doctor` prints the exact one. When you change `PUBLIC_ORIGIN` in step 10, add the new one, and remove the old one.
+5. Keep the **client ID** and **client secret** in the secret store, as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Set both, or neither. The server refuses one without the other.
+
 ## Step 6: create the Render service
 
 1. Sign in at [dashboard.render.com](https://dashboard.render.com), and connect your GitHub account, granting access to this repository.
@@ -197,9 +218,12 @@ Values marked **render.yaml** are set for you. Validation is in `apps/api/src/co
 | `DATABASE_CA_CERT` | In production | One-line base64 | Step 2. |
 | `ENCRYPTION_KEYS` | Yes | `v1:<base64>` | Step 3. |
 | `ENCRYPTION_ACTIVE_KEY` | Yes | `v1` | Step 3. |
-| `EMAIL_INDEX_KEY` | Yes | base64 | Step 3. Cannot be rotated later without a tool that doesn't exist yet. |
+| `EMAIL_INDEX_KEY` | Yes | base64 | Step 3. Cannot be rotated later without a tool that doesn't exist yet. Also keys Google subject hashes. |
 | `OTP_PEPPER` | Yes | base64 | Step 3. |
 | `AUDIT_KEY` | Yes | base64 | Step 3. |
+| `PASSWORD_PEPPER` | Yes | base64 | Step 3. Changing it later invalidates every password, and people then need "Forgot your password?". |
+| `GOOGLE_CLIENT_ID` | No | From Google | Step 5a. Set with the secret, or leave both empty to hide the button. |
+| `GOOGLE_CLIENT_SECRET` | No | From Google | Step 5a. |
 | `MAIL_FROM` | Yes | `no-reply@<neutral domain>` | Step 5. |
 | `MAIL_PROVIDER` | No | Provider's name | Step 5. Shown in the privacy notice. |
 | `SMTP_HOST` | Yes for smtp | Host | Step 5. |
@@ -217,12 +241,24 @@ Optional. Not in `render.yaml`. Add under **Environment** only if needed:
 | `DATA_LOCATION` | `Mumbai, India` | Only if you deploy elsewhere. Stated in the notice. |
 | `SERVER_LOCATION` | `Singapore` | Same. |
 | `LOG_LEVEL` | `info` | Don't raise it in production. |
+| `PASSWORD_ARGON2_MEMORY_KIB` | 19456 | To raise hashing cost. Refused below OWASP's minimum and above 65536. Stored hashes upgrade at each person's next sign-in. Up to three hashes run at once (one kept for known devices), so the ceiling means at most 192 MiB of hashing on a 512 MB instance. |
+| `PASSWORD_ARGON2_PASSES` | 2 | The same. |
 | `DATABASE_POOL_MAX` | 5 | See [scaling](OPERATIONS.md#scaling-beyond-one-instance). |
 | `HOST` | `0.0.0.0` | Leave it. |
 | `PORT` | 8787 | Render sets this. Leave it. |
 | `WEB_DIST` | `apps/web/dist` | Leave it. |
 
-`DEV_ORIGINS` is refused in production. Never set it.
+`DEV_ORIGINS` and `GOOGLE_OIDC_BASE_URL` are refused in production. Never set them.
+
+### Check the whole environment first
+
+Before you press **Apply**, put the production values in a file git ignores, such as `.env.production.local`, and on your own computer run:
+
+```sh
+npm run doctor -- --env-file=.env.production.local
+```
+
+It checks everything without starting the server, sends no mail and changes nothing: the config against production's rules, the database connection and role, SMTP connect and sign-in, Google's shape, and the public origin. Each failure says how to fix it, and no secret value is printed. **It has never met real Supabase, real SMTP or real Google.** `PUBLIC_ORIGIN` isn't known until the service exists, so run it again once it does.
 
 5. **Apply.** The first deploy runs:
    - **Build:** `npm ci --include=dev --ignore-scripts && npm run build`
@@ -238,10 +274,10 @@ Optional. Not in `render.yaml`. Add under **Environment** only if needed:
 This happens in pre-deploy. In the deploy's log, look for:
 
 ```
-Applied: 001_init.sql
+Applied: 001_init.sql, 002_accounts.sql
 ```
 
-A later deploy says `No pending migrations`. If a pre-deploy fails, [the deploy stops, and the old version keeps running](https://render.com/docs/deploys).
+If you ran `npm run db:setup` first, as above, it says `No pending migrations`, as does every later deploy. If a pre-deploy fails, [the deploy stops, and the old version keeps running](https://render.com/docs/deploys).
 
 To run it from your own computer instead:
 
@@ -272,12 +308,12 @@ curl -s https://<service>.onrender.com/readyz     # {"status":"ok"}, or 503 if t
 
 ## Step 9: verify the database after the first migration
 
-Do not skip this. It confirms that the REST API can't reach health data. In the SQL editor:
+Do not skip this. It confirms that the REST API can't reach health data. `npm run db:verify` from step 4 covers the first three queries here. Run it again now, and in the SQL editor:
 
 ```sql
 -- 1. Our tables are in app, and none are in public.
 SELECT schemaname, tablename, rowsecurity FROM pg_tables WHERE schemaname IN ('app', 'public') ORDER BY 1, 2;
--- Expect 9 rows in app, with rowsecurity true. Nothing of ours in public.
+-- Expect 12 rows in app, with rowsecurity true. Nothing of ours in public.
 
 -- 2. Supabase's API roles cannot use the schema.
 SELECT r, has_schema_privilege(r, 'app', 'USAGE') AS can_use
@@ -347,10 +383,10 @@ Use a real phone, on mobile data, with a real address you own. The full test is 
    Check the operator name, grievance address, backup days, locations and mail provider.
 2. **Help first.** Open the app. Tap **Get help**. Tap a call button and confirm the dialler opens with the number (then hang up). Turn on flight mode, reload Help, and confirm that it still works.
 3. **Guest.** Do a check-in. See the result, the screening wording and the self-harm line.
-4. **Sign up.** Use your address. The code should arrive within a minute. **Open the mail, and view the source or original message. Look for SPF, DKIM and DMARC: pass.** Check the sender and the subject give nothing away. Check it isn't in spam, on Gmail at least.
+4. **Create an account.** Use your address, with a password, and let your password manager save it. The code should arrive within a minute. **Open the mail, and view the source or original message. Look for SPF, DKIM and DMARC: pass.** Check the sender and the subject give nothing away. Check it isn't in spam, on Gmail at least.
 5. **Consent.** Read it. The boxes start unticked. Accept. Save a check-in, and add a thought record.
 6. **Privacy notice.** Open it. Confirm that operator, grievance contact, locations, provider and backup days are right. **It must be the version that your lawyer approved.**
-7. **Second device.** Sign in on another browser. Check that you get the sign-in notice mail, and that both sessions are listed. End one.
+7. **Second device.** Sign in on another browser with your password. Then try **Email me a code instead**, **Forgot your password?** and, if you turned it on, **Continue with Google**. Check that you get the sign-in notice mail, and that both sessions are listed. End one.
 8. **Database.** Run `SELECT count(*) FROM app.users;` and the raw query from step 9. It should show no address in plain text.
 9. **Download.** Settings, download data. Open the JSON, and check it's yours.
 10. **Logs.** Search Render's logs for your email address. **There must be no results.** Search for `background_task_failed`, `request_failed`, `decrypt_failed`. There should be none.

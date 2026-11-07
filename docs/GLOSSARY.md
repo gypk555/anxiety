@@ -12,6 +12,8 @@
 
 **Canonical address.** An email address reduced for quota counting: lower case, no `+tag`, and for Gmail no dots. Used only for limits, never for identity or delivery.
 
+**Device cookie.** `__Host-device`, a random token a browser keeps for a year after signing in. Only an HMAC of it is stored. A browser holding one for an account has its own failure budget, so nobody else's wrong guesses can lock it out. It never signs anyone in.
+
 **CBT thought record.** A cognitive behavioural therapy exercise: write down a situation and a thought, weigh the evidence, then find a more balanced view. The Journal is built on it.
 
 **Consent version.** `CONSENT_VERSION` in `packages/shared`. Raising it makes everyone accept the privacy notice again before saving more.
@@ -52,7 +54,7 @@
 
 **Master key.** A key from `ENCRYPTION_KEYS` that wraps each user's DEK. It is held only in the server's environment.
 
-**OTP (one-time password).** Here, the 8-digit code emailed for sign-in, email change or deletion. It is single use and lasts 10 minutes.
+**OTP (one-time password).** Here, the 6-digit code emailed for creating an account, sign-in, password reset, adding a password, email change or deletion. It is single use and lasts 10 minutes.
 
 **Padding.** Adding bytes before encrypting so that ciphertext length does not reveal the content's length.
 
@@ -63,6 +65,8 @@
 **Precache.** Files the service worker stores at install so that they work offline.
 
 **PWA (progressive web app).** A website that can be installed to the home screen and can work offline.
+
+**Re-authentication.** Proving a password or an email code again in a signed-in session. Connecting or disconnecting Google needs one within 10 minutes.
 
 **RFC 9457.** The standard format for API error documents (`application/problem+json`).
 

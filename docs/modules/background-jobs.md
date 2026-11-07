@@ -29,6 +29,9 @@ None directly. People see the outcome: mail arrives just after a 202, and the pr
 | `users` with `consent_version` null | `created_at` 24 or more hours old, along with `otp_codes` for that address |
 | `otp_codes` | Consumed or expired, and created 1 or more hours ago. The hourly quota counts them until then |
 | `otp_failures` | 24 or more hours old |
+| `login_failures` | 24 or more hours old |
+| `device_tokens` | Past `expires_at` (365 days after the last sign-in on that browser) |
+| `oauth_state_uses` | Past `expires_at`, 10 minutes after use |
 | `audit_log` | 1 or more years old |
 
 Result logged as `purge_completed`, with counts for sessions, OTP codes, unconsented users and audit rows. A failure logs `purge_failed`, or `otp_sweep_failed` for the sweep. The next tick tries again. The sweep logs nothing when it works, because it runs so often.
@@ -46,7 +49,7 @@ Result logged as `purge_completed`, with counts for sessions, OTP codes, unconse
 
 ## Data and API used
 
-Tables: `sessions`, `users`, `otp_codes`, `otp_failures`, `audit_log`. No endpoints of its own.
+Tables: `sessions`, `users`, `otp_codes`, `otp_failures`, `login_failures`, `device_tokens`, `oauth_state_uses`, `audit_log`. A purged account takes its Google identity with it, by cascade. No endpoints of its own.
 
 ## Security/privacy notes
 

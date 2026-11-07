@@ -298,9 +298,10 @@ function SaveOffer({ result }: { result: GuestResult }) {
       <section aria-labelledby="keep" className="patch no-print flex flex-col gap-3">
         <h2 id="keep" className="text-xl">Want to keep this result?</h2>
         <p className="text-ink-soft">
-          It goes away when you close this tab. To compare with later check-ins, sign in with your email. No password, and it's encrypted when stored.
+          It goes away when you close this tab. To compare with later check-ins, sign in or create an account. It's encrypted when stored.
         </p>
         <Link className="btn btn-primary" to={withNext('/sign-in', '/result')}>Sign in to save</Link>
+        <Link className="btn btn-secondary" to={withNext('/create-account', '/result')}>Create an account</Link>
       </section>
     );
   }

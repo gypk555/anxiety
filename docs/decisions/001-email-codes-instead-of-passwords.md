@@ -1,6 +1,6 @@
 # 001. Email codes instead of passwords
 
-Status: accepted, 2026-11-06. Decided by: the builder. The owner chose accounts; how people sign in was left to the builder.
+Status: **superseded on 2026-11-07 by [decision 012](012-passwords-google-and-six-digit-codes.md)**. Kept as a record of why sign-in started this way. Accepted 2026-11-06. Decided by: the builder. The owner chose accounts; how people sign in was left to the builder.
 
 ## Context
 

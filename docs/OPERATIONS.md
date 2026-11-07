@@ -138,6 +138,8 @@ This is a [data breach response](#data-breach-response) first. Then:
 | Migration password (`DATABASE_MIGRATION_URL`) | Supabase, **Database Settings**, reset the database password. Update the URL. | The next migrate uses it. |
 | `SMTP_PASS` | Make new credentials at the provider. Update `SMTP_USER` and `SMTP_PASS`. Deploy. Delete the old ones. | None if done in that order. |
 | `OTP_PEPPER` | New value from `node -e` above. Deploy. | Live codes stop working, so people request new ones. Per-client quota counts restart. |
+| `PASSWORD_PEPPER` | New value. Deploy. | **Every password stops working.** People use "Forgot your password?", so tell them first if you can. Only do this after a suspected leak. |
+| `GOOGLE_CLIENT_SECRET` | Rotate it in the Google Cloud console. Update it. Deploy. | Google sign-ins in progress fail once. Nothing else changes. |
 | `AUDIT_KEY` | New value. Deploy. | New audit rows can't be linked with the old. [Re-erasing after a restore](#restoring-production) can't match rows from before the change, so keep the old key for a year. |
 | `EMAIL_INDEX_KEY` | **Do not change it.** No tool exists. Changing it makes every lookup miss, so every returning person would get a new empty account, with their data stranded. It would need a script that decrypts each address and re-computes `email_hash` and live rows. | Leaked alone, it lets someone with a database copy test guessed addresses. |
 | `ENCRYPTION_KEYS` | [Above](#master-key-rotation). | |
@@ -188,6 +190,7 @@ A backup you have never restored is a hope. Do this **before launch**, then quar
    EMAIL_INDEX_KEY=<production value>
    OTP_PEPPER=<production value>
    AUDIT_KEY=<production value>
+   PASSWORD_PEPPER=<production value>
    MAIL_TRANSPORT=file:./restore-test-mail.jsonl
    MAIL_FROM=no-reply@example.com
    OPERATOR_NAME=Restore test
@@ -292,21 +295,24 @@ An incident is anything that could expose data, cause wrong or missing help, or 
 
 ### A person cannot sign in
 
-The likely causes are that the mail isn't arriving (spam, provider trouble, sending limits, `background_task_failed` in the logs) or the [failed-guess cap](THREAT-MODEL.md#r2-targeted-sign-in-lockout-for-24-hours-renewable). The cap looks the same as a wrong code. It clears by itself as guesses pass 24 hours old, unless someone keeps at it.
+The likely causes are that the mail isn't arriving (spam, provider trouble, sending limits, `background_task_failed` in the logs) or the [failure caps](THREAT-MODEL.md#r2-targeted-sign-in-lockout-for-24-hours-renewable) on a device they haven't used before. A cap looks the same as a wrong code or password. It clears by itself as failures pass 24 hours old, unless someone keeps at it. First ask whether they can use a phone or computer they have signed in on before: those aren't affected, and from one they can reset their password, which clears the password caps.
 
 **To clear the cap,** first confirm that the person controls the address, by having them email you from it, and that this was not requested by whoever is attacking them.
 
 1. Work out the canonical address: lower case, with any `+tag` removed. For Gmail and Googlemail, also remove dots and use `gmail.com`. So `A.Bc+x@googlemail.com` becomes `abc@gmail.com`.
-2. In Render's Shell, compute the hash. Note the `email-quota:` prefix:
+2. In Render's Shell, compute the two hashes. Codes use the `email-quota:` prefix, passwords `login-quota:`, so the tables can't be joined:
 
    ```sh
-   node -e "const c=require('node:crypto');console.log(c.createHmac('sha256',Buffer.from(process.env.EMAIL_INDEX_KEY,'base64')).update(process.argv[1],'utf8').digest('hex'))" 'email-quota:abc@gmail.com'
+   H='const c=require("node:crypto");console.log(c.createHmac("sha256",Buffer.from(process.env.EMAIL_INDEX_KEY,"base64")).update(process.argv[1],"utf8").digest("hex"))'
+   node -e "$H" 'email-quota:abc@gmail.com'
+   node -e "$H" 'login-quota:abc@gmail.com'
    ```
 
 3. In the SQL editor:
 
    ```sql
-   DELETE FROM app.otp_failures WHERE purpose = 'login' AND quota_hash = decode('<hex>', 'hex');
+   DELETE FROM app.otp_failures WHERE purpose IN ('login', 'register', 'password_reset') AND quota_hash = decode('<email-quota hex>', 'hex');
+   DELETE FROM app.login_failures WHERE quota_hash = decode('<login-quota hex>', 'hex');
    ```
 
 4. Tell the person, and suggest they sign in right away. Tell them that someone may be targeting their address, and that they should secure the mailbox. Keep your message neutral about the service.
@@ -529,6 +535,7 @@ Use it only when the person has proved control of the address, and can't use Set
    H='const c=require("node:crypto");console.log(c.createHmac("sha256",Buffer.from(process.env.EMAIL_INDEX_KEY,"base64")).update(process.argv[1],"utf8").digest("hex"))'
    node -e "$H" 'email:a.bc+x@gmail.com'
    node -e "$H" 'email-quota:abc@gmail.com'
+   node -e "$H" 'login-quota:abc@gmail.com'
    ```
 
 2. In the SQL editor:
@@ -537,7 +544,8 @@ Use it only when the person has proved control of the address, and can't use Set
    BEGIN;
    DELETE FROM app.users WHERE email_hash = decode('<email hex>', 'hex');   -- Should say DELETE 1.
    DELETE FROM app.otp_codes WHERE email_hash = decode('<email hex>', 'hex');
-   DELETE FROM app.otp_failures WHERE quota_hash = decode('<quota hex>', 'hex');
+   DELETE FROM app.otp_failures WHERE quota_hash = decode('<quota hex>', 'hex');   -- The email-quota hash.
+   DELETE FROM app.login_failures WHERE quota_hash = decode('<login-quota hex>', 'hex');
    COMMIT;
    ```
 

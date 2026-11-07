@@ -78,7 +78,7 @@ describe('1. email change needs both inboxes', () => {
   it('a current-address code issued for one new address cannot approve another', async () => {
     const { otpHmac } = await import('../src/crypto.ts');
     const hash = randomBytes(32);
-    const base = { purpose: 'email_change_current', emailHash: hash, subjectUserId: randomUUID(), code: '12345678' };
+    const base = { purpose: 'email_change_current', emailHash: hash, subjectUserId: randomUUID(), code: '123456' };
     const one = otpHmac(h.config.keys, { ...base, binding: randomBytes(32) });
     const two = otpHmac(h.config.keys, { ...base, binding: randomBytes(32) });
     expect(one.equals(two)).toBe(false);
@@ -112,12 +112,12 @@ describe('1. email change needs both inboxes', () => {
 });
 
 describe('2 and 3. OTP strength and quotas', () => {
-  it('uses eight digits and shows them grouped in the mail', async () => {
-    expect(OTP_LENGTH).toBe(8);
-    expect(formatOtp('12345678')).toBe('1234 5678');
-    const email = uniqueEmail('eight');
+  it('uses six digits and shows them grouped in the mail', async () => {
+    expect(OTP_LENGTH).toBe(6);
+    expect(formatOtp('123456')).toBe('123 456');
+    const email = uniqueEmail('six');
     const code = await requestCode(h, new Client(h), email);
-    expect(code).toMatch(/^\d{8}$/);
+    expect(code).toMatch(/^\d{6}$/);
     expect(sentTo(email, 'login').at(-1)!.text).toContain(formatOtp(code));
   });
 
@@ -181,7 +181,7 @@ describe('2 and 3. OTP strength and quotas', () => {
     const quota = emailQuotaKey(h.config.keys, email);
     await h.admin`
       INSERT INTO app.otp_failures (quota_hash, purpose, created_at)
-      SELECT ${quota}, 'login', now() - interval '1 hour' FROM generate_series(1, 49)
+      SELECT ${quota}, 'login', now() - interval '1 hour' FROM generate_series(1, 19)
     `;
     const one = await requestCode(h, new Client(h), email);
     const miss = await new Client(h).post(`${API}/auth/otp/verify`, { email, code: wrong(one) });
@@ -203,12 +203,12 @@ describe('2 and 3. OTP strength and quotas', () => {
     const quota = emailQuotaKey(h.config.keys, email);
     await h.admin`
       INSERT INTO app.otp_failures (quota_hash, purpose)
-      SELECT ${quota}, 'login' FROM generate_series(1, 47)
+      SELECT ${quota}, 'login' FROM generate_series(1, 17)
     `;
     const code = await requestCode(h, new Client(h), email);
     await Promise.all(Array.from({ length: 10 }, () => new Client(h).post(`${API}/auth/otp/verify`, { email, code: wrong(code) })));
     const [row] = await h.admin`SELECT count(*)::int AS n FROM app.otp_failures WHERE quota_hash = ${quota}`;
-    expect(row!.n).toBe(50);
+    expect(row!.n).toBe(20);
   });
 
   it('a guess at an address with no live code is not a failed guess, so strangers cannot lock an address out for free', async () => {
@@ -537,7 +537,7 @@ describe('9. nothing names the service', () => {
   it('no subject or body in any message names health or the service', async () => {
     const { otpMail, emailChangedNotice, newSignInNotice } = await import('../src/mail.ts');
     const mails = [
-      ...(['login', 'email_change', 'email_change_current', 'account_delete'] as const).map((p) => otpMail('a@example.com', p, '12345678')),
+      ...(['login', 'email_change', 'email_change_current', 'account_delete'] as const).map((p) => otpMail('a@example.com', p, '123456')),
       emailChangedNotice('a@example.com'),
       newSignInNotice('a@example.com', 'Safari on iPhone'),
     ];

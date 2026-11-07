@@ -56,7 +56,8 @@ test('after sign-out the back button shows no data, and data routes go to sign-i
 
   await page.getByRole('main').getByRole('button', { name: 'Sign out', exact: true }).click();
   await expectGuestHome(page);
-  expect(await context.cookies()).toEqual([]);
+  // Signing out ends the session. The device cookie stays, as it should: it only marks this browser as known.
+  expect((await context.cookies()).map((c) => c.name)).toEqual(['device']);
 
   // Back into the record: the app must ask for a sign-in, without showing anything from before.
   await page.goBack();
@@ -67,7 +68,7 @@ test('after sign-out the back button shows no data, and data routes go to sign-i
   for (const path of ['/trends', '/journal', `/result/${result.id}`, `/journal/${entry.id}`]) {
     await page.goto(path);
     await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=${encodeURIComponent(path)}$`));
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in with your email' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
     expect(await page.content()).not.toContain('14 out of 21');
   }
   await page.goto('/settings');
@@ -81,7 +82,7 @@ test('a data route returns to itself after signing in', async ({ page, context }
   await page.goto(`/result/${result.id}`);
   await expect(page).toHaveURL(/\/sign-in\?next=/);
   await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Email me a code instead' }).click();
   await enterCode(page, await waitForCode(email, 'login', 1));
   await expect(page).toHaveURL(new RegExp(`/result/${result.id}$`));
   await expect(page.getByRole('heading', { level: 1 })).toContainText('7 out of 21');
@@ -101,7 +102,7 @@ test('the next person on the same tab sees nothing of the last person', async ({
   await page.getByRole('link', { name: 'Sign in to see saved results' }).click();
   const email = `second-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
   await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Email me a code instead' }).click();
   await enterCode(page, await waitForCode(email, 'login'));
   await page.getByRole('checkbox', { name: 'I am 18 or older.' }).check();
   await page.getByRole('checkbox', { name: /I agree to AnxioCare storing/ }).check();

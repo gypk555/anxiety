@@ -20,12 +20,12 @@ Counts are from the last run. See [TEST-REPORT.md](TEST-REPORT.md).
 | Level | Where | Tools | Tests | What runs for real | What is faked |
 | --- | --- | --- | --- | --- | --- |
 | Static | whole repo | `tsc`, `oxlint` | n/a | Type and lint rules | n/a |
-| Unit | `packages/shared/src/*.test.ts`, `apps/api/test/config.test.ts` | Vitest | 25 + 26 | Scoring, schemas, config validation | Nothing needed |
-| Web unit and component | `apps/web/src/**/*.test.{ts,tsx}` | Vitest, jsdom, Testing Library | 143 | React components, routing guards, client logic | The browser (jsdom), the network (`src/test/render.tsx`), and `<dialog>` modality |
-| API integration | `apps/api/test/*.test.ts` | Vitest, `embedded-postgres`, Fastify `inject` | 268 | Postgres, migrations, roles, RLS, TLS handshakes, the whole route and hook chain | Mail (captured), and the TCP socket (`inject`) |
-| E2E mocked | `apps/web/e2e/audit.spec.ts`, `resilience.spec.ts` | Playwright, axe-core | 107 × 2 | Production web build, production CSP, real browser engine | The API (`page.route`), and the headers come from a stand-in server |
-| E2E live | `apps/web/e2e/live/*.spec.ts` | Playwright, axe-core | 95 × 2 | Bundled API serving the built web, real Postgres, real service worker | Mail goes to a file. Dev mode, plain HTTP on localhost, plain `session` cookie |
-| E2E HTTPS | `apps/web/e2e/https/https.spec.ts` | Playwright, a local TLS terminator and SMTP stub | 2 × 2 | `NODE_ENV=production` config, `__Host-session`, verified TLS to Postgres and to SMTP (STARTTLS) | The edge (a local terminator stands in for Cloudflare), the SMTP provider (a stub), and the certificate (self-signed). Service worker blocked |
+| Unit | `packages/shared/src/*.test.ts`, `apps/api/test/config.test.ts` | Vitest | 83 + 39 | Scoring, schemas, config validation | Nothing needed |
+| Web unit and component | `apps/web/src/**/*.test.{ts,tsx}` | Vitest, jsdom, Testing Library | 179 | React components, routing guards, client logic | The browser (jsdom), the network (`src/test/render.tsx`), and `<dialog>` modality |
+| API integration | `apps/api/test/*.test.ts` | Vitest, `embedded-postgres`, Fastify `inject` | 498 | Postgres, migrations, roles, RLS, TLS handshakes, the whole route and hook chain | Mail (captured), and the TCP socket (`inject`) |
+| E2E mocked | `apps/web/e2e/audit.spec.ts`, `resilience.spec.ts` | Playwright, axe-core | 133 × 2 | Production web build, production CSP, real browser engine | The API (`page.route`), and the headers come from a stand-in server |
+| E2E live | `apps/web/e2e/live/*.spec.ts` | Playwright, axe-core | 140 × 2 | Bundled API serving the built web, real Postgres, real service worker | Mail goes to a file. Dev mode, plain HTTP on localhost, plain `session` cookie |
+| E2E HTTPS | `apps/web/e2e/https/https.spec.ts` | Playwright, a local TLS terminator and SMTP stub | 7 × 2 | `NODE_ENV=production` config, `__Host-session`, verified TLS to Postgres and to SMTP (STARTTLS) | The edge (a local terminator stands in for Cloudflare), the SMTP provider (a stub), and the certificate (self-signed). Service worker blocked |
 | Manual | [MANUAL-TEST-CASES.md](MANUAL-TEST-CASES.md) | People, phones | Not yet run | Everything | Nothing |
 
 ### What each level proves and doesn't
@@ -49,7 +49,7 @@ Device profiles are `iPhone 14` (WebKit) and `Pixel 7` (Chromium). They set the 
 | --- | --- | --- |
 | `iphone`, `pixel` | Mocked: `audit`, `resilience` | `http://localhost:4173` |
 | `live-iphone`, `live-pixel` | `e2e/live` | `http://localhost:8787` |
-| `https-iphone`, `https-pixel` | `e2e/https` | `https://localhost:8443` |
+| `https-iphone`, `https-pixel` | `e2e/https` | `https://localhost:8443`, and a twin on `https://localhost:8444` for Google's round trip |
 
 ## How to run
 
@@ -139,6 +139,10 @@ In dev and live E2E, `MAIL_TRANSPORT=file:<repo>/.e2e-outbox/mail.jsonl`. Each m
 `support.ts` reads it through `mailCount(email, purpose)` and `waitForCode(email, purpose, after)`. Delivery happens after the 202, so always poll: take the count before the request, then wait for a line after it. `file:` is refused in production twice: in config validation, and again in `createMailer`.
 
 ### The HTTPS stack
+
+**Google is always a fake.** `apps/api/scripts/fake-oidc.ts` is a local OpenID provider, with real RSA signatures and JWKS, that can misbehave on request: wrong nonce, audience or issuer, expired, unverified, `alg: none`, a key not in the JWKS, and more. API tests drive it directly. E2E reaches it on `127.0.0.1` while the app is on `localhost`, so it really is another site, and the `SameSite=Lax` state cookie is really tested. Production refuses `GOOGLE_OIDC_BASE_URL`, so the production server only proves it boots with Google on and redirects to Google itself. The full round trip over TLS runs on a twin: the same build and `__Host-` cookies, with `NODE_ENV=test`. A second live server on port 8788 has Google unset, to prove the button is hidden by what a server really says. **Nothing here has met real Google.**
+
+`db:setup`, `db:verify` and `doctor` are tested in `apps/api/test/tooling.test.ts` as subprocesses, against an embedded Postgres with TLS and a non-superuser admin role like Supabase's, and an SMTP stub. **They have never met real Supabase or real SMTP.**
 
 `apps/api/scripts/https-stack.ts`, started by Playwright, is production mode on this machine:
 

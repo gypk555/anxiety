@@ -110,7 +110,7 @@ test('sessions: a second device is listed, and revoking it signs that device out
   // Still believes it is signed in, until its next request. Then it is told, and asked to sign in.
   await secondPage.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Trends' }).click();
   await expect(secondPage).toHaveURL(/\/sign-in\?next=%2Ftrends$/);
-  await expect(secondPage.getByRole('heading', { level: 1, name: 'Sign in with your email' })).toBeVisible();
+  await expect(secondPage.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
   expect((await api(second).get('/me')).status()).toBe(401);
 
   // The device that did the revoking is unaffected.
@@ -134,7 +134,7 @@ test('sign out on all devices ends every session, keeps the data', async ({ page
   expect((await api(second).get('/me')).status()).toBe(401);
   await secondPage.goto('/journal');
   await expect(secondPage).toHaveURL(/\/sign-in\?next=%2Fjournal$/);
-  await expect(secondPage.getByRole('heading', { level: 1, name: 'Sign in with your email' })).toBeVisible();
+  await expect(secondPage.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
 
   await signIn(secondPage, email);
   expect(await api(second).items('/journal')).toHaveLength(1);

@@ -1,4 +1,5 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -18,13 +19,90 @@ const denied = async (run: () => Promise<unknown>) => {
   await expect(run()).rejects.toMatchObject({ code: expect.stringMatching(/^42501$/) });
 };
 
+describe('migration 002', () => {
+  // The sha256 of 001_init.sql as applied. If this changes, a deployed database refuses to migrate.
+  const CHECKSUM_001 = createHash('sha256').update(readFileSync(join(MIGRATIONS_DIR, '001_init.sql'), 'utf8')).digest('hex');
+
+  it('applies on top of 001, unchanged, and keeps the rows that were there', async () => {
+    const { dbUrl } = await createDatabase();
+    const sql = createSql(dbUrl('migrator'), { caCert: null, max: 1 });
+    const onlyFirst = mkdtempSync(join(tmpdir(), 'mig-only-001-'));
+    writeFileSync(join(onlyFirst, '001_init.sql'), readFileSync(join(MIGRATIONS_DIR, '001_init.sql'), 'utf8'));
+    expect(await migrate(sql, onlyFirst)).toEqual(['001_init.sql']);
+    const id = randomUUID();
+    const owner = createSql(dbUrl('super'), { caCert: null, max: 1 });
+    await owner.begin(async (tx) => {
+      await tx`INSERT INTO app.users (id, email_hash, email_ct, wrapped_dek, dek_key_version) VALUES (${id}::uuid, '\\x0a', '\\x0b', '\\x0c', 'v1')`;
+      await tx`INSERT INTO app.otp_codes (purpose, email_hash, quota_hash, source_hash, code_hmac, expires_at) VALUES ('login', '\\x0a', '\\x0a', '\\x0a', '\\x0a', now())`;
+      await tx`INSERT INTO app.audit_log (actor_hmac, action) VALUES ('\\x0a', 'login')`;
+    });
+    await owner.end();
+
+    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql']);
+    expect(await migrate(sql), 'and runs once').toEqual([]);
+
+    const [user] = await sql<{ password_hash: string | null; email_ct: Buffer }[]>`SELECT password_hash, email_ct FROM app.users WHERE id = ${id}::uuid`;
+    expect(user!.password_hash).toBeNull();
+    expect(user!.email_ct.toString('hex')).toBe('0b');
+    const applied = await sql<{ name: string; checksum: string }[]>`SELECT name, checksum FROM app.schema_migrations ORDER BY name`;
+    expect(applied[0]).toEqual({ name: '001_init.sql', checksum: CHECKSUM_001 });
+    await sql.end();
+  });
+
+  it('001 is byte for byte what it was', () => {
+    expect(CHECKSUM_001).toBe('3c6db49e9a3b3f01865c043112bdb6cf0536e17fd2790a3f950482f2e2b70a0f');
+  });
+
+  it('refuses a password_hash that is not an Argon2id PHC string', async () => {
+    await expect(h.admin`INSERT INTO app.users (id, email_hash, email_ct, wrapped_dek, dek_key_version, password_hash) VALUES (gen_random_uuid(), '\\x09', '\\x09', '\\x09', 'v1', 'plaintext')`).rejects.toThrow();
+  });
+});
+
+describe('the runtime role on the new tables', () => {
+  const grants = async (table: string) => {
+    const rows = await h.admin<{ privilege_type: string }[]>`
+      SELECT privilege_type FROM information_schema.role_table_grants
+      WHERE grantee = 'anxiocare_runtime' AND table_schema = 'app' AND table_name = ${table} ORDER BY 1
+    `;
+    return rows.map((r) => r.privilege_type);
+  };
+
+  it.each([
+    ['user_identities', ['DELETE', 'INSERT', 'SELECT']],
+    ['login_failures', ['DELETE', 'INSERT', 'SELECT']],
+    ['oauth_state_uses', ['DELETE', 'INSERT', 'SELECT']],
+  ])('%s has exactly the grants it needs', async (table, expected) => {
+    expect(await grants(table)).toEqual(expected);
+  });
+
+  it('cannot truncate, alter or drop them', async () => {
+    for (const statement of ['TRUNCATE app.user_identities', 'ALTER TABLE app.login_failures ADD COLUMN x int', 'DROP TABLE app.oauth_state_uses', 'UPDATE app.user_identities SET provider = \'google\'', 'UPDATE app.login_failures SET quota_hash = \'\\x01\'']) {
+      await denied(() => h.runtime.unsafe(statement));
+    }
+  });
+
+  it('other roles are walled off by RLS, and policies name only the runtime role', async () => {
+    const tables = await h.admin`SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'app' AND tablename IN ('user_identities', 'login_failures', 'oauth_state_uses')`;
+    expect(tables).toHaveLength(3);
+    expect(tables.every((t) => t.rowsecurity === true)).toBe(true);
+    const policies = await h.admin`SELECT tablename, roles FROM pg_policies WHERE schemaname = 'app' AND tablename IN ('user_identities', 'login_failures', 'oauth_state_uses')`;
+    expect(policies).toHaveLength(3);
+    expect(policies.every((p) => String(p.roles) === String(['anxiocare_runtime']))).toBe(true);
+  });
+
+  it('the app can read and write password_hash on users through its existing grant', async () => {
+    const [row] = await h.runtime`SELECT password_hash FROM app.users LIMIT 1`;
+    expect(row === undefined || row.password_hash === null || typeof row.password_hash === 'string').toBe(true);
+  });
+});
+
 describe('schema placement', () => {
   it('public holds none of our tables; app holds all of them', async () => {
     const pub = await h.admin`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`;
     expect(pub).toEqual([]);
     const app = await h.admin`SELECT tablename FROM pg_tables WHERE schemaname = 'app' ORDER BY 1`;
     expect(app.map((t) => t.tablename)).toEqual([
-      'assessments', 'audit_log', 'consents', 'journal_entries', 'otp_codes', 'otp_failures', 'schema_migrations', 'sessions', 'users',
+      'assessments', 'audit_log', 'consents', 'device_tokens', 'journal_entries', 'login_failures', 'oauth_state_uses', 'otp_codes', 'otp_failures', 'schema_migrations', 'sessions', 'user_identities', 'users',
     ]);
   });
 

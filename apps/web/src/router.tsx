@@ -26,6 +26,10 @@ const Trends = page(() => import('@/routes/Trends'));
 const Settings = page(() => import('@/routes/Settings'));
 const SignIn = page(() => import('@/routes/SignIn').then((m) => ({ default: m.SignIn })));
 const SignInCode = page(() => import('@/routes/SignIn').then((m) => ({ default: m.SignInCode })));
+const CreateAccount = page(() => import('@/routes/CreateAccount').then((m) => ({ default: m.CreateAccount })));
+const CreateAccountCode = page(() => import('@/routes/CreateAccount').then((m) => ({ default: m.CreateAccountCode })));
+const ForgotPassword = page(() => import('@/routes/ForgotPassword').then((m) => ({ default: m.ForgotPassword })));
+const ResetPassword = page(() => import('@/routes/ForgotPassword').then((m) => ({ default: m.ResetPassword })));
 const Consent = page(() => import('@/routes/Consent'));
 const Privacy = page(() => import('@/routes/Legal').then((m) => ({ default: m.Privacy })));
 const Terms = page(() => import('@/routes/Legal').then((m) => ({ default: m.Terms })));
@@ -56,6 +60,10 @@ export const routes = [
           { path: '/settings', element: <Settings /> },
           { path: '/sign-in', element: <SignIn />, handle: focus },
           { path: '/sign-in/code', element: <SignInCode />, handle: focus },
+          { path: '/create-account', element: <CreateAccount />, handle: focus },
+          { path: '/create-account/code', element: <CreateAccountCode />, handle: focus },
+          { path: '/forgot-password', element: <ForgotPassword />, handle: focus },
+          { path: '/forgot-password/reset', element: <ResetPassword />, handle: focus },
           { path: '/consent', element: <Consent />, handle: { focus: true, wide: true } satisfies RouteHandle },
           { path: '/privacy', element: <Privacy />, handle: reading },
           { path: '/terms', element: <Terms />, handle: reading },

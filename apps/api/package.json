@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.7"
   },
   "scripts": {
     "dev": "node scripts/dev.ts",
@@ -15,6 +15,9 @@
     "rotate-keys": "node scripts/rotate-keys.ts",
     "notify-all": "node scripts/notify-all.ts",
     "generate-secrets": "node scripts/generate-secrets.ts",
+    "db:setup": "node scripts/db-setup.ts",
+    "db:verify": "node scripts/db-verify.ts",
+    "doctor": "node scripts/doctor.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

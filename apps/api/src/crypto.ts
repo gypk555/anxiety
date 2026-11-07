@@ -132,6 +132,7 @@ export interface Keys {
   emailIndexKey: Buffer;
   otpPepper: Buffer;
   auditKey: Buffer;
+  passwordPepper: Buffer;
 }
 
 export const hmac = (key: Buffer, data: string) => createHmac('sha256', key).update(data, 'utf8').digest();
@@ -140,6 +141,15 @@ export const sha256 = (data: string) => createHash('sha256').update(data, 'utf8'
 export const emailBlindIndex = (keys: Keys, normalisedEmail: string) => hmac(keys.emailIndexKey, `email:${normalisedEmail}`);
 /** The quota key. Separate from the blind index, because it joins addresses that are different accounts. */
 export const emailQuotaIndex = (keys: Keys, canonicalEmail: string) => hmac(keys.emailIndexKey, `email-quota:${canonicalEmail}`);
+/**
+ * The password-failure key. Its own domain, unlike the code tables' `emailQuotaIndex`, so that `login_failures` and
+ * `otp_codes` cannot be joined on it to say which addresses that tried a password were also sent codes.
+ */
+export const loginQuotaIndex = (keys: Keys, canonicalEmail: string) => hmac(keys.emailIndexKey, `login-quota:${canonicalEmail}`);
+/** A device cookie's token. Under the OTP pepper, so the database alone cannot turn a stored value into a cookie. */
+export const deviceTokenHmac = (keys: Keys, token: string) => hmac(keys.otpPepper, `device-token:${token}`);
+/** Google's subject identifier for a person, under the blind-index key, so that a database dump cannot name their Google account. */
+export const googleSubjectHmac = (keys: Keys, subject: string) => hmac(keys.emailIndexKey, `google-subject:${subject}`);
 export const auditActor = (keys: Keys, userId: string) => hmac(keys.auditKey, `actor:${userId}`);
 
 export function otpHmac(

@@ -11,6 +11,7 @@ ENCRYPTION_ACTIVE_KEY=v1
 EMAIL_INDEX_KEY=${key()}
 OTP_PEPPER=${key()}
 AUDIT_KEY=${key()}
+PASSWORD_PEPPER=${key()}
 
 # DATABASE_URL uses this role and password. On Supabase's session pooler the user is ${RUNTIME_ROLE}.<project-ref>.
 # Runtime role password: ${password}

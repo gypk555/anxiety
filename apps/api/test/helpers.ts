@@ -7,6 +7,7 @@ import { inject } from 'vitest';
 import { buildApp } from '../src/app.ts';
 import { loadConfig, type Config } from '../src/config.ts';
 import { createSql, type Sql } from '../src/db.ts';
+import { deviceCookieName } from '../src/devices.ts';
 import type { MailMessage, Mailer } from '../src/mail.ts';
 import { migrate } from '../src/migrate.ts';
 import { MIGRATOR_PASSWORD, RUNTIME_PASSWORD, SUPER_PASSWORD } from './global-setup.ts';
@@ -25,6 +26,7 @@ export function baseEnv(overrides: Record<string, string | undefined> = {}): Rec
     EMAIL_INDEX_KEY: key(),
     OTP_PEPPER: key(),
     AUDIT_KEY: key(),
+    PASSWORD_PEPPER: key(),
     MAIL_TRANSPORT: 'file:/dev/null',
     MAIL_FROM: 'Accounts <no-reply@example.com>',
     OPERATOR_NAME: 'Test Operator',
@@ -136,6 +138,8 @@ export interface ClientOptions {
 export class Client {
   readonly h: Harness;
   cookie: string | null = null;
+  /** The long-lived device cookie, kept across sign-outs as a browser keeps it. */
+  device: string | null = null;
   readonly ip: string;
   readonly userAgent: string;
 
@@ -147,9 +151,11 @@ export class Client {
 
   async request(options: InjectOptions & { raw?: boolean }) {
     const name = this.h.config.cookie.name;
+    const deviceName = deviceCookieName(this.h.config);
+    const jar = [this.cookie ? `${name}=${this.cookie}` : null, this.device ? `${deviceName}=${this.device}` : null].filter(Boolean);
     const headers: Record<string, string> = {
       'user-agent': this.userAgent,
-      ...(this.cookie ? { cookie: `${name}=${this.cookie}` } : {}),
+      ...(jar.length ? { cookie: jar.join('; ') } : {}),
     };
     if (options.method && !['GET', 'HEAD'].includes(String(options.method))) {
       headers.origin = ORIGIN;
@@ -161,9 +167,9 @@ export class Client {
       headers: { ...headers, ...(options.headers as Record<string, string> | undefined) },
     });
     for (const c of response.cookies as { name: string; value: string; maxAge?: number; expires?: Date }[]) {
-      if (c.name !== name) continue;
       const cleared = c.value === '' || (c.expires && c.expires.getTime() < Date.now());
-      this.cookie = cleared ? null : c.value;
+      if (c.name === name) this.cookie = cleared ? null : c.value;
+      else if (c.name === deviceName) this.device = cleared ? null : c.value;
     }
     return response;
   }

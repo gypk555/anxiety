@@ -71,8 +71,10 @@ describe('encryption at rest', () => {
       'otp_failures.purpose',
       'schema_migrations.checksum',
       'schema_migrations.name',
+      'user_identities.provider',
       'users.consent_version',
       'users.dek_key_version',
+      'users.password_hash',
     ]);
   });
 

@@ -10,10 +10,12 @@ const TITLES: Record<string, string> = {
   forbidden: 'Not allowed',
   not_found: 'Not found',
   invalid_code: 'That code is not valid',
+  invalid_credentials: 'That email and password did not match',
   rate_limited: 'Too many requests',
   csrf_failed: 'Request blocked',
   conflict: 'Conflict',
   internal_error: 'Something went wrong',
+  reauth_required: 'Confirm it is you first',
 };
 
 export class ApiError extends Error {
@@ -36,6 +38,9 @@ export const notFound = () => new ApiError(404, 'not_found');
 /** A 409 whose `detail` is written for the person using the app. */
 export const conflict = (detail?: string) => new ApiError(409, 'conflict', undefined, detail);
 export const invalidCode = () => new ApiError(400, 'invalid_code');
+/** A 400, like a wrong code: to the client, a 401 means the session has ended. */
+export const invalidCredentials = () => new ApiError(400, 'invalid_credentials');
+export const overloaded = () => new ApiError(429, 'rate_limited');
 
 export function validationError(error: ZodError): ApiError {
   const fieldErrors: Record<string, string[]> = {};

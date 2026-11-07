@@ -66,6 +66,8 @@ function FirstRun() {
         </p>
         <p className="text-center text-sm">
           <Link className="link inline-block py-2" to="/sign-in">Sign in to see saved results</Link>
+          {' or '}
+          <Link className="link inline-block py-2" to="/create-account">create an account</Link>
         </p>
       </div>
     </div>

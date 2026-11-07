@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Deliver sign-in, email-change and deletion codes, and two security notices, in wording that reveals nothing about the subject, because lock screens and shared inboxes expose mail.
+Deliver account codes and security notices, in wording that reveals nothing about the subject, because lock screens and shared inboxes expose mail.
 
 **Not verified:** no real SMTP provider has been used. Tests use a capturing mailer, and the HTTPS e2e stack uses a local STARTTLS stub.
 
@@ -11,13 +11,21 @@ Deliver sign-in, email-change and deletion codes, and two security notices, in w
 | Purpose | Subject | Goes to | Has a code |
 | --- | --- | --- | --- |
 | `login` | Your sign-in code | The typed address | Yes |
+| `register` | Your verification code | A new address, on Create account | Yes |
+| `password_reset` | Your password reset code | An address with an account | Yes |
+| `password_set` | Your verification code for a new password | Current address | Yes |
 | `email_change` | Your verification code for your new address | New address | Yes |
 | `email_change_current` | Your verification code for your current address | Current address | Yes |
 | `account_delete` | Your confirmation code | Current address | Yes |
+| `reauth` | Your code to confirm it is you | Current address, before connecting or disconnecting Google | Yes |
 | `email_changed_notice` | Your email address was changed | Old address | No |
 | `new_signin_notice` | New sign-in to your account | Current address | No |
+| `account_exists_notice` | About your account | An address with an account, on Create account, instead of a code | No |
+| `password_changed_notice` | Your password was changed | Current address, after a reset, change or set | No |
+| `google_linked_notice` | Google sign-in was added to your account | Current address, after connecting Google in Settings | No |
+| `google_unlinked_notice` | Google sign-in was removed from your account | Current address, after disconnecting in Settings, or after a password reset removed it (its own wording) | No |
 
-Code mails print the code grouped, like `1234 5678`, and say it expires in 10 minutes. Mail is plain text.
+Code mails print the code grouped, like `123 456`, and say it expires in 10 minutes. Mail is plain text.
 
 If mail doesn't arrive, the person sees no error. The screens say to check spam, check the address, and try again later.
 
@@ -30,7 +38,7 @@ If mail doesn't arrive, the person sees no error. The screens say to check spam,
 **`file:<path>`.** Development and e2e only. Appends one JSON object per line with mode 600:
 
 ```json
-{"at":"ISO","from":"...","to":"...","subject":"...","text":"...","purpose":"login","code":"12345678"}
+{"at":"ISO","from":"...","to":"...","subject":"...","text":"...","purpose":"login","code":"123456"}
 ```
 
 `code` is null for notices. With `NODE_ENV=development`, codes are also printed to the console. `npm run dev:api` writes to `.e2e-outbox/mail.jsonl` by default. The file is never truncated, so take the last line matching `to` and `purpose`.

@@ -26,6 +26,7 @@ flowchart LR
 
   DB[("Supabase Postgres, Mumbai<br/>private schema app<br/>sensitive columns encrypted")]
   SMTP["SMTP provider"]
+  GOOGLE["Google, only for people who choose it"]
   INBOX["Person's inbox"]
   HELP["Phone network<br/>tel: 112, helplines"]
 
@@ -35,6 +36,7 @@ flowchart LR
   BG -- "runtime role" --> DB
   BG -- "TLS" --> SMTP --> INBOX
   SPA -- "one tap" --> HELP
+  API -- "TLS, code exchange and keys" --> GOOGLE
 ```
 
 | Package | Job |
@@ -67,7 +69,7 @@ Any uncaught error becomes a 500 `internal_error` with no internal detail. Unmat
 
 ## Data flow: sign-in
 
-Sign-up and sign-in are the same path. The account row is created only at the first successful verify, so nothing on the request path can reveal whether an account exists.
+Three ways in: a password, Google, or an emailed code. This diagram is the code path. Create account is the same shape with a password sent alongside the code, and forgot password the same again. The account row is created only once a code proves the address, so nothing on a request path can reveal whether an account exists, and there is no unverified account to pre-hijack. Password sign-in answers the same for an unknown address, no password and a wrong password, having done the same hashing. Google is a full-page redirect to Google and back, server to server, with no Google script in the browser. See [auth and sessions](modules/auth-and-sessions.md).
 
 ```mermaid
 sequenceDiagram
@@ -87,7 +89,7 @@ sequenceDiagram
   else over quota
     Note over A: Nothing is sent, and the person is not told
   end
-  P->>W: Enters 8-digit code
+  P->>W: Enters 6-digit code
   W->>A: POST /auth/otp/verify
   A->>D: Lock on the address, check failed-guess cap, attempts +1, compare HMAC
   alt wrong, expired or capped
@@ -101,7 +103,7 @@ sequenceDiagram
   end
 ```
 
-Details: [auth and sessions](modules/auth-and-sessions.md), [email](modules/email.md), [decision 010](decisions/010-eight-digit-codes-and-quotas.md).
+Details: [auth and sessions](modules/auth-and-sessions.md), [email](modules/email.md), [decision 012](decisions/012-passwords-google-and-six-digit-codes.md).
 
 ## Data flow: check-in
 
@@ -139,7 +141,7 @@ sequenceDiagram
   P->>W: Enters code
   W->>A: POST /me/delete/confirm
   A->>D: Check the code (purpose account_delete, this user)
-  A->>D: One transaction: delete user (cascades), delete codes and failures for the address, insert audit row
+  A->>D: One transaction: delete user (cascades, including Google identity and password hash), delete codes, code failures and login failures for the address, insert audit row
   A-->>W: 204, cookie cleared
   W->>W: Clear query cache, guest data, drafts
 ```
@@ -161,6 +163,7 @@ Details: [consent and privacy rights](modules/consent-and-privacy-rights.md).
 | App to database | SQL, ciphertext | TLS verify-full with a pinned CA, least-privilege role, private schema, boot check on the role | The app process can read everything it needs, by design |
 | Database to anyone reading it | Rows and backups | Encrypted columns, padding to hide lengths, blind indexes | Someone who has both the database and `ENCRYPTION_KEYS`. Ids, timestamps and row counts are in plaintext. |
 | Server process | Master keys, plaintext while in use | Environment variables only. `DATABASE_MIGRATION_URL` is removed before serving. Logs are allow-listed. | Anyone with Render shell or settings access. See [docs/SECURITY-EXCEPTIONS.md](SECURITY-EXCEPTIONS.md). |
+| Server to Google, for people who choose it | Authorisation code, client secret, ID token | TLS, PKCE, state and nonce, signature, `iss`, `aud`, `exp`, `email_verified` | Google learns the person uses this service, and can read that sign-in |
 | Server to SMTP provider | Address and message text | TLS required, neutral wording, no health content | The provider can read addresses and codes |
 | Edge to server | `cf-connecting-ip`, `X-Forwarded-For` | `CLIENT_IP_HEADER`, `TRUST_PROXY_HOPS` | Forged client addresses if these are misconfigured. Not verified on live Render. |
 | Browser to helpline or website | `tel:` and links the person taps | They are links, not loads. Nothing is fetched from another host. | What those services see once a person uses them |
@@ -171,7 +174,7 @@ The threat analysis is in [docs/THREAT-MODEL.md](THREAT-MODEL.md).
 
 | Decision | Short reason |
 | --- | --- |
-| [Email codes, no passwords](decisions/001-email-codes-instead-of-passwords.md) | No password store to lose. |
+| [Passwords, Google and six-digit codes](decisions/012-passwords-google-and-six-digit-codes.md) | Supersedes [email codes only](decisions/001-email-codes-instead-of-passwords.md). Nothing stored before a code is verified. |
 | [Single origin](decisions/002-single-origin.md) | Strict cookies and CSRF stay simple. |
 | [Supabase as plain Postgres](decisions/003-supabase-as-plain-postgres.md) | The owner chose Supabase. Its auto-generated API cannot reach a private schema. |
 | [Application-layer encryption](decisions/004-application-layer-encryption.md) | A database dump alone reveals no health data. |
@@ -180,7 +183,7 @@ The threat analysis is in [docs/THREAT-MODEL.md](THREAT-MODEL.md).
 | [Exact GAD-7](decisions/007-exact-gad7.md) | Changing a validated instrument invalidates it. |
 | [No third-party analytics](decisions/008-no-third-party-analytics.md) | Mental health browsing data stays with the person. |
 | [Guest check-in](decisions/009-guest-check-in.md) | A person in distress should not have to make an account. |
-| [Eight-digit codes and quotas](decisions/010-eight-digit-codes-and-quotas.md) | The limits hold even with several server instances. |
+| [Code quotas](decisions/010-eight-digit-codes-and-quotas.md) | The limits hold even with several server instances. Code length and guess cap are now in decision 012. |
 | [Hand-built SVG chart](decisions/011-hand-built-svg-chart.md) | Small, accessible, and it fits the strict CSP. |
 
 ## Single-instance assumption

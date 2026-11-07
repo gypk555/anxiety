@@ -28,11 +28,19 @@ interface DevSecrets {
   EMAIL_INDEX_KEY: string;
   OTP_PEPPER: string;
   AUDIT_KEY: string;
+  PASSWORD_PEPPER: string;
 }
 
 function loadSecrets(): DevSecrets {
-  if (existsSync(secretsFile)) return JSON.parse(readFileSync(secretsFile, 'utf8')) as DevSecrets;
   const key = () => randomBytes(32).toString('base64');
+  if (existsSync(secretsFile)) {
+    const saved = JSON.parse(readFileSync(secretsFile, 'utf8')) as DevSecrets;
+    // A keys file from before password sign-in existed. Everything already in it stays as it is.
+    if (saved.PASSWORD_PEPPER) return saved;
+    const extended = { ...saved, PASSWORD_PEPPER: key() };
+    writeFileSync(secretsFile, JSON.stringify(extended, null, 2), { mode: 0o600 });
+    return extended;
+  }
   const secrets: DevSecrets = {
     superPassword: randomBytes(16).toString('hex'),
     runtimePassword: randomBytes(16).toString('hex'),
@@ -40,6 +48,7 @@ function loadSecrets(): DevSecrets {
     EMAIL_INDEX_KEY: key(),
     OTP_PEPPER: key(),
     AUDIT_KEY: key(),
+    PASSWORD_PEPPER: key(),
   };
   writeFileSync(secretsFile, JSON.stringify(secrets, null, 2), { mode: 0o600 });
   return secrets;
@@ -136,6 +145,7 @@ const env: NodeJS.ProcessEnv = {
   EMAIL_INDEX_KEY: secrets.EMAIL_INDEX_KEY,
   OTP_PEPPER: secrets.OTP_PEPPER,
   AUDIT_KEY: secrets.AUDIT_KEY,
+  PASSWORD_PEPPER: secrets.PASSWORD_PEPPER,
   MAIL_TRANSPORT: process.env.MAIL_TRANSPORT ?? `file:${join(repoRoot, '.e2e-outbox', 'mail.jsonl')}`,
   MAIL_FROM: process.env.MAIL_FROM ?? 'Accounts <no-reply@localhost.example>',
   OPERATOR_NAME: process.env.OPERATOR_NAME ?? 'AnxioCare (development)',

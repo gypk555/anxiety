@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { KeyRing, type Keys } from './crypto.ts';
+import { ARGON2_FLOOR, ARGON2_MAX_MEMORY_KIB, ARGON2_MAX_RUNNING, type Argon2Params } from './passwords.ts';
 
 const KEY_BYTES = 32;
 
@@ -64,6 +65,9 @@ function normaliseCaCert(value: string): string | null {
   }
 }
 
+export const isSecretKey = (value: string) => decodeKey(value) !== null;
+export const isMasterKeyList = (value: string) => parseMasterKeys(value) !== null;
+
 export const DEFAULT_SENDER_NAME = 'Account Team';
 const REVEALING_SENDER = /anxi|mental|health|therap|depress|wellness|wellbeing|psych|counsel|stress|panic/i;
 
@@ -88,6 +92,8 @@ const envSchema = z
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(1),
     CLIENT_IP_HEADER: blankIsUnset(z.string().regex(/^[A-Za-z0-9-]+$/, 'must be one HTTP header name').optional()),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'silent']).default('info'),
+    /** Requests a minute for one signed-in account, across all its devices. */
+    USER_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(10).max(6000).default(60),
     WEB_DIST: z.string().min(1).optional(),
 
     DATABASE_URL: postgresUrl,
@@ -102,6 +108,23 @@ const envSchema = z
     EMAIL_INDEX_KEY: key,
     OTP_PEPPER: key,
     AUDIT_KEY: key,
+    PASSWORD_PEPPER: key,
+    // Can only be raised: existing hashes keep their own parameters, and are upgraded at the next sign-in. At most
+    // 64 MiB, because up to ARGON2_MAX_RUNNING hashes run at once: 192 MiB at the ceiling, on a 512 MB instance.
+    PASSWORD_ARGON2_MEMORY_KIB: blankIsUnset(
+      z.coerce
+        .number()
+        .int()
+        .min(ARGON2_FLOOR.memory, `must be at least ${ARGON2_FLOOR.memory}, OWASP's minimum`)
+        .max(ARGON2_MAX_MEMORY_KIB, `must be at most ${ARGON2_MAX_MEMORY_KIB}, so ${ARGON2_MAX_RUNNING} hashes at once fit in a 512 MB instance`)
+        .default(ARGON2_FLOOR.memory),
+    ),
+    PASSWORD_ARGON2_PASSES: blankIsUnset(z.coerce.number().int().min(ARGON2_FLOOR.passes, `must be at least ${ARGON2_FLOOR.passes}, OWASP's minimum`).max(16).default(ARGON2_FLOOR.passes)),
+
+    GOOGLE_CLIENT_ID: blankIsUnset(z.string().trim().min(1).optional()),
+    GOOGLE_CLIENT_SECRET: blankIsUnset(z.string().min(1).optional()),
+    // Development and tests only, so they can run a fake provider. Refused in production.
+    GOOGLE_OIDC_BASE_URL: blankIsUnset(z.string().url().optional()),
 
     MAIL_TRANSPORT: z.string().regex(/^(smtp|file:.+)$/, 'must be smtp or file:<path>'),
     MAIL_FROM: z.string().min(3),
@@ -132,6 +155,7 @@ const envSchema = z
       ['EMAIL_INDEX_KEY', env.EMAIL_INDEX_KEY],
       ['OTP_PEPPER', env.OTP_PEPPER],
       ['AUDIT_KEY', env.AUDIT_KEY],
+      ['PASSWORD_PEPPER', env.PASSWORD_PEPPER],
       ...[...(master?.values() ?? [])].map((k, i) => [`ENCRYPTION_KEYS[${i}]`, k.toString('base64')]),
     ] as const) {
       if (seen.has(value)) issue(name.startsWith('ENCRYPTION') ? 'ENCRYPTION_KEYS' : name, 'must not reuse another key');
@@ -143,7 +167,13 @@ const envSchema = z
       issue('DATABASE_CA_CERT', 'must be a PEM certificate, or base64 of one');
     }
 
+    if (!env.GOOGLE_CLIENT_ID !== !env.GOOGLE_CLIENT_SECRET) {
+      issue(env.GOOGLE_CLIENT_ID ? 'GOOGLE_CLIENT_SECRET' : 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together, or both left out');
+    }
+
     if (env.NODE_ENV !== 'production') return;
+
+    if (env.GOOGLE_OIDC_BASE_URL) issue('GOOGLE_OIDC_BASE_URL', 'is not allowed in production: sign-in must go to Google itself');
 
     if (!env.PUBLIC_ORIGIN.startsWith('https://')) issue('PUBLIC_ORIGIN', 'must be https in production');
     if (env.DEV_ORIGINS) issue('DEV_ORIGINS', 'is not allowed in production');
@@ -178,6 +208,7 @@ export interface Config {
   publicOrigin: string;
   allowedOrigins: ReadonlySet<string>;
   trustProxyHops: number;
+  userRateLimitPerMinute: number;
   /** Lower-case name of a header holding the client address, or null to count proxy hops. */
   clientIpHeader: string | null;
   logLevel: string;
@@ -192,6 +223,37 @@ export interface Config {
   /** Shown in the privacy notice. Owner-confirmed facts, so they live in config and not in copy. */
   disclosure: { backupRetentionDays: number; dataLocation: string; serverLocation: string; mailProvider: string };
   cookie: { name: string; secure: boolean };
+  passwordHash: Argon2Params;
+  /** Null when Google sign-in is off. */
+  google: GoogleConfig | null;
+}
+
+export interface GoogleConfig {
+  clientId: string;
+  clientSecret: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  jwksUrl: string;
+  /** What an ID token's `iss` may say. */
+  issuers: readonly string[];
+  /** Derived from PUBLIC_ORIGIN, never from a request. */
+  redirectUri: string;
+}
+
+const API_CALLBACK = '/api/v1/auth/google/callback';
+
+function googleConfig(e: { GOOGLE_CLIENT_ID?: string | undefined; GOOGLE_CLIENT_SECRET?: string | undefined; GOOGLE_OIDC_BASE_URL?: string | undefined; PUBLIC_ORIGIN: string }): GoogleConfig | null {
+  if (!e.GOOGLE_CLIENT_ID || !e.GOOGLE_CLIENT_SECRET) return null;
+  const base = e.GOOGLE_OIDC_BASE_URL?.replace(/\/+$/, '');
+  return {
+    clientId: e.GOOGLE_CLIENT_ID,
+    clientSecret: e.GOOGLE_CLIENT_SECRET,
+    authorizeUrl: base ? `${base}/authorize` : 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenUrl: base ? `${base}/token` : 'https://oauth2.googleapis.com/token',
+    jwksUrl: base ? `${base}/jwks` : 'https://www.googleapis.com/oauth2/v3/certs',
+    issuers: base ? [base] : ['https://accounts.google.com', 'accounts.google.com'],
+    redirectUri: `${e.PUBLIC_ORIGIN}${API_CALLBACK}`,
+  };
 }
 
 export class ConfigError extends Error {
@@ -239,6 +301,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     publicOrigin: e.PUBLIC_ORIGIN,
     allowedOrigins: new Set([e.PUBLIC_ORIGIN, ...devOrigins]),
     trustProxyHops: e.TRUST_PROXY_HOPS,
+    userRateLimitPerMinute: e.USER_RATE_LIMIT_PER_MINUTE,
     clientIpHeader: e.CLIENT_IP_HEADER?.toLowerCase() ?? null,
     logLevel: e.LOG_LEVEL,
     webDist: e.WEB_DIST ? resolve(e.WEB_DIST) : defaultWebDist(),
@@ -250,6 +313,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       emailIndexKey: decodeKey(e.EMAIL_INDEX_KEY)!,
       otpPepper: decodeKey(e.OTP_PEPPER)!,
       auditKey: decodeKey(e.AUDIT_KEY)!,
+      passwordPepper: decodeKey(e.PASSWORD_PEPPER)!,
     },
     mail,
     operatorName: e.OPERATOR_NAME,
@@ -262,6 +326,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     },
     // __Host- requires Secure, so the plain name is only for development on localhost.
     cookie: e.NODE_ENV === 'development' ? { name: 'session', secure: false } : { name: '__Host-session', secure: true },
+    passwordHash: { memory: e.PASSWORD_ARGON2_MEMORY_KIB, passes: e.PASSWORD_ARGON2_PASSES, parallelism: ARGON2_FLOOR.parallelism },
+    google: googleConfig(e),
   };
 }
 

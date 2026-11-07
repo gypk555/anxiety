@@ -292,6 +292,7 @@ describe('meta', () => {
       dataLocation: 'Mumbai, India',
       serverLocation: 'Singapore',
       mailProvider: 'our email provider',
+      googleEnabled: false,
     });
   });
 });
@@ -344,13 +345,13 @@ describe('body handling', () => {
 
   it.each([
     ['otp request', 'POST', '/auth/otp/request', { email: 'a@example.com', admin: true }],
-    ['otp verify', 'POST', '/auth/otp/verify', { email: 'a@example.com', code: '12345678', userId: 'x' }],
+    ['otp verify', 'POST', '/auth/otp/verify', { email: 'a@example.com', code: '123456', userId: 'x' }],
     ['profile', 'PATCH', '/me', { displayName: 'A', email: 'b@example.com' }],
     ['consent', 'POST', '/me/consent', { version: 'x', adultConfirmed: true, healthDataConsent: true, extra: 1 }],
     ['email request', 'POST', '/me/email/request', { newEmail: 'b@example.com', id: 'x' }],
-    ['email verify', 'POST', '/me/email/verify', { newEmail: 'b@example.com', currentCode: '12345678', code: '12345678', x: 1 }],
+    ['email verify', 'POST', '/me/email/verify', { newEmail: 'b@example.com', currentCode: '123456', code: '123456', x: 1 }],
     ['delete request', 'POST', '/me/delete/request', { x: 1 }],
-    ['delete confirm', 'POST', '/me/delete/confirm', { code: '12345678', x: 1 }],
+    ['delete confirm', 'POST', '/me/delete/confirm', { code: '123456', x: 1 }],
     ['assessment', 'POST', '/assessments', { clientRequestId: '00000000-0000-4000-8000-000000000000', answers: [0, 0, 0, 0, 0, 0, 0], difficulty: null, score: 0 }],
     ['journal', 'POST', '/journal', { situation: 's', thought: 't', feelings: [], intensityBefore: 1, evidenceFor: '', evidenceAgainst: '', balancedThought: '', intensityAfter: null, userId: 'x' }],
   ])('%s: unknown body keys are rejected', async (_name, method, path, body) => {
@@ -389,7 +390,7 @@ describe('client IP', () => {
         method: 'POST',
         url: `${API}/auth/otp/verify`,
         remoteAddress: '10.98.0.1',
-        payload: { email: uniqueEmail('hop'), code: '00000000' },
+        payload: { email: uniqueEmail('hop'), code: '000000' },
         headers: { origin: ORIGIN, [CSRF_HEADER]: '1', 'x-forwarded-for': forwarded },
       });
     const first = await send('1.1.1.1, 198.51.100.50');

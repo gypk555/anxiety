@@ -25,6 +25,9 @@
   --line: #dcc4ba;
   --focus: #96294f;
   --scrim: rgb(31 31 88 / 0.45);
+  --google-fill: #ffffff;
+  --google-ink: #1f1f1f;
+  --google-outline: #747775;
 }
 
 /* Dark values live in one place by way of a repeated block: the system preference,
@@ -48,6 +51,9 @@
     --line: #3b3b74;
     --focus: #f2bd4a;
     --scrim: rgb(5 5 25 / 0.6);
+    --google-fill: #131314;
+    --google-ink: #e3e3e3;
+    --google-outline: #8e918f;
   }
 }
 :root[data-theme='dark'],
@@ -69,6 +75,9 @@
   --line: #3b3b74;
   --focus: #f2bd4a;
   --scrim: rgb(5 5 25 / 0.6);
+  --google-fill: #131314;
+  --google-ink: #e3e3e3;
+  --google-outline: #8e918f;
 }
 
 @theme inline {
@@ -210,6 +219,13 @@
   .btn-quiet {
     background: var(--surface-2);
     color: var(--ink);
+  }
+  /* Google's branding guidelines: white with a grey outline on light, near-black on dark. A deliberate exception to the palette. */
+  .btn-google {
+    gap: 0.625rem;
+    background: var(--google-fill);
+    color: var(--google-ink);
+    border: 1px solid var(--google-outline);
   }
   .btn-ghost {
     background: transparent;

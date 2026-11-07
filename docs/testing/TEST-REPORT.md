@@ -1,13 +1,13 @@
 # Test report
 
-**Date: 2026-11-06.** Branch `production-rebuild`, last commit `fb4b34a`, on an **uncommitted working tree**: no commit identifies this exact code yet. The results below are from a final run on this machine, from 20:54 to 21:03 IST, after the defects listed under [issues fixed](#issues-found-and-fixed) were fixed. The documents were then edited, and no source or test changed after that run.
+**Date: 2026-11-07.** Branch `production-rebuild`, last commit `a5a1800`, on an **uncommitted working tree**: no commit identifies this exact code yet. The results below are from final runs on this machine on 2026-11-07, between 17:02 and 17:13 for Playwright, after the accounts and database-setup work in [the accounts spec](../superpowers/specs/2026-11-07-accounts-and-database-design.md) and the fixes from the [second security review](#second-security-review-accounts-code-2026-11-07).
 
 ## Summary
 
-- **All automated checks passed:** typecheck clean, lint with 0 errors and 12 warnings, 462 of 462 Vitest, 408 of 408 Playwright on each of two consecutive full runs, build succeeded, `npm audit --omit=dev` found 0 vulnerabilities.
-- **Initial JS is 149.0 KB gzipped, against a 170 KB budget,** now enforced through real HTTP on localhost.
-- **The app has never run on a real phone, Supabase, Render, a real mail provider or GitHub Actions. No helpline has been phoned. Nobody has listened to the audio, used a screen reader, or used the app with a keyboard in person.**
-- **This is not a release sign-off.** Passing here means it's ready for manual testing. See [What has not been tested](#what-has-not-been-tested) and the [issues found and fixed](#issues-found-and-fixed).
+- **All automated checks passed:** typecheck clean, lint with 0 errors and 18 warnings, 835 of 835 Vitest, Playwright 565 passed and 1 skipped (566 runs) on each of two consecutive full runs, build succeeded, `npm audit --omit=dev` found 0 vulnerabilities. The clean `npm ci --ignore-scripts` check below is from the earlier run and was not repeated.
+- **Initial JS is 149.6 KB gzipped, against a 170 KB budget.** The common-password list is kept out of it, and a test checks that.
+- **The app has never run on a real phone, Supabase, Render, a real mail provider, real Google or GitHub Actions. `db:setup`, `db:verify` and `doctor` have only met embedded Postgres and an SMTP stub. Google has only been a local fake provider. No password manager has been tried. No helpline has been phoned.**
+- **This is not a release sign-off.** Passing here means it's ready for manual testing. See [What has not been tested](#what-has-not-been-tested).
 
 ## Environment
 
@@ -29,42 +29,47 @@
 | Check | Result | Detail |
 | --- | --- | --- |
 | `npm run typecheck` | Pass | `shared`, `api` and `web`. No errors printed |
-| `npm run lint` | Pass with warnings | 0 errors, **12 warnings** |
-| `npm run build` | Pass | 2322 modules transformed. PWA precache: 42 entries, 848.47 KiB. 32 files precompressed. API bundle `dist/server.js` 69.5 kb |
-| `npm audit --omit=dev` | Clean: 0 vulnerabilities | From the final run |
-| `npm audit` | 6: 2 low, 4 moderate. All in build tooling | From the final run. Exits 1, as before. Documented in `docs/SECURITY-EXCEPTIONS.md` |
+| `npm run lint` | Pass with warnings | 0 errors, **18 warnings** |
+| `npm run build` | Pass | 2331 modules transformed. PWA precache: 45 entries, 886.82 KiB. API bundle `dist/server.js` 129.3 kb |
+| `npm audit --omit=dev` | Clean: 0 vulnerabilities | |
+| `npm audit` | 6: 2 low, 4 moderate. All in build tooling | Unchanged. Documented in `docs/SECURITY-EXCEPTIONS.md` |
+| Clean install | Pass | A copy of the working tree, `npm ci --ignore-scripts`, `npm run build`, then its `dist/server.js` started by `https-stack.ts` with `NODE_ENV=production` and Google configured: `/healthz` and `/readyz` ok, `/meta` shows `googleEnabled: true`, Google start answers 302 to `accounts.google.com`, which was not followed |
+| `node scripts/generate-test-catalogue.mjs --check` | Pass | 1118 tests listed |
 
 ### Vitest
 
 | Workspace | Files | Tests | Passed | Failed | Duration (as logged) |
 | --- | --- | --- | --- | --- | --- |
-| `@anxiocare/shared` | 1 | 25 | 25 | 0 | 154 ms |
-| `@anxiocare/api` | 14 | 294 | 294 | 0 | 4.19 s |
-| `@anxiocare/web` | 18 | 143 | 143 | 0 | 12.62 s |
-| **Total** | **33** | **462** | **462** | **0** | |
+| `@anxiocare/shared` | 2 | 83 | 83 | 0 | 228 ms |
+| `@anxiocare/api` | 18 | 566 | 566 | 0 | 21.21 s |
+| `@anxiocare/web` | 19 | 186 | 186 | 0 | 12.54 s |
+| **Total** | **39** | **835** | **835** | **0** | |
+
+New in this pass: `security-regressions.test.ts` (26 tests, one block per finding of the second review). Also new API files from the accounts work: `accounts.test.ts` (password flows, caps, semaphore, rehash, reset, purposes, logging), `google.test.ts` (fake provider, every rejection, linking, disconnect, erasure), `tooling.test.ts` (`db:setup`, `db:verify` and `doctor` as subprocesses, against embedded Postgres with TLS and a non-superuser admin role).
 
 ### Playwright
 
-**First run: 408 passed, 0 failed, in 4.1 minutes. Second run, straight after: 408 passed, 0 failed, in 4.1 minutes.** This includes the live suite each time. No retries are configured, so none hid a flake. Per-project counts come from the run's output, and are the same in both.
+**First run: 565 passed, 1 skipped, 0 failed, in 5.5 minutes (17:02 to 17:08). Second run, straight after: 565 passed, 1 skipped, 0 failed, in 5.4 minutes (17:08 to 17:13).** No retries are configured. The skip is the clipboard paste test on WebKit, where Playwright can't grant clipboard permission. Paste is also covered in a component test.
 
-| Project | Suite | Passed |
+| Project | Suite | Runs |
 | --- | --- | --- |
-| `iphone` | Mocked (WebKit) | 107 |
-| `pixel` | Mocked (Chromium) | 107 |
-| `live-iphone` | Live (WebKit) | 95 |
-| `live-pixel` | Live (Chromium) | 95 |
-| `https-iphone` | HTTPS (WebKit) | 2 |
-| `https-pixel` | HTTPS (Chromium) | 2 |
-| **Total** | | **408** |
+| `iphone` | Mocked (WebKit) | 133 |
+| `pixel` | Mocked (Chromium) | 133 |
+| `live-iphone` | Live (WebKit) | 143, 1 skipped |
+| `live-pixel` | Live (Chromium) | 143 |
+| `https-iphone` | HTTPS (WebKit) | 7 |
+| `https-pixel` | HTTPS (Chromium) | 7 |
+| **Total** | | **566** |
 
 | Spec | `iphone` | `pixel` | `live-iphone` | `live-pixel` | `https-iphone` | `https-pixel` | Total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `audit.spec.ts` | 101 | 101 | | | | | 202 |
+| `audit.spec.ts` | 127 | 127 | | | | | 254 |
 | `resilience.spec.ts` | 6 | 6 | | | | | 12 |
 | `live/a11y.spec.ts` | | | 4 | 4 | | | 8 |
+| `live/accounts.spec.ts` | | | 47 | 47 | | | 94 |
 | `live/auth.spec.ts` | | | 5 | 5 | | | 10 |
 | `live/authorisation.spec.ts` | | | 5 | 5 | | | 10 |
-| `live/compression.spec.ts` | | | 5 | 5 | | | 10 |
+| `live/compression.spec.ts` | | | 6 | 6 | | | 12 |
 | `live/consent.spec.ts` | | | 9 | 9 | | | 18 |
 | `live/failures.spec.ts` | | | 12 | 12 | | | 24 |
 | `live/guest.spec.ts` | | | 8 | 8 | | | 16 |
@@ -76,28 +81,30 @@
 | `live/safety.spec.ts` | | | 6 | 6 | | | 12 |
 | `live/security.spec.ts` | | | 6 | 6 | | | 12 |
 | `live/settings.spec.ts` | | | 6 | 6 | | | 12 |
-| `https/https.spec.ts` | | | | | 2 | 2 | 4 |
+| `https/https.spec.ts` | | | | | 7 | 7 | 14 |
 
-The grand total of runs is 870: 462 Vitest and 408 Playwright. Unique tests: 666. Each is listed in [TEST-CASES.md](TEST-CASES.md).
+The grand total of runs is 1,401: 835 Vitest and 566 Playwright. Unique tests: 1,118. Each is listed in [TEST-CASES.md](TEST-CASES.md).
+
+**Seen once, earlier in the day, not since.** In one development run before the final two, WebKit reported two failures that did not recur in three full runs after: `live/auth.spec.ts` "sign-up" with "Fetch API cannot load ... due to access control checks" from a fetch cut off by navigation, and `live/consent.spec.ts` "never consented" timing out waiting for a download. Both specs predate this work. Treat them as possible flakes to watch.
 
 ### Traceability
 
-143 spec requirements are mapped in [TEST-CASES.md](TEST-CASES.md): 98 covered on the stack the tests run on, 29 partial, 16 with no automated test. "Covered" there means localhost and emulation, not production.
+171 requirements are mapped in [TEST-CASES.md](TEST-CASES.md), including 28 from the accounts spec and its second review: 125 covered on the stack the tests run on, 30 partial, 16 with no automated test. "Covered" there means localhost and emulation, not production.
 
 ## Known warnings
 
-Lint gives 12 warnings, and no errors. None was fixed. The linter doesn't fail on warnings.
+Lint gives 18 warnings, and no errors. None was fixed. The linter doesn't fail on warnings.
 
 | Rule | Count | Where |
 | --- | --- | --- |
-| `react(only-export-components)` | 4 | `ui/OtpInput.tsx:5`, `ui/TrendChart.tsx:16`, `routes/Journal.tsx:64`, `routes/CheckIn.tsx:150` |
-| `react(purity)` | 3 | `routes/Home.tsx:127`, `routes/SignIn.tsx:93`, `routes/Breathe.tsx:188` |
-| `eslint(no-unused-vars)` | 2 | `public/theme-init.js:12`, `scripts/generate-test-catalogue.mjs:412` |
-| `eslint(no-empty-pattern)` | 1 | `e2e/live/support.ts:102` |
-| `react(set-state-in-effect)` | 1 | `routes/Settings.tsx:492` |
-| `react-hooks(exhaustive-deps)` | 1 | `routes/Settings.tsx:495` |
+| `react(purity)` | 7 | `routes/Home.tsx:129`, `routes/SignIn.tsx:175`, `routes/Breathe.tsx:188`, `routes/CreateAccount.tsx:40,125`, `routes/ForgotPassword.tsx:24,75`: `Date.now()` as a state initialiser for the resend cooldown, the existing pattern |
+| `react(only-export-components)` | 6 | `ui/OtpInput.tsx:5`, `ui/TrendChart.tsx:16`, `routes/Journal.tsx:64`, `routes/CheckIn.tsx:150`, `routes/SignIn.tsx:30,35` |
+| `eslint(no-unused-vars)` | 2 | `public/theme-init.js:12`, `scripts/generate-test-catalogue.mjs:444` |
+| `eslint(no-empty-pattern)` | 1 | `e2e/live/support.ts:107` |
+| `react(set-state-in-effect)` | 1 | `routes/Settings.tsx:844` |
+| `react-hooks(exhaustive-deps)` | 1 | `routes/Settings.tsx:846` |
 
-Paths are under `apps/web/`, as in the output, apart from the script. The script's warning wasn't counted in the last report, and none of the fixes added a new kind. Expected browser errors are handled by `guard` in the live suite, and any unexpected one would have failed its test.
+Paths are under `apps/web/`, apart from the script. Seven are new, from the new screens, all of kinds already present.
 
 ## Security review
 
@@ -117,16 +124,35 @@ The owner's security review reported 14 items. Each row below was checked agains
 | Low | Cursor gave a 500 | Fixed. Answers 400 | `routes/assessments.ts`, `routes/journal.ts` | `hardening.test.ts` "10. cursors" |
 | Deploy, 4 plausible items | The brief gives only the count. The repository shows these: migration credential in the server's environment, client address behind Cloudflare, lifecycle scripts on install, deploying before checks pass | Mitigated in config, or documented. **None verified on a real Render service** | `render.yaml`, `server.ts`, `client-ip.ts`, `docs/SECURITY-EXCEPTIONS.md`, `apps/api/README.md` | `hardening.test.ts` "deploy config" (5 tests), `https.spec.ts` |
 
-**Residual risk.** Repeated wrong guesses can block sign-in for an address for up to 24 hours. Confirmed in code: over the cap, `consumeOtps` refuses without evaluating, even the right code. It costs an attacker ten mails, which the owner sees, because only guesses at live codes count. Existing sessions are unaffected, and deletion and email change are unaffected because caps are per purpose. Also accepted: many clients can spend an address's 20 sign-in codes an hour. Recorded in [`docs/SECURITY-EXCEPTIONS.md`](../SECURITY-EXCEPTIONS.md#24-hour-sign-in-lockout), and in "Known costs, accepted" in `apps/api/README.md`.
+**Residual risk.** Repeated wrong guesses can block sign-in for an address for up to 24 hours. Confirmed in code: over the cap, `consumeOtps` refuses without evaluating, even the right code. It costs an attacker ten mails, which the owner sees, because only guesses at live codes count. Existing sessions are unaffected, and deletion and email change are unaffected because caps are per purpose. Also accepted: many clients can spend an address's 20 sign-in codes an hour. Recorded in [`docs/SECURITY-EXCEPTIONS.md`](../SECURITY-EXCEPTIONS.md#sign-in-lockout-of-a-new-device), and in "Known costs, accepted" in `apps/api/README.md`.
 
 **Limits of this verification.**
 
-- The brief says the attack scripts were re-run and confirmed the fixes. **Those scripts are not in the repository, and their output isn't in the logs, so this report can't confirm that run.** The regression tests above are what's verifiable here.
+- For this first review, the brief says the attack scripts were re-run and confirmed the fixes. **Those scripts are not in the repository, and their output isn't in the logs, so this report can't confirm that run.** The regression tests above are what's verifiable here. (The second review's scripts are kept: see the next section.)
 - No independent penetration test has been done. Nothing was tested against the real edge: see MT-SEC.
+
+## Second security review: accounts code (2026-11-07)
+
+A second review of the new account code reported four flaws and two minor items, each with an attack script. Every attack was first turned into a failing test in `apps/api/test/security-regressions.test.ts` (20 of its first 23 tests failed before the fix), then fixed. The reviewer's scripts are kept, unchanged apart from import paths, in `apps/api/test/attacks/`. They print outcomes rather than assert, and run with `npx vitest run --config test/attacks/vitest.config.ts --reporter=verbose` from `apps/api`. The scratchpad copy was lost to a power cut; the repository copy was recreated verbatim from the session.
+
+| Finding | Before | After (script re-run, 17:02) | Fix | Regression tests |
+| --- | --- | --- | --- | --- |
+| Google takeover: a Google login with an account's address, any subject, signed in to it and stayed linked after a reset | Callback 302 to `/consent`, `/me` 200 as the victim; after the victim's reset, the attacker's Google still got in | 302 to `/sign-in?error=google_link`, `/me` 401; after reset, 401 | Sign-in finds accounts by Google subject only, never by address. Linking only from Settings (`POST /me/identities/google/connect`), bound to the session that asked and needing a password or email code proved in the last 10 minutes. New accounts from Google only for gmail.com, googlemail.com or an `hd` claim. A reset removes linked identities and mails a notice. Unlinking needs re-authentication, not a password | "finding 1" (8 tests), `google.test.ts`, `live/accounts.spec.ts` (4 Google tests) |
+| Password change racing a reset | Attacker kept the password 6 of 6 | 0 of 6 in the script; 0 of 50 per run in the test, run 4 times (200 iterations) | Change, set and reset lock the user row (`FOR UPDATE`) in one transaction; change and set re-check the session and the stored hash there, else 401. Other sessions are revoked in the same transaction | "finding 2" (2 tests) |
+| Lockout: 10 wrong passwords, or 34 requests across codes and passwords, locked the owner out | Owner 400 on password, code and reset | Password 200 on a new device; code and reset 200 (that device is known once its password sign-in succeeds) | Device cookies (`__Host-device`, HMAC stored, revoked by reset and deletion). Without one: passwords 10 a day per address and network, 100 a day per address; codes 5 a day per address and network, 20 a day per address. With one: only that device's own budget | "finding 3" (8 tests), `live/accounts.spec.ts` "known devices" |
+| Argon2 flood: 40 concurrent strangers left the owner with a 429 | Owner 429 | A known device gets the kept slot (test); the script's owner is a new device and is still shed (429), as designed | 2 general slots plus 1 for known devices; 10 sign-in attempts a minute per /64 and an instance-wide bucket before anything is counted or hashed; `PASSWORD_ARGON2_MEMORY_KIB` at most 65536 (192 MiB peak) | "finding 4" (6 tests) |
+| `login_failures.quota_hash` joinable with `otp_codes.quota_hash` | Same HMAC | Different HMAC domains | `loginQuotaKey` (`login-quota:`) | "minor items" |
+| Secrets file mode | Appended file kept its mode | 0600, also fixed on an existing file | `chmodSync` in `ensureSecrets` | "minor items" |
+
+Timing, in the script, median ms for a password account, a code-only account and an unknown address: 31.2, 31.5, 31.5 (interleaved) and 35.5, 32.9, 27.1 (sequential). Uniform, as before the fixes.
+
+**Deviation from the brief.** It asked for an overall cap of 100 failures a day per address for codes as well as passwords. Codes keep 20, because 100 would raise the odds of guessing a 6-digit code from about 0.7% to about 3.6% a year. Recorded in [decision 012](../decisions/012-passwords-google-and-six-digit-codes.md) and [SECURITY-EXCEPTIONS.md](../SECURITY-EXCEPTIONS.md).
+
+**Residual.** A new device can be locked out by an attacker using several networks; a known device can't. Under a flood, a new device's sign-in can be shed with a 429. Not verified: anything on a real edge, real Google, or more than one instance (the per-/64 limit and bucket are in memory, per instance).
 
 ## Performance: initial JS
 
-**Measured: 149.0 KB gzipped. Budget: 170 KB. Margin: 21.0 KB.**
+**Measured: 149.6 KB gzipped (149,599 bytes, from the `.gz` files `index.html` lists). Budget: 170 KB. Margin: 20.4 KB.** The table below is from the previous report's measurement through HTTP. The entry file is now `index-CCY4Ezxe.js` at 145,731 gzip bytes. `live/compression.spec.ts` checks the budget over HTTP and passed in both runs. A first build put the common-password list in the entry chunk, at 152.4 KB. It now has its own chunk, loaded only by the screens that set a password, and a test checks it stays out.
 
 Method: `live/compression.spec.ts` starts from the real server over real HTTP, with Node's own client so that nothing decodes the bytes. It reads the scripts `index.html` lists, asks for each with `Accept-Encoding: gzip`, sums the bytes on the wire, and fails at 170,000. It also checks that each decoded response equals the raw file. The test doesn't print its total, so the table gives the sizes of the same precompressed files in `apps/web/dist`.
 
@@ -153,6 +179,9 @@ Stated plainly. None of the following has happened, in any form:
 
 | Not tested | What that means | Manual cases |
 | --- | --- | --- |
+| **`db:setup`, `db:verify`, `doctor` on real systems** | Tested as subprocesses against embedded Postgres with TLS, a Supabase-like non-superuser admin role, and an SMTP stub. Never against Supabase's pooler, its `postgres` role's real permissions, or a real SMTP provider | MT-AUTH-22 |
+| **Real Google** | Only a local fake provider, on another site, with real signatures. Google's consent screen, verification and real ID tokens are unknown | MT-AUTH-18, 19 |
+| **Password managers** | Only `autocomplete`, `name` and `type` are checked. No manager has offered, saved or filled a password | MT-AUTH-11, 13 |
 | **Live Supabase** | The migrations, runtime role, RLS, session pooler and CA have only met embedded Postgres. Nothing has run in Mumbai | MT-DEP-02 to 06, 10, 14 |
 | **Render** | `render.yaml`, pre-deploy, health checks, start command and environment have never run | MT-DEP-01, 13, 18, 20 |
 | **The real edge** | Cloudflare's behaviour with `CF-Connecting-IP`, compression and headers comes from documents and people's reports, not observation | MT-DEP-07, 08, 19, MT-SEC |
@@ -171,7 +200,7 @@ Stated plainly. None of the following has happened, in any form:
 | Clinical review | No clinician has read the copy. The spec requires this | MT-CLN-01 to 08 |
 | Legal review | No lawyer has read the notice or terms. The spec requires this | MT-CLN-09 |
 | Load, soak, restore | No load test, no backup restore, no key-rotation drill on a real system | MT-DEP-15, 16 |
-| Manual test cases | 252 written. **None has been run** | All |
+| Manual test cases | 264 written. **None has been run** | All |
 
 ## Issues found and fixed
 
@@ -215,6 +244,7 @@ Test gaps are listed in [TEST-STRATEGY.md](TEST-STRATEGY.md#known-gaps). Two mor
 
 ```sh
 npm ci && npm run typecheck && npm run lint && npm test && npm run build && npm run test:e2e
+node scripts/generate-test-catalogue.mjs --check
 ```
 
 To re-measure initial JS by hand, using the precompressed files `apps/web/dist/index.html` lists. `live/compression.spec.ts` does this over HTTP:

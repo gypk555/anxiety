@@ -1,6 +1,6 @@
 # Database
 
-Postgres, in a private schema called `app`. The schema is in [apps/api/migrations/001_init.sql](../apps/api/migrations/001_init.sql). The planned host is Supabase, used as plain Postgres. It has not run there yet: tests and local development use `embedded-postgres`.
+Postgres, in a private schema called `app`. The schema is in [apps/api/migrations](../apps/api/migrations): `001_init.sql`, `002_accounts.sql` and `003_devices_and_reauth.sql`. The planned host is Supabase, used as plain Postgres. It has not run there yet: tests and local development use `embedded-postgres`.
 
 Column types below are from the migration. "Sealed" means AES-256-GCM encrypted by the application with the user's data key, before it reaches the database. See [encryption](modules/encryption.md).
 
@@ -20,6 +20,7 @@ Column types below are from the migration. "Sealed" means AES-256-GCM encrypted 
 | `consent_at` | timestamptz(3) | Yes | Plain | |
 | `created_at` | timestamptz(3) | No | Plain | Default `now()` |
 | `updated_at` | timestamptz(3) | No | Plain | Default `now()` |
+| `password_hash` | text | Yes | Argon2id PHC string, peppered | Null for an account that signs in by code or Google only. `CHECK` that it starts `$argon2id$`. From `002_accounts.sql` |
 
 ### `app.consents`
 
@@ -44,35 +45,82 @@ One row per accepted version. Primary key `(user_id, version)`.
 | `created_at` | timestamptz(3) | No | Plain | |
 | `last_seen_at` | timestamptz(3) | No | Plain | Updated at most every 5 minutes |
 | `absolute_expires_at` | timestamptz(3) | No | Plain | Creation plus 90 days. Never extended |
+| `reauth_at` | timestamptz(3) | Yes | Plain | When this session last proved a password or an email code. Connecting or disconnecting Google needs it within 10 minutes. Null after a Google sign-in. From `003_devices_and_reauth.sql` |
 
 ### `app.otp_codes`
 
 | Column | Type | Null | Encryption | Notes |
 | --- | --- | --- | --- | --- |
 | `id` | uuid, primary key | No | Plain | Default `gen_random_uuid()` |
-| `purpose` | text | No | Plain | `login`, `email_change`, `email_change_current`, `account_delete` |
+| `purpose` | text | No | Plain | `login`, `register`, `password_reset`, `password_set`, `email_change`, `email_change_current`, `account_delete`, `reauth` |
 | `email_hash` | bytea | No | HMAC blind index | The address the code was mailed to |
 | `quota_hash` | bytea | No | HMAC | Of the canonical address, so variants of one inbox share a budget |
 | `source_hash` | bytea | No | HMAC | Key `OTP_PEPPER`. Of `quota_hash` and the client key. The client address is not stored |
-| `subject_user_id` | uuid | Yes | Plain | Null for `login`, required otherwise. References `users`, cascade delete |
+| `subject_user_id` | uuid | Yes | Plain | Null for `login`, `register` and `password_reset`, required otherwise. References `users`, cascade delete |
 | `code_hmac` | bytea | No | HMAC | Key `OTP_PEPPER`. Over purpose, email hash, subject, binding and code |
 | `attempts` | integer | No | Plain | Default 0, `CHECK` between 0 and 5 |
 | `expires_at` | timestamptz(3) | No | Plain | Issue plus 10 minutes |
 | `consumed_at` | timestamptz(3) | Yes | Plain | Set on use, and when replaced by a newer code |
 | `created_at` | timestamptz(3) | No | Plain | |
 
-Constraint `otp_subject_matches_purpose`: `(purpose = 'login') = (subject_user_id IS NULL)`.
+Constraint `otp_subject_matches_purpose`: `(purpose IN ('login', 'register', 'password_reset')) = (subject_user_id IS NULL)`.
 
 ### `app.otp_failures`
 
-One row per wrong guess at a live code, for the 50-a-day cap.
+One row per wrong guess at a live code, for the daily caps. `login`, `register` and `password_reset` count together: 20 a day per address and 5 per address and client from unknown devices, or 20 a day per known device. Signed-in purposes: 20 a day per address and purpose, with both new columns null.
 
 | Column | Type | Null | Encryption | Notes |
 | --- | --- | --- | --- | --- |
 | `id` | uuid, primary key | No | Plain | |
 | `quota_hash` | bytea | No | HMAC | As above |
 | `purpose` | text | No | Plain | No `CHECK` here |
+| `source_hash` | bytea | Yes | HMAC | Key `OTP_PEPPER`, domain `otp-failure-source:`, of `quota_hash` and the client key. Sign-in purposes from an unknown device. From `003` |
+| `device_id` | uuid | Yes | Plain | References `device_tokens`, cascade delete. Sign-in purposes from a known device. At most one of the two is set. From `003` |
 | `created_at` | timestamptz(3) | No | Plain | |
+
+### `app.user_identities`
+
+A person's Google account. From `002_accounts.sql`.
+
+| Column | Type | Null | Encryption | Notes |
+| --- | --- | --- | --- | --- |
+| `user_id` | uuid | No | Plain | References `users`, cascade delete. Primary key with `provider`, so one Google login per account |
+| `provider` | text | No | Plain | `google` |
+| `subject_hmac` | bytea | No | HMAC | Key `EMAIL_INDEX_KEY`, over Google's `sub`. Unique with `provider`. Google's value itself is not stored |
+| `created_at` | timestamptz(3) | No | Plain | |
+
+### `app.login_failures`
+
+One row per failed password attempt, for the caps: from an unknown device, 10 a day per address and client and 100 a day per address; from a known device, 10 an hour for that device. Also counts addresses with no account, so it says nothing about who has one. A row is written before the hash runs, and removed if the password was right. From `002_accounts.sql`, reworked in `003_devices_and_reauth.sql`.
+
+| Column | Type | Null | Encryption | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | uuid, primary key | No | Plain | |
+| `quota_hash` | bytea | No | HMAC | Key `EMAIL_INDEX_KEY`, of the canonical address, in its own domain (`login-quota:`), so it can't be joined with `otp_codes.quota_hash` |
+| `source_hash` | bytea | Yes | HMAC | Key `OTP_PEPPER`, domain `login-failure-source:`, of `quota_hash` and the client key. Set for an unknown device |
+| `device_id` | uuid | Yes | Plain | References `device_tokens`, cascade delete. Set for a known device. `CHECK` that exactly one of the two is set |
+| `created_at` | timestamptz(3) | No | Plain | Purged after 24 hours |
+
+### `app.device_tokens`
+
+Browsers where someone has signed in, for device cookies (OWASP's lockout pattern). From `003_devices_and_reauth.sql`.
+
+| Column | Type | Null | Encryption | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | uuid, primary key | No | Plain | |
+| `user_id` | uuid | No | Plain | References `users`, cascade delete. At most 20 per account are kept |
+| `token_hmac` | bytea | No | HMAC | Key `OTP_PEPPER`, of the `__Host-device` cookie's random token. Unique. The token itself is not stored |
+| `created_at` | timestamptz(3) | No | Plain | |
+| `expires_at` | timestamptz(3) | No | Plain | 365 days, renewed at each sign-in on that browser. Purged once past. All of an account's rows are deleted by a password reset |
+
+### `app.oauth_state_uses`
+
+Google `state` values already used, so one can never be replayed. Nothing about a person. From `002_accounts.sql`.
+
+| Column | Type | Null | Encryption | Notes |
+| --- | --- | --- | --- | --- |
+| `state_hash` | bytea, primary key | No | SHA-256 | Of a random value |
+| `expires_at` | timestamptz(3) | No | Plain | Purged once past |
 
 ### `app.assessments`
 
@@ -137,12 +185,25 @@ Plaintext: ids, timestamps (when a person checked in, wrote, signed in), row cou
 | `otp_codes_email_idx` | `otp_codes (email_hash)` | Cleanup on erasure |
 | `otp_codes_expiry_idx` | `otp_codes (expires_at)` | Purge |
 | `otp_failures_rate_idx` | `otp_failures (quota_hash, purpose, created_at)` | Failed-guess cap |
+| `user_identities_subject_key` | `user_identities (provider, subject_hmac)`, unique | Sign-in lookup |
+| `login_failures_rate_idx` | `login_failures (quota_hash, created_at)` | Failure cap |
+| `login_failures_age_idx` | `login_failures (created_at)` | Purge |
+| `login_failures_device_idx` | `login_failures (device_id, created_at) WHERE device_id IS NOT NULL` | Device cap |
+| `otp_failures_device_idx` | `otp_failures (device_id, created_at) WHERE device_id IS NOT NULL` | Device cap |
+| `device_tokens_token_hmac_key` | `device_tokens (token_hmac)`, unique | Cookie lookup |
+| `device_tokens_user_idx` | `device_tokens (user_id, created_at)` | Keeping the newest 20 |
+| `device_tokens_expiry_idx` | `device_tokens (expires_at)` | Purge |
+| `oauth_state_uses_expiry_idx` | `oauth_state_uses (expires_at)` | Purge |
 | `assessments_idempotency_key` | `assessments (user_id, client_request_id)`, unique | Idempotent saves |
 | `assessments_page_idx` | `assessments (user_id, taken_at DESC, id DESC)` | Keyset paging |
 | `journal_entries_page_idx` | `journal_entries (user_id, created_at DESC, id DESC)` | Keyset paging |
 | `audit_log_created_idx` | `audit_log (created_at)` | Purge |
 
 Sort-key timestamps are `timestamptz(3)` because JavaScript dates carry milliseconds, so a cursor round-trips exactly.
+
+## Setting up and checking a database
+
+`npm run db:setup` creates or updates the runtime role, sets its password as a SCRAM verifier so the plain password never reaches the server, runs migrations and verifies. `npm run db:verify` is the read-only report. Both read `.env.setup`. They have only met embedded Postgres. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Roles and grants
 
@@ -162,6 +223,10 @@ Runtime grants, from the migration:
 | `otp_codes` | Yes | Yes | Yes | Yes |
 | `journal_entries` | Yes | Yes | Yes | Yes |
 | `otp_failures` | Yes | Yes | No | Yes |
+| `user_identities` | Yes | Yes | No | Yes |
+| `login_failures` | Yes | Yes | No | Yes |
+| `device_tokens` | Yes | Yes | Yes | Yes |
+| `oauth_state_uses` | Yes | Yes | No | Yes |
 | `assessments` | Yes | Yes | No | Yes |
 | `consents` | Yes | Yes | No | No |
 | `audit_log` | `created_at` column only | Yes | No | Yes |
@@ -175,7 +240,7 @@ The role can write audit rows but cannot read them back. It can delete them beca
 
 ## Row-level security
 
-RLS is enabled on all nine tables. Eight have one policy:
+RLS is enabled on all twelve tables. Eleven have one policy:
 
 ```sql
 CREATE POLICY runtime_all ON app.<table> TO anxiocare_runtime USING (true) WITH CHECK (true);
@@ -206,7 +271,7 @@ Runner: [apps/api/src/migrate.ts](../apps/api/src/migrate.ts). `npm run migrate`
 - An applied file whose checksum changed, or that is missing from disk, stops the run. History must not be rewritten.
 - The server does not migrate at boot. `render.yaml` runs it as `preDeployCommand`, and starts the server without the migration URL.
 
-Applied so far: `001_init.sql`.
+Applied so far: `001_init.sql`, `002_accounts.sql`.
 
 ### Adding a migration
 
@@ -219,6 +284,7 @@ Applied so far: `001_init.sql`.
    - Foreign key to `users` with `ON DELETE CASCADE` if it holds a person's data. If it does not cascade, add it to the erasure and purge code.
 4. Sensitive values go in a `_ct` bytea column sealed by `sealText` or `sealJson`, with a new `PAD_STEP` entry in [crypto.ts](../apps/api/src/crypto.ts). Only ids, timestamps, hashes, counters and labels may be plain.
 5. Update the tests that pin the schema on purpose:
+   - `RUNTIME_GRANTS` in [db-checks.ts](../apps/api/src/db-checks.ts), or `db:verify` will report the grant as extra
    - `public holds none of our tables; app holds all of them` in [database.test.ts](../apps/api/test/database.test.ts)
    - `plaintext columns are limited to ids, timestamps, hashes and labels` and `a raw SELECT of every table shows no plaintext` in [encryption.test.ts](../apps/api/test/encryption.test.ts)
    - `hard-deletes every row, leaving only pseudonymous audit rows` in [erasure.test.ts](../apps/api/test/erasure.test.ts)

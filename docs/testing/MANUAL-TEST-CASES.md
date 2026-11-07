@@ -1,6 +1,6 @@
 # Manual test cases
 
-Step-by-step human tests for AnxioCare. 252 cases: 85 P0, 127 P1, 39 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-06. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
+Step-by-step human tests for AnxioCare. 264 cases: 92 P0, 132 P1, 39 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-07. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
 
 **None of these has been run yet.** The Result lines are blank on purpose. See `docs/testing/TEST-REPORT.md` for what has and hasn't been tested, and `docs/testing/TEST-CASES.md` for the automated catalogue.
 
@@ -24,6 +24,7 @@ Automation is green and proves a lot on localhost. It does not prove the followi
 | A printout a doctor can use | One stylesheet check. Nobody has looked at the paper | MT-PRN-01 to 06 | Tester, a clinician |
 | Session expiry, email change, export, deletion on the real stack | Tested on localhost. Not on Supabase, Render, real mail | MT-JRN-10 to 12, MT-SET-03 to 05, MT-SET-09 to 14 | Tester, staging access |
 | Consent re-prompt after a real version bump | Tested live by making one account's accepted version old. No real bumped build has been deployed | MT-CON-04 to 06 | Tester, staging deploy |
+| Real password managers, real Google, and the database tools on real Supabase | Tests check attributes, use a fake provider, and embedded Postgres. Nothing has met the real thing | MT-AUTH-11 to 22 | Tester, owner |
 | Clinical wording and legal text are right | A code test cannot judge this | MT-CLN-01 to 10 | Clinician, lawyer |
 | Supabase and Render behave as designed | The code has never run there | MT-DEP-01 to 20 | Owner |
 | Production headers survive the edge | Tested behind a local TLS terminator, not Cloudflare | MT-SEC-01 to 14 | Owner or engineer |
@@ -434,7 +435,7 @@ Playwright emulates an iPhone 14 viewport in desktop WebKit and a Pixel 7 viewpo
 
 **Steps:**
 
-1. Sign in by email through **Email me a code** and the code screen.
+1. Sign in by email through **Email me a code instead** and the code screen.
 2. Accept consent.
 3. Take a check-in, see it saved.
 4. Write a thought record.
@@ -455,11 +456,11 @@ Playwright emulates an iPhone 14 viewport in desktop WebKit and a Pixel 7 viewpo
 **Steps:**
 
 1. Run the guest journey and the account journey.
-2. On the code screen, check all eight boxes are visible.
+2. On the code screen, check all six boxes are visible.
 3. On **Breathe with the circle**, check **Begin** is visible without hunting.
 4. Open the delete sheet from **Delete my account**.
 
-**Expected result:** No sideways scroll anywhere. No clipped option text. The eight code boxes fit. Sheets can be scrolled to their last button.
+**Expected result:** No sideways scroll anywhere. No clipped option text. The six code boxes fit. Sheets can be scrolled to their last button.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -814,7 +815,7 @@ Automation uses `context.setOffline`, which is not the same as a phone with no s
 1. Tap **Start the check-in** and finish it.
 2. Read the result.
 3. Tap **Sign in to save**.
-4. Tap **Email me a code** with a valid address.
+4. Tap **Email me a code instead** with a valid address.
 
 **Expected result:** The check-in and result work offline. Sign-in shows **We couldn't reach AnxioCare. Check your connection and try again.**. The result is still there on going back.
 
@@ -982,7 +983,7 @@ Automated mail goes to a file or to a local SMTP stub. Nothing has ever reached 
 
 **Steps:**
 
-1. Request a code for each with **Email me a code**.
+1. Request a code for each with **Email me a code instead**.
 2. Time delivery.
 3. Note inbox or spam.
 
@@ -1053,11 +1054,11 @@ Automated mail goes to a file or to a local SMTP stub. Nothing has ever reached 
 
 **Steps:**
 
-1. On **Check your email**, tap the **8-digit code** field.
+1. On **Check your email**, tap the **6-digit code** field.
 2. Wait for the keyboard suggestion from Mail.
 3. Tap it.
 
-**Expected result:** If iOS offers it, the code fills all eight boxes and signs in without pressing anything. iOS offers Mail codes only on some versions: record what happened, with the version.
+**Expected result:** If iOS offers it, the code fills all six boxes and signs in without pressing anything. iOS offers Mail codes only on some versions: record what happened, with the version.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -1085,14 +1086,14 @@ Automated mail goes to a file or to a local SMTP stub. Nothing has ever reached 
 
 **Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
 
-**Preconditions:** Code copied from the email, where it prints as `1234 5678`.
+**Preconditions:** Code copied from the email, where it prints as `123 456`.
 
 **Steps:**
 
 1. Long-press the field and paste.
 2. Repeat with the code in a whole sentence copied from the email.
 
-**Expected result:** The space and words are dropped, all eight boxes fill, and it verifies. Only one verification request goes out.
+**Expected result:** The space and words are dropped, all six boxes fill, and it verifies. Only one verification request goes out.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -1124,7 +1125,7 @@ Automated mail goes to a file or to a local SMTP stub. Nothing has ever reached 
 
 **Steps:**
 
-1. Enter a wrong eight digits.
+1. Enter a wrong six digits.
 2. Read the message.
 3. Enter the right code.
 
@@ -1254,11 +1255,11 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 **Steps:**
 
 1. On Home tap **Sign in to see saved results**.
-2. Read **Sign in with your email** and the note about the email.
-3. Enter the address. Tap **Email me a code**.
+2. Read **Sign in**.
+3. Enter the address. Tap **Email me a code instead**.
 4. Enter the code.
 
-**Expected result:** Goes to **Check your email** showing the address, then **Before we save anything**. The note reads **The email just says "Your sign-in code". It won't mention anxiety or health.**.
+**Expected result:** Goes to **Check your email** showing the address, then **Before we save anything**. The code screen says **The email just says "Your sign-in code". It won't mention anxiety or health.**.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -1272,7 +1273,7 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 
 **Steps:**
 
-1. Tap **Email me a code** with an empty field.
+1. Tap **Email me a code instead** with an empty field.
 2. Enter `not-an-email`. Tap again.
 3. Fix it. Watch the message clear.
 
@@ -1326,7 +1327,7 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 1. Type four digits. Check **Continue**.
 2. Type four more.
 
-**Expected result:** **Continue** is disabled until eight digits. On the eighth, it verifies by itself and shows **Checking your code**.
+**Expected result:** **Continue** is disabled until six digits. On the sixth, it verifies by itself and shows **Checking your code**.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -1392,7 +1393,7 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 
 **Steps:**
 
-1. Make 50 wrong guesses at live codes, using scripted requests (10 sends across 2 or more hours at 5 an hour per client, or several clients).
+1. Make 20 wrong guesses at live codes, using scripted requests (4 sends in about an hour at 5 an hour per client, or several clients).
 2. Request a fresh code, and enter it correctly.
 3. Check a session already signed in on another device.
 4. Try deleting the account from that session.
@@ -1415,6 +1416,228 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 2. Then try the app from that network.
 
 **Expected result:** The app shows **Too many tries for now. Wait a few minutes, then try again.**. Other routes and Help keep working.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-11: Create an account with a real password manager
+
+**Priority:** P0 | **Device:** iPhone Safari with iCloud Keychain, and Android Chrome with Google Password Manager
+
+**Preconditions:** New address. A guest result in the tab, from a check-in.
+
+**Steps:**
+
+1. On the result, tap **Create an account**.
+2. Fill in the address. In **Password**, accept the password the phone suggests.
+3. Tap **Continue**. Enter the code from the mail.
+4. Agree on **Before we save anything**.
+5. Accept the phone's offer to save the password.
+
+**Expected result:** The phone offers a strong password, and to save it against the address. You return to the result, and are offered **Save this result to your account?**. Record exactly what each phone offered.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-12: Create account for an address that has an account
+
+**Priority:** P0 | **Device:** Any phone
+
+**Preconditions:** An address with an account, and access to its inbox.
+
+**Steps:**
+
+1. On **Create an account**, enter that address and a new password. Tap **Continue**.
+2. Compare the next screen with the same step for a new address.
+3. Read the mail.
+
+**Expected result:** The screens match. The mail, **About your account**, says you already have an account and to sign in or reset your password. It has no code, and doesn't mention health. Nothing about the account changed: the old password still works.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-13: Sign in with a saved password
+
+**Priority:** P0 | **Device:** iPhone Safari, and Android Chrome
+
+**Preconditions:** A password saved by the phone in MT-AUTH-11. Signed out.
+
+**Steps:**
+
+1. Open **Sign in**. Accept the phone's offer to fill the address and password.
+2. Tap **Sign in**.
+
+**Expected result:** Both fields fill. You're signed in. A **New sign-in to your account** mail arrives.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-14: A wrong password, the pause, and a known device
+
+**Priority:** P1 | **Device:** Two phones, or a phone and a private browser window
+
+**Preconditions:** Staging. A disposable account with a password, signed in once on phone A, then signed out there. Phone B has never signed in to it, and is on a different network from the attempts in step 2.
+
+**Steps:**
+
+1. On phone B, enter a wrong password three times.
+2. On phone B, enter a wrong password until 10 have failed. Then enter the right one.
+3. On phone A, sign in with the right password.
+4. On phone B, from another network (Wi-Fi to mobile data), sign in with the right password.
+
+**Expected result:** Each failure says **That email and password don't match. Try again, or use "Forgot your password?".**, clears the field and moves focus to it. From the third, a note explains the pause in general terms. After 10 from that network, the right password gets the same message there, for a day. Phone A, a known device, signs in. Phone B signs in from the other network.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-15: Show and hide, and paste
+
+**Priority:** P1 | **Device:** Any phone
+
+**Preconditions:** A password copied to the clipboard.
+
+**Steps:**
+
+1. On **Sign in**, paste into **Password**.
+2. Tap **Show password**, then **Hide password**.
+3. Send the form with the password showing, and a wrong password.
+
+**Expected result:** Paste works. The toggle shows and hides, and says which it's doing to a screen reader. After sending, the password field is hidden and empty.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-16: Forgot password, on a second device
+
+**Priority:** P0 | **Device:** Two devices
+
+**Preconditions:** An account signed in on device A.
+
+**Steps:**
+
+1. On device B, **Sign in**, **Forgot your password?**, **Email me a code**.
+2. Enter the code and a new password. Tap **Set new password**.
+3. On device A, open Trends.
+4. Read the mails.
+5. Repeat step 1 with an address that has no account.
+
+**Expected result:** Device B is signed in. Device A is signed out. **Your password reset code** and **Your password was changed** arrive, and name nothing about health. The address with no account sees the same screen, and gets no mail.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-17: Change and add a password in Settings
+
+**Priority:** P1 | **Device:** Two devices
+
+**Preconditions:** One account with a password, and one made by email code.
+
+**Steps:**
+
+1. With the first, on **Settings**, **Sign-in and security**, tap **Change password**. Try a wrong current password, then the right one.
+2. On the second, tap **Add a password**, and follow it.
+3. Check the other device on each.
+
+**Expected result:** A wrong current password changes nothing. Each success keeps this device, signs out the other, and mails **Your password was changed**.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-18: Google, for real
+
+**Priority:** P0 | **Device:** iPhone Safari, Android Chrome, and the installed app on each
+
+**Preconditions:** Production, or staging with the real Google client. Nothing has ever run against real Google.
+
+**Steps:**
+
+1. Take a check-in as a guest, then tap **Sign in to save**.
+2. Read the line under **Continue with Google**, then tap it. Choose a Gmail account, or a Workspace account, whose address has no account here.
+3. Read Google's consent screen. Check which permissions it lists.
+4. Finish, and agree to the notice.
+5. Repeat from an installed app icon. Record what happens to the window.
+
+**Expected result:** Google shows the name you set, and asks only for your email address. You return signed in, go through consent, and **Save this result to your account?** is offered. Record whether the guest result survives in the installed app, where the phone may open Google in a separate view.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-19: Google with an existing address, connecting, and disconnecting
+
+**Priority:** P0 | **Device:** Any phone
+
+**Preconditions:** An account with a password, on an address that is also a Google account.
+
+**Steps:**
+
+1. Sign out. Tap **Continue with Google**, with that account.
+2. Sign in with your password. In **Settings**, tap **Connect Google**. You signed in moments ago, so it goes straight to Google: choose that Google account. (After 10 minutes it would first ask you to confirm it's you.)
+3. Read the mail. Sign out, then **Continue with Google** again.
+4. Wait over 10 minutes. In **Settings**, tap **Disconnect Google**. Confirm it's you, this time with an emailed code, then confirm.
+5. Connect Google again, then sign out and reset the password with **Forgot your password?**.
+
+**Expected result:** Step 1 is refused with a message to sign in another way and connect Google in Settings; nothing is linked. Step 2 returns to Settings, which says Google is connected, and **Google sign-in was added to your account** arrives. Step 3 signs in to the same account, with its data. Step 4 asks to confirm before disconnecting, needs no password, and mails a notice. Step 5 removes Google, and a mail says Google was disconnected because the password was reset.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-20: Google button off
+
+**Priority:** P1 | **Device:** Any phone
+
+**Preconditions:** A deployment with `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` unset.
+
+**Steps:**
+
+1. Open **Sign in** and **Create an account**.
+2. Open `/api/v1/auth/google/start` directly.
+
+**Expected result:** No button, and no mention of Google. The direct link returns to **Sign in** with a neutral message.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-21: Screen reader on the new screens
+
+**Priority:** P1 | **Device:** iPhone with VoiceOver, or Android with TalkBack
+
+**Preconditions:** Signed out.
+
+**Steps:**
+
+1. Go through **Sign in** with a wrong password, then **Create an account** to the code, with the screen off.
+
+**Expected result:** Each field is named. The hint is read. Errors are announced. Focus lands on each new screen's heading. **Show password** says what it does, and what state it's in.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-AUTH-22: Tooling against real Supabase
+
+**Priority:** P0 | **Device:** Laptop terminal
+
+**Preconditions:** The Supabase project from [DEPLOYMENT.md](../DEPLOYMENT.md). The tools have only met embedded Postgres.
+
+**Steps:**
+
+1. Run `npm run db:setup`, twice.
+2. Run `npm run db:verify`.
+3. Run `npm run doctor` with the production environment.
+4. Search the terminal output for your database password and for a value from `.env.secrets`.
+
+**Expected result:** Both setups succeed. The second says **No pending migrations**, and doesn't change `.env.secrets`. Every check says **PASS**. Neither secret is in the output. **Record anything that differs from the docs:** this is the first time these have met Supabase.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -2624,7 +2847,7 @@ Signed in and consented throughout.
 3. Sign in with the same email.
 4. Return to the form.
 
-**Expected result:** You land on **Sign in with your email**, with **You were signed out. Sign in with the same email and what you were working on comes back.**. After sign-in, your text is back, and saving creates exactly one record.
+**Expected result:** You land on **Sign in**, with **You were signed out. Sign in with the same email and what you were working on comes back.**. After sign-in, your text is back, and saving creates exactly one record.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -2910,7 +3133,7 @@ Guest and account states.
 **Steps:**
 
 1. **Change email**, enter an address you control, **Send codes**.
-2. Fill the new address's code, and any eight digits for the current one.
+2. Fill the new address's code, and any six digits for the current one.
 3. Tap **Confirm new email**.
 4. Check the owner's inbox.
 
@@ -3907,7 +4130,9 @@ Every route in `apps/web/src/router.tsx`, and the cases that exercise it.
 | `/tools/ground` | No | MT-TOL-15, 16 |
 | `/tools/sounds` | No | MT-TOL-08 to 14, MT-ACC-08 |
 | `/settings` | No, more when signed in | MT-SET-01 to 16, MT-PWA-01, 02 |
-| `/sign-in` | No | MT-AUTH-01 to 03, 07, 08, MT-NAV-06 |
+| `/sign-in` | No | MT-AUTH-01 to 03, 07, 08, 13 to 15, MT-NAV-06 |
+| `/create-account`, `/create-account/code` | No | MT-AUTH-11, 12, 20 |
+| `/forgot-password`, `/forgot-password/reset` | No | MT-AUTH-16 |
 | `/sign-in/code` | No | MT-MAIL-05 to 12, MT-AUTH-04 to 06 |
 | `/consent` | Signed in | MT-CON-01 to 08 |
 | `/privacy`, `/terms`, `/about` | No | MT-SET-16, MT-CLN-09, MT-HELP-09 |

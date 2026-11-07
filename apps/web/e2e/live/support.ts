@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -12,6 +12,11 @@ const url = (relative: string) => fileURLToPath(new URL(relative, import.meta.ur
 const OUTBOX = url('../../../../.e2e-outbox/mail.jsonl');
 const PG_KEYS = url('../../../api/.pgdata-e2e.keys.json');
 const PG_PORT = 54387;
+/** The fake OpenID provider. On another site, as Google is: localhost and 127.0.0.1 are different hosts. */
+export const FAKE_OIDC = 'http://127.0.0.1:54393';
+/** The same build and a database of its own, with Google off. */
+export const GOOGLE_OFF_ORIGIN = 'http://localhost:8788';
+const OTHER_HOSTS_ALLOWED = new Set([ORIGIN, FAKE_OIDC, GOOGLE_OFF_ORIGIN]);
 
 // ── What every test must never do ─────────────────────────────────────
 
@@ -67,7 +72,7 @@ function makeGuard(): Guard {
       context.on('request', (request) => {
         const target = request.url();
         if (target.startsWith('blob:') || target.startsWith('data:')) return;
-        if (new URL(target).origin !== ORIGIN) problems.push(`request to another host: ${target}`);
+        if (!OTHER_HOSTS_ALLOWED.has(new URL(target).origin)) problems.push(`request to another host: ${target}`);
       });
       context.on('response', (response) => {
         if (new URL(response.url()).pathname.startsWith('/api') && response.fromServiceWorker()) {
@@ -126,7 +131,9 @@ export const test = base.extend<Fixtures>({
 
 // ── Mail ──────────────────────────────────────────────────────────────
 
-export type MailPurpose = 'login' | 'email_change' | 'email_change_current' | 'account_delete' | 'email_changed_notice' | 'new_signin_notice';
+export type MailPurpose =
+  | 'login' | 'register' | 'password_reset' | 'password_set' | 'email_change' | 'email_change_current' | 'account_delete' | 'reauth'
+  | 'email_changed_notice' | 'new_signin_notice' | 'account_exists_notice' | 'password_changed_notice' | 'google_linked_notice' | 'google_unlinked_notice';
 interface Mail {
   to: string;
   purpose: MailPurpose;
@@ -166,6 +173,8 @@ export async function waitForCode(to: string, purpose: MailPurpose, after = 0): 
 }
 
 export const uniqueEmail = (tag = 'user') => `${tag}-${randomBytes(6).toString('hex')}@example.com`;
+/** Google starts a new account only for an address it hosts itself, so a new person through the fake provider uses one. */
+export const uniqueGmail = (tag = 'user') => `${tag}${randomBytes(6).toString('hex')}@gmail.com`;
 export const CODE_LABEL = `${OTP_LENGTH}-digit code`;
 export const differentCode = (code: string) => (code === '0'.repeat(OTP_LENGTH) ? '1'.repeat(OTP_LENGTH) : '0'.repeat(OTP_LENGTH));
 
@@ -175,7 +184,7 @@ export async function requestCode(page: Page, email: string, path = '/sign-in') 
   const after = mailCount(email, 'login');
   await page.goto(path);
   await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Email me a code instead' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
   return waitForCode(email, 'login', after);
 }
@@ -195,7 +204,7 @@ export async function acceptConsent(page: Page) {
 export async function signInHere(page: Page, email: string) {
   const after = mailCount(email, 'login');
   await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Email me a code instead' }).click();
   await enterCode(page, await waitForCode(email, 'login', after));
 }
 
@@ -212,6 +221,61 @@ export async function signUp(page: Page, tag = 'user', email = uniqueEmail(tag))
 export async function signIn(page: Page, email: string) {
   await enterCode(page, await requestCode(page, email));
   await expectAccountHome(page);
+}
+
+export const PASSWORD = 'river stone quiet morning';
+export const NEW_PASSWORD = 'mango season on the terrace';
+
+/** Fills in Create account and sends it, stopping at the code screen. `path` lets a test start with a `next`. */
+export async function startCreateAccount(page: Page, email: string, password = PASSWORD, path = '/create-account') {
+  await page.goto(path);
+  await page.getByLabel('Email address').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toBeVisible();
+}
+
+/** A new account with a password, consent accepted, on Home. */
+export async function createAccount(page: Page, tag = 'pw', password = PASSWORD) {
+  const email = uniqueEmail(tag);
+  await startCreateAccount(page, email, password);
+  await enterCode(page, await waitForCode(email, 'register'));
+  await acceptConsent(page);
+  await expectAccountHome(page);
+  return email;
+}
+
+export async function signInWithPassword(page: Page, email: string, password = PASSWORD, path = '/sign-in') {
+  await page.goto(path);
+  await page.getByLabel('Email address').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+}
+
+/** Continues at the fake provider, as a person would at Google. */
+export async function continueAtProvider(page: Page, email: string) {
+  await expect(page).toHaveURL(new RegExp(`^${FAKE_OIDC}/authorize`));
+  await page.getByLabel('Fake account email').fill(email);
+  await page.getByRole('button', { name: 'Continue' }).click();
+}
+
+/** Watches every URL the page visits, for the rule that no password ever appears in one. */
+export function watchUrls(page: Page) {
+  const seen: string[] = [];
+  page.on('framenavigated', (frame) => seen.push(frame.url()));
+  page.on('request', (request) => seen.push(request.url()));
+  return seen;
+}
+
+/** Everything the browser could keep: both storages, history state, cookies a script can read, and the address bar. */
+export async function expectNoPasswordKept(page: Page, seenUrls: readonly string[], ...passwords: string[]) {
+  const held = await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage }, history: history.state, cookie: document.cookie, url: location.href }));
+  for (const password of passwords) {
+    for (const form of [password, encodeURIComponent(password), password.replaceAll(' ', '+')]) {
+      expect(held, 'browser storage or history').not.toContain(form);
+      for (const url of seenUrls) expect(url, 'a visited URL').not.toContain(form);
+    }
+  }
 }
 
 export const expectAccountHome = (page: Page) => expect(page.getByRole('heading', { level: 2, name: 'For right now' })).toBeVisible();
@@ -394,6 +458,24 @@ export { CONSENT_VERSION };
 // ── Consent version, per user: the same effect as bumping CONSENT_VERSION, without touching anyone else ──
 
 /** Makes this one account's accepted consent out of date, as a new version of the notice would. */
+/**
+ * Spends an address's whole daily allowance of failed passwords, as 100 wrong tries from 100 networks would. Keyed the
+ * way the server keys it (see loginQuotaKey in apps/api/src/otp.ts), with this test database's own key.
+ */
+export async function fillLoginFailures(email: string, n = 100) {
+  const keys = JSON.parse(readFileSync(PG_KEYS, 'utf8')) as { EMAIL_INDEX_KEY: string };
+  const lower = email.trim().toLowerCase();
+  const at = lower.lastIndexOf('@');
+  const canonical = `${lower.slice(0, at).split('+', 1)[0]}@${lower.slice(at + 1)}`;
+  const quota = createHmac('sha256', Buffer.from(keys.EMAIL_INDEX_KEY, 'base64')).update(`login-quota:${canonical}`, 'utf8').digest();
+  const sql = superuser();
+  try {
+    await sql`INSERT INTO app.login_failures (quota_hash, source_hash) SELECT ${quota}, sha256(gen_random_uuid()::text::bytea) FROM generate_series(1, ${n}::int)`;
+  } finally {
+    await sql.end();
+  }
+}
+
 export async function makeConsentStale(userId: string, acceptedVersion = '2000-01-01') {
   const sql = superuser();
   try {

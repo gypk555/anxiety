@@ -17,8 +17,12 @@ Fastify 5, TypeScript, Postgres. Serves `/api/v1/*` and the built SPA from one o
 | `npm run notify-all -w @anxiocare/api -- --subject ... --body-file ...` | Breach notice to every account. Prints the count unless given `--send`. [How to use it](../../docs/OPERATIONS.md#how-to-reach-people). |
 | `npm run rotate-keys -w @anxiocare/api` | Rewrap all data keys under the active master key. |
 | `npm run generate-secrets -w @anxiocare/api` | Print new keys and the runtime-role SQL. |
+| `npm run db:setup` | From `.env.setup`: secrets once, the runtime role, migrations, then verification. Idempotent. Never prints the admin password or, unless asked, the generated secrets. |
+| `npm run db:verify` | Read-only pass or fail report on the database named in `.env.setup`. |
+| `npm run doctor` | Checks a full production environment without starting the server: config, database and role, SMTP sign-in, Google shape, public origin. Sends nothing. |
+| `node scripts/fake-oidc.ts [port]` | Test only: a local OpenID provider that behaves as Google does. |
 
-Dev overrides: `PORT`, `DEV_PG_PORT` (54329), `DEV_PG_DIR`, `MAIL_TRANSPORT`, `PUBLIC_ORIGIN`, `DEV_ORIGINS`.
+Dev overrides, including optional Google through a fake provider (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_OIDC_BASE_URL`): `PORT`, `DEV_PG_PORT` (54329), `DEV_PG_DIR`, `MAIL_TRANSPORT`, `PUBLIC_ORIGIN`, `DEV_ORIGINS`.
 The dev CSRF allow-list covers ports 8787, 5173 and 4173 on `localhost` and `127.0.0.1`.
 
 ## Reading codes in development and e2e
@@ -27,12 +31,12 @@ The dev CSRF allow-list covers ports 8787, 5173 and 4173 on `localhost` and `127
 Each line is one JSON object, appended in send order, and the file is never truncated:
 
 ```json
-{"at":"2026-11-06T12:00:00.000Z","from":"Accounts <no-reply@localhost.example>","to":"a@example.com","subject":"Your sign-in code","text":"...","purpose":"login","code":"12345678"}
+{"at":"2026-11-06T12:00:00.000Z","from":"Accounts <no-reply@localhost.example>","to":"a@example.com","subject":"Your sign-in code","text":"...","purpose":"login","code":"123456"}
 ```
 
-`purpose` is `login`, `email_change` (to the new address), `email_change_current` (to the current address), `account_delete`,
-`email_changed_notice` or `new_signin_notice` (`code` is `null` for the notices). `code` is plain digits; the mail's `text` prints them
-grouped, `1234 5678`. Take the last line matching `to` and `purpose`. Delivery happens just after the 202, so poll for a line. In
+`purpose` is `login`, `register`, `password_reset`, `password_set`, `email_change` (to the new address), `email_change_current` (to the current address), `account_delete`, `reauth`,
+`email_changed_notice`, `new_signin_notice`, `account_exists_notice`, `password_changed_notice`, `google_linked_notice` or `google_unlinked_notice` (`code` is `null` for the notices). `code` is plain digits; the mail's `text` prints them
+grouped, `123 456`. Take the last line matching `to` and `purpose`. Delivery happens just after the 202, so poll for a line. In
 development, codes are also printed to the console. Each purpose allows an address 5 codes an hour per client and 20 overall, so give
 each e2e test its own address, or `DEV_FRESH=1` between runs.
 
@@ -52,11 +56,13 @@ each e2e test its own address, or `DEV_FRESH=1` between runs.
 
 ## Security decisions worth knowing
 
-- **OTP**: 8 digits, 5 attempts per code. Guesses for an address serialise on an advisory lock, in one transaction with their counters.
+- **OTP**: 6 digits, 5 attempts per code. Guesses for an address serialise on an advisory lock, in one transaction with their counters.
   The code HMAC covers purpose, target hash, subject user, binding and code, and lookups filter on the first three too.
-- **Failed-guess cap**: 50 wrong guesses at live codes per rolling 24 hours, per address and purpose. Over it, verify answers `invalid_code`
-  without evaluating. It is per purpose so that anonymous sign-in guessing cannot block a signed-in person's deletion. Guesses
-  with no live code do not count, so spending the cap requires ten mails to reach the address.
+- **Failed-guess cap**: 20 wrong guesses at live codes per rolling 24 hours, per address, from devices not known for the account, and at most 5 of them per address and client. A known device (below) has its own 20. `login`, `register` and `password_reset` share one budget, because each hands over an account and a budget each would double an attacker's odds. Each signed-in purpose has its own, so anonymous guessing cannot block a signed-in person's deletion or password. Over it, verify answers `invalid_code` without evaluating. Guesses with no live code do not count, so spending the cap requires four mails to reach the address.
+- **Passwords**: Argon2id through `node:crypto`, peppered with an HMAC under `PASSWORD_PEPPER`, in a PHC string, rehashed at sign-in when `PASSWORD_ARGON2_*` have been raised. Three hashes run at once, one kept for known devices, with 16 queued for each, then 429; `PASSWORD_ARGON2_MEMORY_KIB` is at most 65536. Before counting or hashing, a sign-in attempt passes `Passwords.admit`: 10 a minute per client (/64), and, for an unknown device, an instance-wide token bucket (30, 20 a second). Both are in memory, per instance. Each check then reserves a row in `login_failures`, so the caps hold under a parallel burst: from an unknown device 10 a day per address and client and 100 a day per address; from a known device 10 an hour. Change, set and reset write in one transaction that locks the user row, and change and set give 401 if their session ended or the hash moved meanwhile. Unknown address, no password and wrong password do the same work and get the same answer, a 400, because the web client treats any 401 as a lost session.
+- **Device cookies** (`src/devices.ts`): every sign-in sets `__Host-device`, a random token stored only as an HMAC. A request with one valid for the account spends only that device's failure budgets, so nobody can lock out a browser its owner already uses. A reset revokes them all.
+- **Nothing is stored before a code is verified**, so there is no such thing as an unverified account, and nothing to pre-hijack. Create account for an address with an account mails a notice, under the same send quota, in place of the code.
+- **Google**: sign-in finds an account by subject only and never links by address; linking is only from Settings (`POST /me/identities/google/connect`), after a password or code in the last 10 minutes, and a reset removes every link. See `src/routes/google.ts`, `src/google.ts` and [decision 012](../../docs/decisions/012-passwords-google-and-six-digit-codes.md). `GOOGLE_OIDC_BASE_URL` points it at the fake provider in `scripts/fake-oidc.ts`, and production refuses it.
 - **Send quotas**, per purpose: 5 an hour per address and client, 20 an hour per address. Quotas count the canonical address
   (lower case, no `+tag`; for Gmail no dots and one domain). Delivery goes to the address as typed, and identity stays on the
   normalised address, because elsewhere those can be different mailboxes. The client is kept only inside a keyed hash, until a sweep removes the dead row about an hour after it was sent (at least an hour, for the quota, and at most 1 hour 5 minutes while the server is up).
@@ -87,7 +93,7 @@ weakness: the send quotas, the failed-guess cap and 5 attempts per code. Before 
 `@fastify/rate-limit` to a shared store such as Redis. Many users in India share an address through carrier NAT, so
 keep per-IP limits generous and rely on the database limits for per-account protection.
 
-Known costs, accepted: many clients can spend an address's 20 sign-in codes an hour, or (with ten mails, which the owner sees) its 50 failed
+Known costs, accepted: many clients can spend an address's 20 sign-in codes an hour, or (with four mails, which the owner sees) its 20 failed
 sign-in guesses for a day, delaying that person's sign-in. Their active sessions, and their email-change and deletion codes, are unaffected.
 
 ## Client address on Render
@@ -121,8 +127,8 @@ and everyone may be sharing a bucket: do not launch until that is understood.
 ## Deploying
 
 1. Create the Supabase project (Mumbai) and download its CA certificate.
-2. `npm run generate-secrets -w @anxiocare/api`. Run the printed SQL as `postgres` in the SQL editor. Store the keys in Render
-   and a separate secret store: losing `ENCRYPTION_KEYS` loses all user data.
+2. `npm run db:setup`, from `.env.setup` (see `.env.setup.example`). It keeps the generated secrets in a gitignored file. Store them in Render
+   and a separate secret store: losing `ENCRYPTION_KEYS` loses all user data. Full steps: `docs/DEPLOYMENT.md`.
 3. In Render, create the service from `render.yaml` and fill in the `sync: false` values. See `.env.example`.
 4. `DATABASE_URL` uses the Supavisor **session** pooler with `anxiocare_runtime.<project-ref>`. Transaction mode is not supported.
 5. Render's pre-deploy step shares the service's environment, so `DATABASE_MIGRATION_URL` is present there. The start command removes it for the

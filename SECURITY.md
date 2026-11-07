@@ -70,8 +70,8 @@ The evidence for each one, and what each one does not cover, is in the [threat m
 
 | Area | Control |
 | --- | --- |
-| Sign-in | No passwords. 8-digit email codes from a secure random source, stored only as an HMAC, 10-minute expiry, single use, 5 attempts per code. |
-| Sign-in limits | In Postgres: 5 sends an hour per address and client, 20 an hour per address, 50 failed guesses per rolling day. In memory, per client: route limits. |
+| Sign-in | Password, Google, or an emailed code. Passwords are Argon2id with a pepper, in a bounded queue. 6-digit codes from a secure random source, stored only as an HMAC, 10-minute expiry, single use, 5 attempts per code. Google is server-side with PKCE and a checked signature, with no Google script in the browser. Nothing is stored about an account until its address is proven. |
+| Sign-in limits | In Postgres: 5 sends an hour per address and client, 20 an hour per address, 20 failed code guesses per rolling day per address (one budget across sign-in, reset and register; 5 per client), 10 failed passwords a day per address and client and 100 per address; a device that has signed in before has its own budgets instead (device cookies). In memory, per client: route limits. |
 | Enumeration | The code request always answers 202, before any address-dependent work happens. |
 | Sessions | 256-bit opaque token in a `__Host-session` cookie (HttpOnly, Secure, SameSite=Strict). Only its SHA-256 is stored. 30-day idle limit, 90-day absolute limit. Users can list and revoke sessions. |
 | CSRF | SameSite=Strict, exact `Origin` check against `PUBLIC_ORIGIN`, and a required custom header on every request that is not GET or HEAD. |

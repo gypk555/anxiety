@@ -85,6 +85,16 @@ const DESCRIBE_AREAS = [
   [/^(Consent|Home)\.test/, 'Privacy: consent'],
   [/^Legal\.test/, 'Privacy: notice and claims'],
   [/^SignIn\.test/, 'Security: auth'],
+  [/^SignInSecurity\.test/, 'Security: auth'],
+  [/^passwords\.test.*safeNext/, 'Security: open redirect'],
+  [/^passwords\.test/, 'Security: auth'],
+  [/^accounts\.test/, 'Security: auth'],
+  [/^google\.test/, 'Security: auth'],
+  [/^security-regressions\.test.*minor items/, 'Security: database'],
+  [/^security-regressions\.test/, 'Security: auth'],
+  [/^accounts\.spec.*(fits 320px|passes axe|keyboard)/, 'UX: axe, overflow and CSP'],
+  [/^accounts\.spec/, 'Security: auth'],
+  [/^tooling\.test/, 'Operations: database and environment tooling'],
   [/^consent\.spec/, 'Privacy: consent'],
   [/^keyboard\.spec/, 'UX: keyboard and focus'],
   [/^landscape\.spec/, 'UX: axe, overflow and CSP'],
@@ -200,8 +210,8 @@ const R = (id, text, status, tests, note = '', manual = []) => ({ id, text, stat
 
 const REQUIREMENTS = [
   { section: 'Security: authentication', rows: [
-    R('SEC-AUTH-01', 'Passwordless email OTP, no password store', 'Covered', [T('live/auth.spec', /^sign-up: email, code/), T('https.spec', /over real TLS/), T('database.test', /public holds none/)], '', ['MT-AUTH-01']),
-    R('SEC-AUTH-02', '8 digits from a CSPRNG', 'Partial', [T('otp.test', /stores only an HMAC/), T('hardening.test', /uses eight digits/)], 'Length is tested. That `randomInt` is a CSPRNG is by reading `crypto.ts`, not by test.'),
+    R('SEC-AUTH-01', 'Email OTP sign-in, kept as a fallback (superseded as the only method by the accounts spec)', 'Covered', [T('live/auth.spec', /^sign-up: email, code/), T('https.spec', /over real TLS/), T('database.test', /public holds none/)], '', ['MT-AUTH-01']),
+    R('SEC-AUTH-02', '6 digits from a CSPRNG (was 8; accounts spec)', 'Partial', [T('otp.test', /stores only an HMAC/), T('hardening.test', /uses six digits/)], 'Length is tested. That `randomInt` is a CSPRNG is by reading `crypto.ts`, not by test.'),
     R('SEC-AUTH-03', 'Stored as HMAC with a server pepper', 'Covered', [T('otp.test', /stores only an HMAC/), T('encryption.test', /raw SELECT/)]),
     R('SEC-AUTH-04', '10 minute expiry', 'Covered', [T('otp.test', /stores only an HMAC/), T('otp.test', /rejects an expired code/)], '', ['MT-MAIL-10']),
     R('SEC-AUTH-05', 'Single use', 'Covered', [T('otp.test', /is single use/), T('otp.test', /lets only one of many/), T('otp.test', /invalidates the earlier code/)]),
@@ -211,10 +221,40 @@ const REQUIREMENTS = [
     R('SEC-AUTH-09', 'Mail out of band: neither response nor timing reveals an account', 'Covered', [T('otp.test', /responds before any delivery work/), T('otp.test', /does not create an account/), T('otp.test', /fails the same way/)], 'Proved in process. Real network timing is manual.', ['MT-SEC-09']),
     R('SEC-AUTH-10', 'DB limit: 5 sends an hour per canonical address and client, per purpose', 'Covered', [T('hardening.test', /allows five sends/), T('hardening.test', /a whole \/64 shares/), T('hardening.test', /keeps quotas per purpose/)], '', ['MT-MAIL-12']),
     R('SEC-AUTH-11', 'DB limit: 20 sends an hour per canonical address', 'Covered', [T('hardening.test', /allows twenty sends/), T('otp.test', /limits each address to twenty/), T('hardening.test', /canonicalises for quota/), T('hardening.test', /computes the quota key/)]),
-    R('SEC-AUTH-12', 'DB limit: 50 failed guesses a rolling day', 'Covered', [T('hardening.test', /caps failed guesses/), T('hardening.test', /counts real wrong guesses/), T('hardening.test', /no live code is not a failed guess/), T('hardening.test', /sign-in guessing cannot block/)], 'Residual: an attacker who triggers ten mails can block sign-in for that address for up to 24 hours.', ['MT-AUTH-09']),
+    R('SEC-AUTH-12', 'DB limit: 20 failed guesses a rolling day (was 50; accounts spec)', 'Covered', [T('hardening.test', /caps failed guesses/), T('hardening.test', /counts real wrong guesses/), T('hardening.test', /no live code is not a failed guess/), T('hardening.test', /sign-in guessing cannot block/)], 'Residual: an attacker who triggers four mails can block code sign-in and reset for that address for up to 24 hours.', ['MT-AUTH-09']),
     R('SEC-AUTH-13', 'Per-client route limits', 'Covered', [T('otp.test', /applies a per-IP route limit/), T('hardening.test', /rotating inside one IPv6/), T('hardening.test', /a route limit applies before authentication/), T('hardening.test', /anonymous flood/), T('hardening.test', /fake-cookie flood/), T('hardening.test', /reads the configured header/), T('hardening.test', /forging X-Forwarded-For/)], 'Client-address handling is proved against a local terminator, not Cloudflare.', ['MT-DEP-07', 'MT-DEP-08', 'MT-SEC-11']),
     R('SEC-AUTH-14', 'Phone OTP deferred', 'None', [], 'Nothing to test: not built.'),
   ]},
+  { section: 'Accounts: passwords, Google and tooling', rows: [
+    R('ACC-01', 'Create account: always 202; existing address gets a notice, not a code, under the send quota', 'Covered', [T('accounts.test', /identical response and a notice/), T('accounts.test', /mail-bomb/), T('live/accounts.spec', /an existing address shows the same next screen/)], '', ['MT-AUTH-12']),
+    R('ACC-02', 'Nothing about an account is stored before its code is verified', 'Covered', [T('accounts.test', /stores nothing about the account/), T('accounts.test', /pre-hijack/), T('google.test', /pre-hijack/)]),
+    R('ACC-03', 'Password login: unknown, no password and wrong password identical in body, status and work', 'Covered', [T('accounts.test', /identical in status, headers and body/), T('accounts.test', /runs a real hash/), T('accounts.test', /^sign in with a password > timing/)], 'Timing proved in process, not across a network.', ['MT-AUTH-14']),
+    R('ACC-04', 'Failed passwords: 10 a day per address and network, 100 a day per address, then same response, unevaluated, under a burst', 'Covered', [T('accounts.test', /after 10 failures from one client/), T('accounts.test', /after 100 failures a day/), T('accounts.test', /holds the overall cap under a parallel burst/), T('accounts.test', /caps an unknown address/), T('security-regressions.test', /one source is capped at 10/)], '', ['MT-AUTH-14']),
+    R('ACC-05', 'Argon2id via node:crypto with pepper, PHC, rehash when raised, OWASP floor', 'Covered', [T('accounts.test', /stores an Argon2id PHC string/), T('accounts.test', /upgrades the stored hash/), T('accounts.test', /below the OWASP minimum/), T('accounts.test', /cannot be checked without the pepper/), T('config.test', /needs PASSWORD_PEPPER/)]),
+    R('ACC-06', 'Hashing semaphore holds under a burst', 'Covered', [T('accounts.test', /the semaphore never runs more/), T('accounts.test', /shed for load/)]),
+    R('ACC-07', 'Policy: 10 to 128, no composition rules, blocklist, local part; client mirrors it', 'Covered', [T('passwords.test', /asks for 10 to 128/), T('passwords.test', /no composition rules/), T('passwords.test', /rejects the common password/), T('SignIn.test', /checks the password first/)], 'The blocklist is hand-picked.'),
+    R('ACC-08', 'Password never in logs, error bodies, storage, URL or mutation cache', 'Covered', [T('accounts.test', /across every endpoint and failure/), T('SignIn.test', /keeps the password out of browser storage/), T('live/accounts.spec', /start to finish/), T('live/accounts.spec', /a reload on the code screen/)]),
+    R('ACC-09', 'Forgot password: 202 always; reset revokes all sessions and mails a notice', 'Covered', [T('accounts.test', /only an existing account gets a code/), T('accounts.test', /reset sets the hash/), T('live/accounts.spec', /a code and a new password/)], '', ['MT-AUTH-16']),
+    R('ACC-10', 'Change and set password revoke other sessions, notify and audit', 'Covered', [T('accounts.test', /needs the current one/), T('accounts.test', /a code-only account proves its inbox/), T('live/accounts.spec', /change a password/), T('live/accounts.spec', /set a password on an email-code/)], '', ['MT-AUTH-17']),
+    R('ACC-11', 'Code purposes are not interchangeable', 'Covered', [T('accounts.test', /^code purposes are not interchangeable/)]),
+    R('ACC-12', 'Guess cap 20 a day per address and purpose; sign-in, reset and register share one budget', 'Covered', [T('accounts.test', /stops every purpose at 20/), T('accounts.test', /draw on one budget/), T('accounts.test', /signed-in purposes keep a budget each/)], 'Deliberately stricter than the spec wording. See decision 012.'),
+    R('ACC-13', 'Google: state, nonce, PKCE, aud, iss, exp, signature, email_verified all checked', 'Covered', [T('google.test', /^state and code/), T('google.test', /^the ID token/), T('https.spec', /the Lax state cookie survives/)], 'Fake provider only. Never met real Google.', ['MT-AUTH-18']),
+    R('ACC-14', 'Google: open redirect through next rejected', 'Covered', [T('google.test', /^open redirect through next/), T('passwords.test', /refuses/), T('live/accounts.spec', /open redirect/)]),
+    R('ACC-15', 'Google: never links by address at sign-in; links only from Settings after re-authentication, bound to that session; recycled address refused', 'Covered', [T('google.test', /^linking/), T('security-regressions.test', /^finding 1/), T('live/accounts.spec', /refused at Google sign-in/), T('live/accounts.spec', /connect from Settings/), T('SignInSecurity.test', /connects Google after confirming/)], '', ['MT-AUTH-19']),
+    R('ACC-16', 'Google: button hidden when off; disconnect needs a recent re-authentication, not a password', 'Covered', [T('live/accounts.spec', /the button and its line are not there/), T('google.test', /needs a recent re-authentication, not a password/), T('SignInSecurity.test', /disconnecting Google is still offered/), T('live/accounts.spec', /disconnect needs no password/)], '', ['MT-AUTH-20']),
+    R('ACC-17', 'Production boot refuses endpoint overrides and half-set Google config', 'Covered', [T('config.test', /production refuses an endpoint override/), T('config.test', /production refuses half-set/)]),
+    R('ACC-18', 'Erasure removes identities and login failures; export states methods, not subjects', 'Covered', [T('google.test', /erasure removes the identity/), T('erasure.test', /removes login failures/), T('google.test', /the export states the method/)]),
+    R('ACC-19', 'Migration 002 applies on top of 001 unchanged; runtime role has only the needed grants', 'Covered', [T('database.test', /applies on top of 001/), T('database.test', /001 is byte for byte/), T('database.test', /has exactly the grants/)]),
+    R('ACC-20', 'db:setup idempotent, never overwrites secrets; db:verify fails on a broken database; doctor prints no secrets', 'Covered', [T('tooling.test', /run twice is idempotent/), T('tooling.test', /never overwrites a secret/), T('tooling.test', /fails on a table in public/), T('tooling.test', /fails on RLS turned off/), T('tooling.test', /fails on a runtime role with BYPASSRLS/), T('tooling.test', /reports a bad config by name/)], 'Embedded Postgres only. Never met real Supabase.', ['MT-AUTH-22']),
+    R('ACC-21', 'Guest result still offered for saving after every route in', 'Covered', [T('live/accounts.spec', /^(create account|password sign-in|email code|forgot password|Google: the tab keeps it)/)]),
+    R('ACC-23', 'Google creates a new account only for gmail.com, googlemail.com or an hd claim', 'Covered', [T('security-regressions.test', /a new account comes from Google only/), T('security-regressions.test', /pre-hijack/), T('SignIn.test', /refused as/)]),
+    R('ACC-24', 'A password reset removes linked identities, revokes devices and mails a notice', 'Covered', [T('security-regressions.test', /a password reset removes every linked identity/), T('security-regressions.test', /a reset revokes every device/), T('live/accounts.spec', /a password reset disconnects Google/)]),
+    R('ACC-25', 'Change, set and reset are serialised on the user row; a change racing a reset never keeps the password', 'Covered', [T('security-regressions.test', /^finding 2/)], 'In process, against one Postgres.'),
+    R('ACC-26', 'Device cookies: known devices are exempt from address caps, with their own; new devices keep the address caps', 'Covered', [T('security-regressions.test', /^finding 3/), T('live/accounts.spec', /a device that has signed in before/), T('live/security.spec', /session cookie is HttpOnly/)], 'A new device can still be locked out by an attacker on several networks.'),
+    R('ACC-27', 'Hashing: per-/64 limit and bucket before hashing, a slot kept for known devices, memory capped at 64 MiB, uniform timing', 'Covered', [T('security-regressions.test', /^finding 4/)], 'In memory per instance. Timing in process, not across a network.'),
+    R('ACC-28', 'login_failures and otp_codes use different address HMACs; secrets file is 0600', 'Covered', [T('security-regressions.test', /^minor items/)]),
+    R('ACC-22', 'Password managers: autocomplete attributes; paste; show and hide', 'Partial', [T('live/accounts.spec', /find what they look for|paste works/), T('SignIn.test', /has the attributes/)], 'Attributes only. No real password manager has run.', ['MT-AUTH-11', 'MT-AUTH-13', 'MT-AUTH-15']),
+  ] },
   { section: 'Security: sessions', rows: [
     R('SEC-SES-01', 'Opaque 256-bit token in `__Host-session`: HttpOnly, Secure, SameSite=Strict, Path=/', 'Covered', [T('sessions.test', /is __Host-session/), T('https.spec', /over real TLS/), T('live/security.spec', /session cookie is HttpOnly/)], 'Token length by reading `crypto.ts`.', ['MT-SEC-05']),
     R('SEC-SES-02', 'Plain `session` name only in development', 'Covered', [T('config.test', /plain cookie name only in development/)]),
@@ -418,7 +458,7 @@ function render(tests) {
 
 <!-- Generated by scripts/generate-test-catalogue.mjs. Do not edit by hand: change the script or the tests, then regenerate. -->
 
-Every automated test in the repository, as the test runners themselves list them, and a matrix from each requirement in \`${SPEC}\` to the tests that cover it.
+Every automated test in the repository, as the test runners themselves list them, and a matrix from each requirement in \`${SPEC}\`, and the accounts spec \`docs/superpowers/specs/2026-11-07-accounts-and-database-design.md\`, to the tests that cover it.
 
 **Regenerate** after changing tests, from the repository root. It needs only \`npm ci\`: it does not start a browser or a database, and it does not run anything.
 

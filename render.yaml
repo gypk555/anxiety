@@ -23,6 +23,8 @@ services:
         value: cf-connecting-ip
       - key: TRUST_PROXY_HOPS
         value: "1"
+      - key: USER_RATE_LIMIT_PER_MINUTE
+        value: "60"
       - key: PUBLIC_ORIGIN
         sync: false
       - key: DATABASE_URL
@@ -40,6 +42,13 @@ services:
       - key: OTP_PEPPER
         sync: false
       - key: AUDIT_KEY
+        sync: false
+      - key: PASSWORD_PEPPER
+        sync: false
+      # Both or neither. Left empty, the Google button is hidden.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: MAIL_TRANSPORT
         value: smtp

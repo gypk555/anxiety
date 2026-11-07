@@ -96,7 +96,14 @@ The Government can notify a fiduciary or class as "significant", considering vol
 | Email address | `users.email_ct` | Encrypted | Sign-in, notices | Life of account | Deletion, or purge if never consented |
 | Email blind index | `users.email_hash`, `otp_codes.email_hash` | Keyed HMAC | Lookup | Life of account, or of the code row | Same, and purge |
 | Quota hash of canonical address | `otp_codes.quota_hash`, `otp_failures.quota_hash` | Keyed HMAC | Limits | Codes: about an hour after sending, at most 1 hour 5 minutes. Failures: 24 to about 25 hours. | Purge, deletion |
-| Client hash | `otp_codes.source_hash` | Keyed HMAC of quota hash and client address | Per-client quota | As the code row | Purge |
+| Client hash | `otp_codes.source_hash`, `otp_failures.source_hash`, `login_failures.source_hash` | Keyed HMAC of quota hash and client address | Per-client quota and failure caps | As the row | Purge |
+| Password hash | `users.password_hash` | Argon2id, peppered with a key the database never sees | Sign-in | Life of account, or until changed | Person, deletion |
+| Google identity | `user_identities.subject_hmac` | Keyed HMAC of Google's subject. Name, photo and the subject itself are not stored | Sign-in, only for people who choose Google. Linked to an existing account only from Settings, never by matching the address | Until disconnected, or a password reset | Person, deletion, purge if never consented |
+| Failed password attempt | `login_failures` | Keyed hash of the canonical address, in its own HMAC domain so it can't be joined with the code tables, whether or not it has an account; a keyed client hash or a device id; and a time | Failure caps | 24 hours, then purge | Purge, deletion |
+| Device cookie | `__Host-device` cookie in the browser; `device_tokens` | A random token in the browser. Only a keyed HMAC of it is stored, with the account id and an expiry | Security only: lets a browser that has signed in before keep signing in when others spend the address's failure caps. Strictly necessary, so no consent banner | 365 days, renewed at each sign-in there | Password reset (all of the account's), deletion, purge when expired |
+| Re-authentication time | `sessions.reauth_at` | A time | Connecting or disconnecting Google needs a password or code within 10 minutes | Life of the session | As the session |
+| Used Google state | `oauth_state_uses` | SHA-256 of a random value, and an expiry | Stops replay | 10 minutes, then purge. Not linked to a person | Purge |
+| Password, in transit | Browser memory, then server memory | Plaintext for the moment it is in use. Never stored, logged, or in the URL, `sessionStorage`, `localStorage` or history | Sign-in | Until the screen closes, or the request ends | Automatic |
 | Display name, optional | `users.display_name_ct` | Encrypted | Greeting | Life of account | Person, deletion |
 | Wrapped data key | `users.wrapped_dek`, `dek_key_version` | Encrypted under master key | Encryption | Life of account | Deletion |
 | Consent state | `users.consent_version`, `consent_at`, `consents.*` | Plaintext flags and dates | Lawful basis | Life of account | Deletion |
@@ -132,6 +139,7 @@ The Government can notify a fiduciary or class as "significant", considering vol
 | **Cloudflare** (through Render) | Edge network | **Assume traffic in the clear.** Render does not document where TLS ends. | Global. | Through Render, which lists it as a subprocessor. | Named in the notice. Lawyer to review the wording. |
 | AWS, GCP, ClickHouse (through Render) | Render's subprocessors | Per Render. | Render lists them as United States. | Through Render. | Lawyer to review |
 | **SMTP provider** (owner's choice) | Sends mail | **Email address, plaintext codes, device label.** | Depends. Amazon SES in Mumbai is one way to keep it in India. | Provider's DPA. | Owner action: choose, set `MAIL_PROVIDER` |
+| **Google** | Sign-in, **only for people who choose "Continue with Google"**, and only if the owner turns it on | Learns the person uses this service, which account they used, and the time. Returns a verified address. Scopes are `openid email` only, so no name or photo. | Global. | Google's API terms. | Owner action: create the OAuth client and consent screen, and have the lawyer review. Named in the notice, and on the screen. |
 | **GitHub** | Source code, CI | No user data. CI uses made-up accounts. | Global. | Standard terms. | Not a processor of user data |
 | **Meta (WhatsApp)**, helpline sites | Only if a person taps the link | Whatever the person sends. | Not ours. | None. Independent. | The notice should mention it. |
 
@@ -144,7 +152,7 @@ These still need a copy change, in whatever form the lawyer agrees. The privacy 
 | `Legal.tsx` "What we store" | "For about an hour after we send you a code" the keyed hash is kept. | True of the live database, while the server is up. A copy can last in backups for `BACKUP_RETENTION_DAYS`. | Consider saying so. |
 | `Legal.tsx` | "Your network address itself is not stored." | True of the app's database. Render and Cloudflare may log addresses. | Narrow the wording. |
 | `Legal.tsx` | "Without an account ... nothing about you reaches our servers." | Answers do not. But requests reach the server with an address, and the rate limiter holds it in memory. | Narrow the wording. |
-| `Legal.tsx` | "Download everything we hold about you." | Export omits code rows, failed guesses and audit rows, which are not directly linked to the person. | Narrow the wording. |
+| `Legal.tsx` | "Download everything we hold about you." | Export omits code rows, failed guesses, failed passwords, the password hash, Google's subject HMAC and audit rows, which are not directly linked to the person. | Narrow the wording. |
 | `mail.ts` `emailChangedNotice` | "reply to the operator through the contact details in the app" | The sender may not take replies. | "contact the operator". |
 | `Consent.tsx` | "Encrypted backups age out within our backup retention period." | Correct, but it does not give a number, unlike the notice. | Optional. |
 | `.env.example`, `render.yaml` | `BACKUP_RETENTION_DAYS` 7. | True only on Supabase Pro without PITR changes. Enabling PITR stops daily backups, and PITR retention is 7, 14 or 28 days. Update the variable if the plan changes. | Keep in step. |

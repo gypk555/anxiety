@@ -1,14 +1,16 @@
-import { emailSchema, OTP_LENGTH, type Me, type SessionInfo } from '@anxiocare/shared';
+import { emailSchema, googleConnectResponse, OTP_LENGTH, signInMethodsResponse, type Me, type SessionInfo } from '@anxiocare/shared';
+import { passwordProblem } from '@anxiocare/shared/passwords';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Download, Laptop, Moon, Sun } from 'lucide-react';
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ApiError, errorMessage, NetworkError, request, requestFile } from '@/lib/api';
+import { ApiError, errorMessage, NetworkError, passwordFieldError, request, requestFile } from '@/lib/api';
 import { formatDateTime } from '@/lib/dates';
 import { backupWindow, clearClientData, meKey, sessionList, sessionsKey, useMe, useMeta } from '@/lib/queries';
 import { useTheme, type ThemeChoice } from '@/lib/theme';
 import { OtpInput } from '@/ui/OtpInput';
 import { PageTitle } from '@/ui/PageTitle';
+import { PASSWORD_HINT, PasswordField } from '@/ui/PasswordField';
 import { ResendCode } from '@/ui/ResendCode';
 import { ConfirmSheet, Sheet } from '@/ui/Sheet';
 import { ErrorState, PageSkeleton } from '@/ui/States';
@@ -138,6 +140,7 @@ export default function Settings() {
           <h2 className="text-xl">You're not signed in</h2>
           <p className="text-ink-soft">The check-in and tools work without an account. Sign in to save check-ins, see trends and keep a journal.</p>
           <Link className="btn btn-primary" to="/sign-in?next=%2Fsettings">Sign in</Link>
+          <Link className="btn btn-secondary" to="/create-account?next=%2Fsettings">Create an account</Link>
         </section>
       ) : null}
       <ThemePicker />
@@ -152,7 +155,7 @@ function AccountSettings({ me }: { me: Me }) {
     <>
       <ProfileName me={me} />
       <EmailChange me={me} />
-      <Sessions />
+      <SignInSecurity me={me} />
       <YourData />
       <SignOut />
       <DeleteAccount />
@@ -179,7 +182,7 @@ function RightsOnlySettings({ me }: { me: Me }) {
       <Section title="Email" id="email-section">
         <p className="break-words">{me.email}</p>
       </Section>
-      <Sessions />
+      <SignInSecurity me={me} />
       <YourData />
       <SignOut />
       <DeleteAccount />
@@ -340,6 +343,355 @@ function EmailChange({ me }: { me: Me }) {
   );
 }
 
+const methodsKey = ['sign-in-methods'] as const;
+
+function SubSection({ title, id, children }: { title: string; id: string; children: ReactNode }) {
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h3 id={id} className="text-lg">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+const CONNECT_OUTCOMES: Record<string, { text: string; error: boolean }> = {
+  connected: { text: 'Google connected. You can now sign in with it too.', error: false },
+  taken: { text: "That Google account is already connected to a different account here, so it wasn't connected.", error: true },
+  failed: { text: "We couldn't connect Google. Nothing was changed. Try again.", error: true },
+};
+
+type Pending = 'connect' | 'disconnect';
+
+function SignInSecurity({ me }: { me: Me }) {
+  const client = useQueryClient();
+  const meta = useMeta();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const methods = useQuery({ queryKey: methodsKey, queryFn: () => request('GET', '/me/sign-in-methods', { schema: signInMethodsResponse }) });
+  // Coming back from Google after "Connect Google": read once, then drop it from the address bar.
+  const [outcome] = useState(() => CONNECT_OUTCOMES[new URLSearchParams(location.search).get('google') ?? ''] ?? null);
+  const [notice, setNotice] = useState<string | null>(outcome && !outcome.error ? outcome.text : null);
+  const [problemText, setProblemText] = useState<string | null>(outcome?.error ? outcome.text : null);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [reauthFor, setReauthFor] = useState<Pending | null>(null);
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has('google')) navigate({ pathname: location.pathname, hash: '#security' }, { replace: true });
+  }, [location.pathname, location.search, navigate]);
+  const refresh = () => {
+    void client.invalidateQueries({ queryKey: methodsKey });
+    void client.invalidateQueries({ queryKey: sessionsKey });
+  };
+  const needsReauth = (e: unknown) => e instanceof ApiError && e.code === 'reauth_required';
+  const connect = useMutation({
+    mutationFn: () => request('POST', '/me/identities/google/connect', { schema: googleConnectResponse }),
+    // A real navigation: Google sends the browser back to the API, which brings it back here.
+    onSuccess: ({ url }) => window.location.assign(url),
+    onError: (e) => {
+      if (needsReauth(e)) setReauthFor('connect');
+    },
+  });
+  const unlink = useMutation({
+    mutationFn: () => request('DELETE', '/me/identities/google'),
+    onSuccess: () => {
+      setConfirmUnlink(false);
+      setProblemText(null);
+      setNotice('Google disconnected. Sign in with your password or an email code from now on.');
+      refresh();
+    },
+    onError: (e) => {
+      if (!needsReauth(e)) return;
+      setConfirmUnlink(false);
+      setReauthFor('disconnect');
+    },
+  });
+  const afterReauth = () => {
+    const next = reauthFor;
+    setReauthFor(null);
+    if (next === 'connect') connect.mutate();
+    if (next === 'disconnect') unlink.mutate();
+  };
+  const m = methods.data;
+  const googleOn = !!meta.data?.googleEnabled;
+  const connectError = connect.error && !needsReauth(connect.error) ? errorMessage(connect.error) : null;
+  return (
+    <Section title="Sign-in and security" id="security">
+      <SubSection title="How you can sign in" id="methods">
+        {methods.isPending && <PageSkeleton />}
+        {methods.isError && <ErrorState error={methods.error} onRetry={() => void methods.refetch()} />}
+        {m && (
+          <ul className="flex list-disc flex-col gap-1 pl-5">
+            <li>{m.password ? 'Password: set' : 'Password: not set'}</li>
+            {(m.google || googleOn) && <li>{m.google ? 'Google: connected' : 'Google: not connected'}</li>}
+            <li>Email codes: always available</li>
+          </ul>
+        )}
+        <div aria-live="polite">
+          {notice && <p role="status" className="text-sm">{notice}</p>}
+          {(problemText ?? connectError) && <p role="alert" className="text-sm font-medium text-madder">{problemText ?? connectError}</p>}
+        </div>
+        {m && (
+          <div className="flex flex-col items-start gap-2">
+            {m.password ? <ChangePassword onDone={(text) => { setNotice(text); refresh(); }} /> : <AddPassword email={me.email} onDone={(text) => { setNotice(text); refresh(); }} />}
+            {!m.google && googleOn && (
+              <>
+                <button type="button" className="btn btn-quiet btn-small" disabled={connect.isPending} onClick={() => { setProblemText(null); setNotice(null); connect.mutate(); }}>
+                  {connect.isPending ? 'Opening Google' : 'Connect Google'}
+                </button>
+                <p className="text-sm text-ink-soft">We'll ask you to confirm it's you first. If you connect Google, Google learns that you use this service.</p>
+              </>
+            )}
+            {m.google && <button type="button" className="btn btn-quiet btn-small" onClick={() => { unlink.reset(); setConfirmUnlink(true); }}>Disconnect Google</button>}
+          </div>
+        )}
+        <ConfirmSheet
+          open={confirmUnlink}
+          onClose={() => setConfirmUnlink(false)}
+          onConfirm={() => unlink.mutate()}
+          busy={unlink.isPending}
+          error={unlink.error && !needsReauth(unlink.error) ? errorMessage(unlink.error) : null}
+          title="Disconnect Google?"
+          confirmLabel="Disconnect"
+          cancelLabel="Keep it connected"
+        >
+          You'll sign in with an email code, or your password if you have one. We'll email you to confirm.
+        </ConfirmSheet>
+        <ConfirmItsYou
+          open={reauthFor !== null}
+          email={me.email}
+          hasPassword={!!m?.password}
+          purpose={reauthFor === 'disconnect' ? 'disconnect Google' : 'connect Google'}
+          onClose={() => setReauthFor(null)}
+          onDone={afterReauth}
+        />
+      </SubSection>
+      <Sessions />
+    </Section>
+  );
+}
+
+/** A password, or a code to the account's inbox, proved within the last few minutes. Needed before changing how the account signs in. */
+function ConfirmItsYou({ open, email, hasPassword, purpose, onClose, onDone }: { open: boolean; email: string; hasPassword: boolean; purpose: string; onClose: () => void; onDone: () => void }) {
+  const [byCode, setByCode] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const reset = () => {
+    setByCode(false);
+    setSent(false);
+    setPassword('');
+    setCode('');
+    setFieldError(null);
+    withPassword.reset();
+    ask.reset();
+    withCode.reset();
+  };
+  const close = () => {
+    reset();
+    onClose();
+  };
+  const finish = () => {
+    reset();
+    onDone();
+  };
+  const withPassword = useMutation({
+    gcTime: 0,
+    mutationFn: () => request('POST', '/me/reauth/password', { body: { password } }),
+    onSuccess: finish,
+    onError: () => setPassword(''),
+  });
+  const ask = useMutation({
+    mutationFn: () => request('POST', '/me/reauth/code/request'),
+    onSuccess: () => setSent(true),
+  });
+  const withCode = useMutation({
+    mutationFn: () => request('POST', '/me/reauth/code', { body: { code } }),
+    onSuccess: finish,
+    onError: () => setCode(''),
+  });
+  const usingCode = byCode || !hasPassword;
+  const wrongPassword = withPassword.error instanceof ApiError && withPassword.error.code === 'invalid_credentials';
+  const passwordError = fieldError ?? (wrongPassword ? "That password isn't right. Try again, or use an email code instead." : withPassword.error ? errorMessage(withPassword.error) : null);
+  const codeError = fieldError ?? (withCode.error ? errorMessage(withCode.error) : null);
+  return (
+    <Sheet open={open} onClose={close} title="Confirm it's you">
+      <p className="text-ink-soft">To {purpose}, confirm it's you first.</p>
+      {!usingCode ? (
+        <form
+          className="mt-3 flex flex-col gap-4"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!password) return setFieldError('Enter your password.');
+            setFieldError(null);
+            withPassword.mutate();
+          }}
+        >
+          <input type="email" name="email" autoComplete="username" value={email} readOnly hidden />
+          <PasswordField label="Your password" autoComplete="current-password" value={password} invalid={wrongPassword} disabled={withPassword.isPending} onChange={(v) => { setPassword(v); setFieldError(null); }} />
+          {passwordError && <p role="alert" className="font-medium text-madder">{passwordError}</p>}
+          <button type="submit" className="btn btn-primary" disabled={withPassword.isPending}>{withPassword.isPending ? 'Checking' : 'Confirm'}</button>
+          <button type="button" className="btn btn-quiet btn-small self-start" onClick={() => { setByCode(true); setFieldError(null); }}>Email me a code instead</button>
+        </form>
+      ) : !sent ? (
+        <div className="mt-3 flex flex-col gap-3">
+          <p className="text-ink-soft">We'll email a code to <span className="break-words">{email}</span>.</p>
+          {ask.error && <p role="alert" className="font-medium text-madder">{errorMessage(ask.error)}</p>}
+          <button type="button" className="btn btn-primary" disabled={ask.isPending} onClick={() => ask.mutate()}>{ask.isPending ? 'Sending' : 'Email me a code'}</button>
+        </div>
+      ) : (
+        <form
+          className="mt-3 flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (code.length !== OTP_LENGTH) return setFieldError(`Enter the ${OTP_LENGTH}-digit code from the email.`);
+            setFieldError(null);
+            withCode.mutate();
+          }}
+        >
+          <OtpInput value={code} onChange={(v) => { setCode(v); setFieldError(null); }} invalid={!!withCode.error} disabled={withCode.isPending} />
+          <p className="text-sm text-ink-soft">{CODE_HELP}</p>
+          {codeError && <p role="alert" className="font-medium text-madder">{codeError}</p>}
+          <button type="submit" className="btn btn-primary" disabled={withCode.isPending}>{withCode.isPending ? 'Checking' : 'Confirm'}</button>
+          <ResendCode label="Send a new code" sentNote="New code sent. Use the latest one." error={ask.error ? errorMessage(ask.error) : null} pending={ask.isPending} onResend={() => { withCode.reset(); return ask.mutateAsync(); }} />
+        </form>
+      )}
+    </Sheet>
+  );
+}
+
+function ChangePassword({ onDone }: { onDone: (text: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [current, setCurrent] = useState('');
+  const [password, setPassword] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [sends, setSends] = useState(0);
+  const me = useMe();
+  const change = useMutation({
+    gcTime: 0,
+    mutationFn: () => request('POST', '/me/password', { body: { currentPassword: current, password } }),
+    onSuccess: () => {
+      close();
+      onDone('Password changed. Other devices were signed out.');
+    },
+    onError: (e) => {
+      setCurrent('');
+      setFieldError(passwordFieldError(e));
+    },
+  });
+  const close = () => {
+    setOpen(false);
+    setCurrent('');
+    setPassword('');
+    setFieldError(null);
+    change.reset();
+  };
+  const wrongCurrent = change.error instanceof ApiError && change.error.code === 'invalid_credentials';
+  const error = fieldError ?? (wrongCurrent ? "Your current password isn't right. Try again, or sign out and use \"Forgot your password?\"." : change.error ? errorMessage(change.error) : null);
+  return (
+    <>
+      <button type="button" className="btn btn-quiet btn-small" onClick={() => setOpen(true)}>Change password</button>
+      <Sheet open={open} onClose={close} title="Change your password">
+        <form
+          className="flex flex-col gap-4"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!current) return setFieldError('Enter your current password.');
+            const problem = passwordProblem(password, me.data?.email ?? '');
+            if (problem) return setFieldError(problem);
+            setFieldError(null);
+            setSends((n) => n + 1);
+            change.mutate();
+          }}
+        >
+          <input type="email" name="email" autoComplete="username" value={me.data?.email ?? ''} readOnly hidden />
+          <PasswordField name="current-password" label="Current password" autoComplete="current-password" value={current} hideNow={sends} invalid={wrongCurrent} disabled={change.isPending} onChange={(v) => { setCurrent(v); setFieldError(null); }} />
+          <PasswordField name="new-password" label="New password" autoComplete="new-password" value={password} hideNow={sends} describedBy="change-hint" disabled={change.isPending} onChange={(v) => { setPassword(v); setFieldError(null); }}>
+            <p id="change-hint" className="mt-2 text-sm text-ink-soft">{PASSWORD_HINT} Your other devices will be signed out.</p>
+          </PasswordField>
+          {error && <p role="alert" className="font-medium text-madder">{error}</p>}
+          <button type="submit" className="btn btn-primary" disabled={change.isPending}>{change.isPending ? 'Saving' : 'Change password'}</button>
+        </form>
+      </Sheet>
+    </>
+  );
+}
+
+function AddPassword({ email, onDone }: { email: string; onDone: (text: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [sends, setSends] = useState(0);
+  const ask = useMutation({
+    mutationFn: () => request('POST', '/me/password/set/request'),
+    onSuccess: () => setSent(true),
+  });
+  const save = useMutation({
+    gcTime: 0,
+    mutationFn: () => request('POST', '/me/password/set', { body: { code, password } }),
+    onSuccess: () => {
+      close();
+      onDone('Password added. Other devices were signed out.');
+    },
+    onError: (e) => {
+      const problem = passwordFieldError(e);
+      setFieldError(problem);
+      if (!problem) setCode('');
+    },
+  });
+  const close = () => {
+    setOpen(false);
+    setSent(false);
+    setCode('');
+    setPassword('');
+    setFieldError(null);
+    ask.reset();
+    save.reset();
+  };
+  const error = fieldError ?? (save.error ? errorMessage(save.error) : null);
+  return (
+    <>
+      <button type="button" className="btn btn-quiet btn-small" onClick={() => setOpen(true)}>Add a password</button>
+      <Sheet open={open} onClose={close} title="Add a password">
+        {!sent ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-ink-soft">To be sure it's you, we'll email a code to <span className="break-words">{email}</span> first.</p>
+            {ask.error && <p role="alert" className="font-medium text-madder">{errorMessage(ask.error)}</p>}
+            <button type="button" className="btn btn-primary" disabled={ask.isPending} onClick={() => ask.mutate()}>{ask.isPending ? 'Sending' : 'Email me a code'}</button>
+          </div>
+        ) : (
+          <form
+            className="flex flex-col gap-4"
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (code.length !== OTP_LENGTH) return setFieldError(`Enter the ${OTP_LENGTH}-digit code from the email.`);
+              const problem = passwordProblem(password, email);
+              if (problem) return setFieldError(problem);
+              setFieldError(null);
+              setSends((n) => n + 1);
+              save.mutate();
+            }}
+          >
+            <input type="email" name="email" autoComplete="username" value={email} readOnly hidden />
+            <OtpInput value={code} onChange={setCode} invalid={!!save.error && !fieldError} disabled={save.isPending} />
+            <PasswordField label="New password" autoComplete="new-password" value={password} hideNow={sends} describedBy="add-hint" disabled={save.isPending} onChange={(v) => { setPassword(v); setFieldError(null); }}>
+              <p id="add-hint" className="mt-2 text-sm text-ink-soft">{PASSWORD_HINT} Your other devices will be signed out.</p>
+            </PasswordField>
+            <p className="text-sm text-ink-soft">{CODE_HELP}</p>
+            {error && <p role="alert" className="font-medium text-madder">{error}</p>}
+            <button type="submit" className="btn btn-primary" disabled={save.isPending}>{save.isPending ? 'Saving' : 'Save password'}</button>
+            <ResendCode label="Send a new code" sentNote="New code sent. Use the latest one." error={ask.error ? errorMessage(ask.error) : null} pending={ask.isPending} onResend={() => { save.reset(); return ask.mutateAsync(); }} />
+          </form>
+        )}
+      </Sheet>
+    </>
+  );
+}
+
 function Sessions() {
   const client = useQueryClient();
   const sessions = useQuery({
@@ -358,7 +710,7 @@ function Sessions() {
     },
   });
   return (
-    <Section title="Signed-in devices" id="sessions">
+    <SubSection title="Signed-in devices" id="sessions">
       {sessions.isPending && <PageSkeleton />}
       {sessions.isError && <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />}
       {sessions.data && (
@@ -389,9 +741,9 @@ function Sessions() {
         confirmLabel="Sign out device"
         cancelLabel="Keep signed in"
       >
-        {pending?.deviceLabel} will need a new code to sign in again.
+        {pending?.deviceLabel} will need to sign in again.
       </ConfirmSheet>
-    </Section>
+    </SubSection>
   );
 }
 
@@ -459,7 +811,7 @@ function SignOut() {
         confirmLabel="Sign out everywhere"
         cancelLabel="Stay signed in"
       >
-        Every device, including this one, will need a new code to sign in. Your data stays saved.
+        Every device, including this one, will need to sign in again. Your data stays saved.
       </ConfirmSheet>
     </Section>
   );

@@ -47,6 +47,18 @@ describe('purge', () => {
     expect(await count('otp_codes')).toBe(0);
   });
 
+  it('removes login failures after the day they count for, expired device tokens, and spent Google states once expired', async () => {
+    const quota = Buffer.from('purge-login-failures');
+    await h.admin`INSERT INTO app.login_failures (quota_hash, source_hash, created_at) VALUES (${quota}, '\\x01', now() - interval '25 hours'), (${quota}, '\\x01', now() - interval '23 hours')`;
+    const { id } = await signIn(h);
+    await h.admin`UPDATE app.device_tokens SET expires_at = now() - interval '1 minute' WHERE user_id = ${id}::uuid`;
+    await h.admin`INSERT INTO app.oauth_state_uses (state_hash, expires_at) VALUES ('\\x01', now() - interval '1 minute'), ('\\x02', now() + interval '1 minute')`;
+    await runPurge(h.runtime);
+    expect(await count('login_failures', `quota_hash = '\\x${quota.toString('hex')}'`)).toBe(1);
+    expect(await count('oauth_state_uses')).toBe(1);
+    expect(await count('device_tokens', `user_id = '${id}'`)).toBe(0);
+  });
+
   it('keeps a live OTP', async () => {
     const email = uniqueEmail();
     const code = await requestCode(h, new Client(h), email);
@@ -176,7 +188,7 @@ describe('file mail transport', () => {
       expect(lines[0]).toContain('333333');
       expect(lines[0]).not.toContain('dev@example.com');
       lines.length = 0;
-      await createMailer(loadConfig(baseEnv({ MAIL_TRANSPORT: `file:${path}` }))).send(otpMail('t@example.com', 'login', '44444444'));
+      await createMailer(loadConfig(baseEnv({ MAIL_TRANSPORT: `file:${path}` }))).send(otpMail('t@example.com', 'login', '444444'));
       expect(lines).toEqual([]);
     } finally {
       console.log = original;
@@ -186,12 +198,12 @@ describe('file mail transport', () => {
   it('appends one JSON object per line, readable only by the owner', async () => {
     const path = join(mkdtempSync(join(tmpdir(), 'outbox-')), 'nested', 'outbox.jsonl');
     const mailer = createMailer(loadConfig(baseEnv({ MAIL_TRANSPORT: `file:${path}` })));
-    await mailer.send(otpMail('one@example.com', 'login', '11111111'));
-    await mailer.send(otpMail('two@example.com', 'account_delete', '22222222'));
+    await mailer.send(otpMail('one@example.com', 'login', '111111'));
+    await mailer.send(otpMail('two@example.com', 'account_delete', '222222'));
     const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
-    expect(lines[0]).toMatchObject({ to: 'one@example.com', purpose: 'login', code: '11111111', subject: 'Your sign-in code' });
-    expect(lines[1]).toMatchObject({ to: 'two@example.com', purpose: 'account_delete', code: '22222222' });
-    expect(lines[0].text).toContain('1111 1111');
+    expect(lines[0]).toMatchObject({ to: 'one@example.com', purpose: 'login', code: '111111', subject: 'Your sign-in code' });
+    expect(lines[1]).toMatchObject({ to: 'two@example.com', purpose: 'account_delete', code: '222222' });
+    expect(lines[0].text).toContain('111 111');
     expect(typeof lines[0].at).toBe('string');
     expect(statSync(path).mode & 0o777).toBe(0o600);
   });

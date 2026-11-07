@@ -6,6 +6,8 @@ The single source of truth for what the API and the web app must agree on. It sh
 | --- | --- |
 | [`src/gad7.ts`](src/gad7.ts) | GAD-7 items, options, stem, difficulty item, attribution, severity bands, `scoreGad7`, `severityFor`, cut point, retake interval |
 | [`src/helplines.ts`](src/helplines.ts) | `HELPLINES`, `EMERGENCY_NUMBER`, `HELPLINES_CHECK_METHOD`, `HELPLINES_CHECKED_ON`, `helplinesCheckNote` |
+| [`src/passwords.ts`](src/passwords.ts), [`src/common-passwords.ts`](src/common-passwords.ts) | The password policy, run by both client and server, and a hand-picked blocklist |
+| [`src/next-path.ts`](src/next-path.ts) | `safeNext`, so both sides refuse the same open redirects |
 | [`src/schemas.ts`](src/schemas.ts) | Zod request and response schemas, `CONSENT_VERSION`, `CSRF_HEADER`, `OTP_LENGTH`, `formatOtp`, `ERROR_CODES` |
 
 What is and isn't in the contract: [docs/API.md](../../docs/API.md#shared-contract-versus-not).

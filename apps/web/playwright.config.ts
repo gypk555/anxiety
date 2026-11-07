@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 const LIVE_ORIGIN = 'http://localhost:8787';
 const MOCK_ORIGIN = 'http://localhost:4173';
 const HTTPS_ORIGIN = 'https://localhost:8443';
+const GOOGLE_OFF_ORIGIN = 'http://localhost:8788';
+const FAKE_OIDC_PORT = 54393;
 
 /**
  * Three suites:
@@ -33,8 +35,18 @@ export default defineConfig({
     { name: 'https-iphone', testDir: './e2e/https', use: { ...devices['iPhone 14'], baseURL: HTTPS_ORIGIN, ignoreHTTPSErrors: true, serviceWorkers: 'block' } },
     { name: 'https-pixel', testDir: './e2e/https', use: { ...devices['Pixel 7'], baseURL: HTTPS_ORIGIN, ignoreHTTPSErrors: true, serviceWorkers: 'block' } },
   ],
-  // Started in this order: the first one builds the dist that the second one serves.
+  // Started in this order: the first one builds the dist that the others serve.
   webServer: [
+    {
+      command: `node apps/api/scripts/fake-oidc.ts ${FAKE_OIDC_PORT}`,
+      cwd: '../..',
+      url: `http://127.0.0.1:${FAKE_OIDC_PORT}/healthz`,
+      timeout: 20_000,
+      reuseExistingServer: process.env.E2E_REUSE === '1',
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
     {
       command: 'npm run build && npm run dev -w @anxiocare/api',
       cwd: '../..',
@@ -45,9 +57,34 @@ export default defineConfig({
         DEV_PG_PORT: '54387',
         TRUST_PROXY_HOPS: '1',
         LOG_LEVEL: 'warn',
+        // Fake on purpose, and on another site. Production refuses GOOGLE_OIDC_BASE_URL.
+        GOOGLE_CLIENT_ID: 'fake-client-id.apps.googleusercontent.com',
+        GOOGLE_CLIENT_SECRET: 'fake-client-secret',
+        GOOGLE_OIDC_BASE_URL: `http://127.0.0.1:${FAKE_OIDC_PORT}`,
       },
       url: `${LIVE_ORIGIN}/api/v1/meta`,
       timeout: 240_000,
+      reuseExistingServer: process.env.E2E_REUSE === '1',
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+    // The same build with Google left unset, to prove the button is hidden by what the server really says.
+    {
+      command: 'npm run dev -w @anxiocare/api',
+      cwd: '../..',
+      env: {
+        DEV_USE_BUILD: '1',
+        DEV_FRESH: '1',
+        DEV_PG_DIR: '.pgdata-e2e-no-google',
+        DEV_PG_PORT: '54386',
+        PORT: '8788',
+        TRUST_PROXY_HOPS: '1',
+        LOG_LEVEL: 'warn',
+        MAIL_TRANSPORT: 'file:../../.e2e-outbox/no-google-mail.jsonl',
+      },
+      url: `${GOOGLE_OFF_ORIGIN}/api/v1/meta`,
+      timeout: 120_000,
       reuseExistingServer: process.env.E2E_REUSE === '1',
       gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
       stdout: 'ignore',

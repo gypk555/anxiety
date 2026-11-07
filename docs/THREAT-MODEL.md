@@ -71,12 +71,18 @@ Residual ratings are a judgement: **Low**, **Med**, **High**. Evidence is in `ap
 
 | ID | Threat | Control | Evidence | Residual |
 | --- | --- | --- | --- | --- |
-| S1 | T4 guesses a sign-in code | 8 digits from `randomInt`. Stored as HMAC with `OTP_PEPPER`. 10-minute expiry, single use, 5 attempts per code. Guesses serialise on an advisory lock. New code invalidates the old. | `otp.test.ts:66,134,151,159,170,180,192`, `hardening.test.ts:115` | Low. Each code gives 5 guesses in 100 million, and the daily cap ends at 50. |
+| S1 | T4 guesses a sign-in or reset code | 6 digits from `randomInt`, 20 wrong guesses a day across sign-in, reset and register. See [the odds](SECURITY-EXCEPTIONS.md#six-digit-codes-the-odds-of-a-guess). Stored as HMAC with `OTP_PEPPER`. 10-minute expiry, single use, 5 attempts per code. Guesses serialise on an advisory lock. New code invalidates the old. | `otp.test.ts:66,134,151,159,170,180,192`, `hardening.test.ts:115` | Low. Each code gives 5 guesses in 100 million, and the daily cap ends at 50. |
 | S2 | T3 uses the mailbox to sign in | Sign-in notice mail on every sign-in after the first. Users can list sessions and sign out everywhere. | `hardening.test.ts:234`, `sessions.test.ts:165`, `e2e/live/settings.spec.ts:85,121` | **High, accepted. See R6.** |
 | S3 | T1 with a live session moves the account to their own address | Email change needs a code from both inboxes, checked together. Other devices are signed out and the old address is told. | `hardening.test.ts:37,50,63,78,87`, `otp.test.ts:303` | Low, unless T1 also has the mailbox on the same phone. |
 | S4 | T4 uses a stolen cookie | HttpOnly, Secure, SameSite=Strict, `__Host-` prefix. CSP blocks injected script. | `sessions.test.ts:22`, `e2e/live/security.spec.ts:87,120`, `e2e/https/https.spec.ts:15` | Low. |
 | S5 | A code for one purpose is used for another | The HMAC covers purpose, target, subject and binding. | `otp.test.ts:222,232,240,252,260,272,283`, `hardening.test.ts:96` | Low. |
 | S6 | Client spoofs its address to escape rate limits | `CLIENT_IP_HEADER=cf-connecting-ip` on Render. Hop count as fallback, which ignores what a client adds to the left. IPv6 counted per /64. | `hardening.test.ts:306,314,345,357,363`, `http.test.ts:386`, `otp.test.ts:93` | Low if the [live check](DEPLOYMENT.md#step-11-check-the-client-address) passes. **Unverified live.** |
+| S7 | T4 guesses a password online | Argon2id, peppered. From unknown devices, 10 failures a day per canonical address and client (/64), and 100 a day per address: at most 36,500 guesses a year. Held under a parallel burst by reserving before hashing. A known device has its own 10 an hour. Per-client limits, including 10 sign-in attempts a minute before hashing. A 10-character minimum and a blocklist. | `accounts.test.ts` "after 10 failures from one client", "after 100 failures", "holds the overall cap", `security-regressions.test.ts` "finding 3" | Low to Med. Blocklist is small. |
+| S8 | T4 finds out who has an account | Unknown address, no password and wrong password: same status, headers, body and hashing work. Create account and forgot password: always 202, with address-dependent work after the response. | `accounts.test.ts` "identical", "runs a real hash", "timing", "answers before any delivery work", `live/accounts.spec.ts` "an existing address" | Low. Network timing on production not measured. |
+| S9 | T4 pre-hijacks an address, registering it before the owner | Nothing is stored until a code proves the address. A code from before an account existed can't set its password. | `accounts.test.ts` "pre-hijack", "a code from before", `google.test.ts` "pre-hijack" | Low. |
+| S10 | T4 forges a Google sign-in | State in a Lax cookie, single use. PKCE. Nonce. Signature against JWKS, RS256 only. `iss`, `aud`, `azp`, `exp`, `iat`, `email_verified=true`. | `google.test.ts` "state and code", "the ID token" | Low. Never met real Google. |
+| S11 | T4 uses Google to take over an account by address | Sign-in never links by address: an existing address with no link for that subject is refused (`error=google_link`). Linking happens only from Settings, in a session that proved a password or code in the last 10 minutes, bound to that session. A new account from Google only for Gmail addresses or Workspace accounts (`hd`). A reset removes every link. One Google login per account. A notice goes to the address on every link and unlink. | `security-regressions.test.ts` "finding 1", `google.test.ts` "linking", "disconnecting Google" | Low. Found by the second security review; the first design linked by verified address. |
+| S12 | T3 or T4 keeps access after a password is lost | Reset revokes every session. Change and set end all others. Each mails a notice. | `accounts.test.ts` "reset sets the hash", "needs the current one" | Low. |
 
 ### Tampering
 
@@ -150,15 +156,15 @@ These are real and remain after everything above. The owner must read and accept
 
 ### R2. Targeted sign-in lockout for 24 hours, renewable
 
-**Scenario.** Someone who knows a person's email address requests codes and sends wrong guesses. Each code allows 5 wrong guesses, so 10 mails reach the victim and 50 guesses spend the cap of 50 per rolling day (`otp.ts`, `OTP_MAX_FAILED_GUESSES`). From then on, a correct code is answered `invalid_code`, with no explanation.
+**Scenario.** Someone who knows a person's email address, and can send requests from several networks, spends that address's daily failure caps for devices that have never signed in to the account. Codes: each code allows 5 wrong guesses, so 4 mails reach the victim and 20 guesses spend the cap of 20 per rolling day (`otp.ts`, `OTP_MAX_FAILED_GUESSES`), shared across sign-in, reset and register codes, with at most 5 from one client, so at least 4 networks. Passwords: 100 a rolling day per address, at most 10 from one client, so at least 10 networks. From then on, on a new device, a correct code or password is refused with the usual answer.
 
-**How fast.** From one client, the 5-sends-an-hour quota means a little over an hour. From several clients, the 20-an-hour address quota allows it within minutes.
+**How fast.** Minutes, with enough networks. One network alone can't do it.
 
-**It is renewable.** The window is rolling, so as old failures age out at 24 hours, the attacker can spend them again. Someone persistent can keep a person out indefinitely, at a cost of about ten mails a day, each of which the victim sees.
+**It is renewable.** The window is rolling, so as old failures age out at 24 hours, the attacker can spend them again, at a cost of about four mails a day for codes, each of which the victim sees.
 
-**What still works for the victim.** Existing sessions. Deletion and email change for anyone already signed in, because the caps are per purpose. The Help page and the tools, which need no account.
+**What still works for the victim.** Every device they have signed in on before: its `__Host-device` cookie gives it its own budget, so password, code and reset all work there. Google, if connected. Existing sessions. Deletion, email change, adding a password and re-authentication for anyone already signed in, because those have their own caps. The Help page and the tools, which need no account.
 
-**What does not.** Signing in on a new device, or after a session expires. The message does not say this address is capped, because saying so would tell an attacker it worked. After two wrong codes on one screen, the app adds a general note that sign-in can be paused for up to 24 hours. That comes from what the screen saw, not from the server, so it reveals nothing about any address.
+**What does not.** Signing in or resetting a forgotten password on a device or browser never used for this account before. The message does not say this address is capped, because saying so would tell an attacker it worked. After two wrong codes on one screen, the app adds a general note that sign-in can be paused for up to 24 hours. That comes from what the screen saw, not from the server, so it reveals nothing about any address.
 
 **Why accepted.** Without the cap, online guessing has no ceiling. The cap protects health data, and the lockout costs only access, which recovers.
 
@@ -200,16 +206,19 @@ These are real and remain after everything above. The owner must read and accept
 
 ### R6. Email is the only identity factor
 
-**Scenario.** Anyone who can read a person's mail can sign in as them, read everything, export it, and delete it. Inboxes are often shared, or open on a family computer. There is no second factor, and no recovery path if the person loses the mailbox.
+**Scenario.** Anyone who can read a person's mail can sign in as them with a code, or reset their password, read everything, export it, and delete it. A password doesn't protect against this: email stays a sufficient way in. Inboxes are often shared, or open on a family computer. There is no second factor, and no recovery path if the person loses the mailbox.
 
 **Detection.** The sign-in notice goes to the same mailbox, so an attacker controlling the mailbox can delete it. It also cannot tell a new device from a returning one, so people receive it on every sign-in, and may stop reading it.
 
-**Why accepted.** Passwords would add a credential to steal, and phone OTP needs India's DLT SMS registration. The notice and session list are the compensating controls.
+**Why accepted.** Second factors and passkeys are not in this release, and phone OTP needs India's DLT SMS registration. The notice and session list are the compensating controls.
 
 **A related risk.** The SMTP provider sees codes in plaintext for as long as it keeps message content, so a compromise there is also a way in. The 10-minute expiry narrows this.
 
 ### R7. Others worth knowing
 
+- **Password hashes are now a target.** A database dump alone isn't enough to attack them, because of the pepper. A dump plus `PASSWORD_PEPPER` allows offline guessing, slowed by Argon2id.
+- **A hashing flood can shed sign-ins from new devices.** Sign-in attempts from unknown devices share an instance-wide token bucket and two hash slots; past them, a 429. A third slot is kept for known devices, so their owners still get in.
+- **Choosing Google tells Google.** It learns the person uses this service. Only for people who choose it, and stated on the screen and in the notice. Whoever controls a Google account connected from Settings can get in, until it is disconnected or the password is reset.
 - **Timestamps are plaintext.** The database reveals when a person checked in, and how often, even without keys.
 - **Backups keep erased data** for `BACKUP_RETENTION_DAYS` after deletion. The notice says so. A restore can bring back an account that the person deleted. See [the restore runbook](OPERATIONS.md#restoring-production).
 - **Single operator.** One person holds everything, with nobody to notice a mistake. Illness or absence delays incident response and helpline checks.

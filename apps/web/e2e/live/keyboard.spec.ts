@@ -24,6 +24,7 @@ test('sign-in and consent, with the keyboard alone', async ({ page, browserName 
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await tabTo(page, browserName, page.getByLabel('Email address'));
   await page.keyboard.type(email);
+  await tabTo(page, browserName, page.getByRole('button', { name: 'Email me a code instead' }));
   await page.keyboard.press('Enter');
   await expectFocusedHeading(page, 'Check your email');
 

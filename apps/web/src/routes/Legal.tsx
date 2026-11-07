@@ -72,11 +72,15 @@ export function Privacy() {
       <Part heading="What we store if you create an account">
         <ul className="flex list-disc flex-col gap-1 pl-5">
           <li>Your email address, to sign you in, and a display name if you add one.</li>
+          <li>If you set a password, a one-way scrambled form of it, which can't be turned back into your password.</li>
+          <li>If you use Google, a one-way code made from your Google account's ID, so we can recognise it. We don't ask Google for your name or photo. Google is added to an existing account only when you choose "Connect Google" in Settings, never just because the email addresses match, and resetting your password disconnects it.</li>
           <li>Your check-in answers, score, result range and date.</li>
           <li>Thought records you write.</li>
           <li>A label for each signed-in device and when it was last used, so you can review and end sessions.</li>
           <li>Your consent: which version you accepted, and when.</li>
           <li>For about an hour after we send you a code, a one-way code made from your email and network address, to limit how many can be sent. Your network address itself is not stored.</li>
+          <li>For a day after a failed password or code attempt, one-way codes made from the email address that was typed and from the network it came from, to limit how many tries can be made. Your network address itself is not stored.</li>
+          <li>On each device where you sign in, a cookie holding a random code, so that wrong tries made elsewhere can't lock you out on a device you already use. It lasts a year, says nothing about you, and we keep only a one-way form of it. Resetting your password or deleting your account cancels it.</li>
         </ul>
         <p>Check-ins and thought records are health information. We store them only with your explicit consent, and you must be 18 or older. We don't ask for your age, gender, occupation or phone number.</p>
       </Part>
@@ -84,12 +88,13 @@ export function Privacy() {
         <p>We process this information on the basis of your consent, under India's Digital Personal Data Protection Act, 2023, for one purpose: giving you your own history, journal and account. We don't use it for advertising, profiling, research, or AI, and we don't sell it.</p>
       </Part>
       <Part heading="How it's protected">
-        <p>Your email, name, device labels, check-ins and thought records are encrypted before they reach the database, with a key unique to you. Connections are encrypted. Signing in uses a one-time code, so there's no password to steal. The app has no third-party analytics, trackers or ad networks, and loads nothing from other companies' servers.</p>
+        <p>Your email, name, device labels, check-ins and thought records are encrypted before they reach the database, with a key unique to you. Connections are encrypted. You sign in with a password, an emailed one-time code, or Google. Passwords are kept only in a one-way form. The app has no third-party analytics, trackers or ad networks, and loads nothing from other companies' servers.</p>
       </Part>
       <Part heading="Who else is involved">
         <p>We use service providers only to run the service:</p>
         <Locations />
         <p>Traffic between your device and our server passes through Cloudflare, the network company Render uses, worldwide. Treat what you send as readable to Cloudflare while it passes through.</p>
+        <p>If you choose "Continue with Google" or "Connect Google", Google handles that step, and it learns that you use this service, along with which account you used. If you never choose either, Google learns nothing from us.</p>
         <p>Emails say things like "Your sign-in code" and never mention anxiety or health. No doctor, employer, insurer or family member gets access through AnxioCare.</p>
       </Part>
       <Part heading="How long we keep it">

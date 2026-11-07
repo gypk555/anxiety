@@ -96,6 +96,12 @@ function fallbackCode(status: number): string {
   return 'internal_error';
 }
 
+/** What the server's password rules said, when that is why it refused. */
+export function passwordFieldError(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.code !== 'validation_failed') return null;
+  return error.problem?.fieldErrors?.password?.[0] ?? null;
+}
+
 /** Words for people. Says what happened and what to do next, in one breath. */
 export function errorMessage(error: unknown): string {
   if (error instanceof NetworkError) {
@@ -105,6 +111,8 @@ export function errorMessage(error: unknown): string {
     switch (error.code) {
       case 'invalid_code':
         return "That code didn't work. Check the latest email, or send a new code.";
+      case 'invalid_credentials':
+        return 'That email and password don\'t match. Try again, or use "Forgot your password?".';
       case 'rate_limited':
         return 'Too many tries for now. Wait a few minutes, then try again.';
       case 'validation_failed':
@@ -117,6 +125,8 @@ export function errorMessage(error: unknown): string {
         return 'Please review and accept the privacy notice to continue.';
       case 'conflict':
         return error.problem?.detail ?? 'That has already been done, or has changed. Refresh and check.';
+      case 'reauth_required':
+        return "For your safety, confirm it's you first, with your password or an email code.";
       case 'csrf_failed':
       case 'forbidden':
         return "That wasn't allowed. Refresh the page and try again.";

@@ -59,7 +59,7 @@ test.describe('without a service worker', () => {
     await page.unrouteAll();
     await mockApi(page, { signedIn: false });
     await page.goto('/trends');
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in with your email' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
   });
 
   test('nothing in localStorage but the theme', async ({ page }) => {

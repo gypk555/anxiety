@@ -155,3 +155,77 @@ describe('migration config', () => {
     expect(() => loadMigrationConfig({ NODE_ENV: 'production', DATABASE_MIGRATION_URL: 'postgres://m:p@h/d' })).toThrow(/DATABASE_CA_CERT/);
   });
 });
+
+describe('Google sign-in config', () => {
+  const both = { GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'secret-value' };
+
+  it('is off by default', () => {
+    expect(loadConfig(prod()).google).toBeNull();
+    expect(loadConfig(baseEnv()).google).toBeNull();
+  });
+
+  it('uses Google itself in production, with the redirect from PUBLIC_ORIGIN', () => {
+    const { google } = loadConfig(prod(both));
+    expect(google).toMatchObject({
+      clientId: both.GOOGLE_CLIENT_ID,
+      authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+      jwksUrl: 'https://www.googleapis.com/oauth2/v3/certs',
+      redirectUri: 'https://app.example.com/api/v1/auth/google/callback',
+    });
+    expect(google!.issuers).toEqual(['https://accounts.google.com', 'accounts.google.com']);
+  });
+
+  it.each([
+    ['only the id', { GOOGLE_CLIENT_ID: both.GOOGLE_CLIENT_ID }, 'GOOGLE_CLIENT_SECRET'],
+    ['only the secret', { GOOGLE_CLIENT_SECRET: both.GOOGLE_CLIENT_SECRET }, 'GOOGLE_CLIENT_ID'],
+    ['the id, with a blank secret', { GOOGLE_CLIENT_ID: both.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: '' }, 'GOOGLE_CLIENT_SECRET'],
+  ])('production refuses half-set config: %s', (_name, env, named) => {
+    const problems = invalid(prod(env));
+    expect(problems.join('\n')).toContain(named);
+    expect(problems.join('\n')).not.toContain(both.GOOGLE_CLIENT_SECRET);
+  });
+
+  it('half-set is refused outside production too', () => {
+    expect(invalid(baseEnv({ GOOGLE_CLIENT_ID: both.GOOGLE_CLIENT_ID })).join('\n')).toContain('GOOGLE_CLIENT_SECRET');
+  });
+
+  it('two blank settings, as a hosting dashboard sends them, mean off', () => {
+    expect(loadConfig(prod({ GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '', GOOGLE_OIDC_BASE_URL: '' })).google).toBeNull();
+  });
+
+  it('production refuses an endpoint override, with or without Google on', () => {
+    expect(invalid(prod({ ...both, GOOGLE_OIDC_BASE_URL: 'https://fake.example' })).join('\n')).toContain('GOOGLE_OIDC_BASE_URL');
+    expect(invalid(prod({ GOOGLE_OIDC_BASE_URL: 'https://fake.example' })).join('\n')).toContain('GOOGLE_OIDC_BASE_URL');
+  });
+
+  it('outside production an override points every endpoint and the issuer at it', () => {
+    const { google } = loadConfig(baseEnv({ ...both, GOOGLE_OIDC_BASE_URL: 'http://127.0.0.1:9/' }));
+    expect(google).toMatchObject({ authorizeUrl: 'http://127.0.0.1:9/authorize', tokenUrl: 'http://127.0.0.1:9/token', jwksUrl: 'http://127.0.0.1:9/jwks', issuers: ['http://127.0.0.1:9'] });
+  });
+
+  it('refuses an override that is not a URL', () => {
+    expect(invalid(baseEnv({ GOOGLE_OIDC_BASE_URL: 'not a url' })).join('\n')).toContain('GOOGLE_OIDC_BASE_URL');
+  });
+});
+
+describe('password config', () => {
+  it('needs PASSWORD_PEPPER, as a real random key that nothing else reuses', () => {
+    expect(invalid(prod({ PASSWORD_PEPPER: undefined })).join('\n')).toContain('PASSWORD_PEPPER');
+    expect(invalid(prod({ PASSWORD_PEPPER: 'short' })).join('\n')).toContain('PASSWORD_PEPPER');
+    expect(invalid(prod({ PASSWORD_PEPPER: Buffer.alloc(32, 'a').toString('base64') })).join('\n')).toContain('PASSWORD_PEPPER');
+    const shared = key();
+    expect(invalid(prod({ PASSWORD_PEPPER: shared, OTP_PEPPER: shared })).join('\n')).toContain('PASSWORD_PEPPER');
+  });
+
+  it('never prints the pepper', () => {
+    const value = Buffer.alloc(32, 'a').toString('base64');
+    expect(invalid(prod({ PASSWORD_PEPPER: value })).join('\n')).not.toContain(value);
+  });
+
+  it('defaults to the OWASP minimum, and can be raised', () => {
+    expect(loadConfig(prod()).passwordHash).toEqual({ memory: 19456, passes: 2, parallelism: 1 });
+    expect(loadConfig(prod({ PASSWORD_ARGON2_MEMORY_KIB: '32768', PASSWORD_ARGON2_PASSES: '3' })).passwordHash).toEqual({ memory: 32768, passes: 3, parallelism: 1 });
+    expect(loadConfig(prod({ PASSWORD_ARGON2_MEMORY_KIB: '', PASSWORD_ARGON2_PASSES: '' })).passwordHash.memory).toBe(19456);
+  });
+});

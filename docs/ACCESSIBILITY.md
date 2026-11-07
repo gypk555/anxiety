@@ -110,10 +110,10 @@ No row says "Pass", on purpose. Fill in the last column as manual testing happen
 | 3.2.6 Consistent help | A | Partial | New in 2.2. **Get help** is proved present on all guest and signed-in routes (`live/safety.spec.ts`), in the same header component. Same position by reading | MT-NAV-02 | |
 | 3.3.1 Error identification | A | Partial | Errors in words with `role="alert"`, tested for main forms | MT-ACC-05 | |
 | 3.3.2 Labels or instructions | A | Axe, Code | All fields labelled. Hints linked by `aria-describedby` | MT-ACC-05, 11 | |
-| 3.3.3 Error suggestion | AA | Code | Messages say what to do next, as in `lib/api.ts`. At the guess cap, a general note appears after two wrong codes, without saying whether this address is capped: [accepted risk](SECURITY-EXCEPTIONS.md#24-hour-sign-in-lockout) | MT-AUTH-09 | |
+| 3.3.3 Error suggestion | AA | Code | Messages say what to do next, as in `lib/api.ts`. At the guess cap, a general note appears after two wrong codes, without saying whether this address is capped: [accepted risk](SECURITY-EXCEPTIONS.md#sign-in-lockout-of-a-new-device) | MT-AUTH-09 | |
 | 3.3.4 Error prevention (legal, financial, data) | AA | Partial | Deleting an account needs a fresh code, and is tested. All deletes confirm, and most are tested. Consent has two explicit boxes | MT-SET-12 | |
 | 3.3.7 Redundant entry | A | Code | New in 2.2. Drafts and answers persist across steps. Email retained on the code screen | MT-CHK-03 | |
-| 3.3.8 Accessible authentication, minimum | AA | Partial | New in 2.2. No password or puzzle. Copying a code is allowed by paste and autofill (tested in `OtpInput.test.tsx`). Real autofill not tried | MT-MAIL-05, 06, 07 | |
+| 3.3.8 Accessible authentication, minimum | AA | Partial | New in 2.2. No puzzle or transcription test. Passwords allow paste and password managers (`autocomplete` tested in `live/accounts.spec.ts`), and an emailed code or Google are alternatives. Copying a code is allowed by paste and autofill (tested in `OtpInput.test.tsx`). Real autofill not tried | MT-MAIL-05, 06, 07 | |
 
 ### 4. Robust
 
@@ -142,8 +142,10 @@ What each screen should do, from reading the code. **Scripted key presses cover 
 | Breathe, finished | Three controls | Heading, then a reflective line |
 | Grounding | Tab to the numbered buttons and **Next sense**. **Back to tools** closes it | Step heading, hint, and "Tap once for each one. n of m." live. "Thing 2 of 4, noticed" |
 | Sounds | Tab to four toggle buttons, then **Volume**. Arrow keys on the slider | Pressed state, "Playing. Tap to stop." or "Paused by your phone. Tap to play again.", and volume as a percent |
-| Sign in | Email field, **Email me a code**, **Continue without an account** | Label, note, and error as an alert |
-| Code | Single real input; arrows and typing work. **Continue**, **Send a new code**, **Use a different email** | "8-digit code", digits as typed, not the boxes. "Checking your code" and errors, by live region. Focus returns to the field on error |
+| Sign in | **Continue with Google** if on, email and password fields, **Show password**, **Forgot your password?**, **Sign in**, **Email me a code instead**, **Create an account**, **Continue without an account** | Labels and error as an alert. A failed sign-in clears the password and moves focus to it |
+| Create account | Optional name, email, password with its hint, **Show password**, **Continue** | Hint by `aria-describedby`, error as an alert, focus moves to the password if it's refused |
+| Choose a new password | Code, then password with its hint, **Set new password** | Label, hint, error as an alert. A hidden username field for password managers |
+| Code | Single real input; arrows and typing work. **Continue**, **Send a new code**, **Use a different email** | "6-digit code", digits as typed, not the boxes. "Checking your code" and errors, by live region. Focus returns to the field on error |
 | Consent | Links, two checkboxes, two buttons, then links to Settings and the tools. A re-prompt has **What changed** first | Headings, each checkbox's whole sentence, error as an alert |
 | Trends | Row link and delete in order. **Show these as a table** | Summary sentence, chart as one image, table with headers, "Delete check-in from date" |
 | Journal list | Main button, entries as links | Date, thought, situation for each |

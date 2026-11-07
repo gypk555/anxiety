@@ -5,7 +5,7 @@ import { queryClient } from '@/lib/queries';
 import { ME, mockFetch, renderRoutes } from '@/test/render';
 import Settings from './Settings';
 
-const META = { operatorName: 'Op', grievanceEmail: 'g@example.com', consentVersion: '2026-11-06', backupRetentionDays: 7, dataLocation: 'Mumbai', serverLocation: 'Singapore', mailProvider: 'mail' };
+const META = { operatorName: 'Op', grievanceEmail: 'g@example.com', consentVersion: '2026-11-07', backupRetentionDays: 7, dataLocation: 'Mumbai', serverLocation: 'Singapore', mailProvider: 'mail', googleEnabled: false };
 const routes = [
   { path: '/settings', element: <Settings /> },
   { path: '/consent', element: <p>Consent page</p> },
@@ -23,7 +23,7 @@ afterEach(() => {
 
 describe('rights while consent is outstanding', () => {
   const open = (me: typeof STALE | typeof NEVER) => {
-    const fetchMock = mockFetch({ 'GET /me': { body: me }, 'GET /auth/sessions': { body: SESSIONS }, 'GET /meta': { body: META } });
+    const fetchMock = mockFetch({ 'GET /me': { body: me }, 'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META } });
     return { ...renderRoutes(routes, '/settings', queryClient), fetchMock };
   };
 
@@ -55,7 +55,7 @@ describe('rights while consent is outstanding', () => {
   });
 
   it('a consented account sees no prompt', async () => {
-    mockFetch({ 'GET /me': { body: ME }, 'GET /auth/sessions': { body: SESSIONS }, 'GET /meta': { body: META } });
+    mockFetch({ 'GET /me': { body: ME }, 'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META } });
     renderRoutes(routes, '/settings', queryClient);
     await screen.findByRole('button', { name: 'Download my data' });
     expect(screen.queryByRole('link', { name: 'Review and agree' })).not.toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('sending a new code from a sheet', () => {
   const open = () => {
     const fetchMock = mockFetch({
       'GET /me': { body: ME },
-      'GET /auth/sessions': { body: SESSIONS },
+      'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } },
       'GET /meta': { body: META },
       'POST /me/delete/request': { status: 202 },
       'POST /me/email/request': { status: 202 },

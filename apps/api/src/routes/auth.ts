@@ -6,6 +6,7 @@ import type { Ctx } from '../context.ts';
 import { clientKey } from '../client-ip.ts';
 import { emailBlindIndex, openText } from '../crypto.ts';
 import { deviceLabel } from '../device.ts';
+import { knownDevice, rememberDevice } from '../devices.ts';
 import { invalidCode, notFound } from '../errors.ts';
 import { newSignInNotice } from '../mail.ts';
 import { consumeOtp, deliverOtp, otpTarget } from '../otp.ts';
@@ -28,12 +29,16 @@ export function authRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typ
   app.post('/auth/otp/verify', { config: { rateLimit: { max: 30, timeWindow: '10 minutes' } } }, async (request, reply) => {
     const { email, code } = parse(otpVerifyBody, request.body);
     const emailHash = emailBlindIndex(keys, email);
-    const ok = await consumeOtp(sql, keys, otpTarget(keys, 'login', email, null), code);
+    // A device that has signed in to this account before spends its own guess budget, not the address's.
+    const deviceId = await knownDevice(sql, config, request, emailHash);
+    const from = { clientKey: clientKey(request, config.clientIpHeader), deviceId };
+    const ok = await consumeOtp(sql, keys, otpTarget(keys, 'login', email, null), code, from);
     if (!ok) throw invalidCode();
 
     const user = await findOrCreateUser(sql, keys, email, emailHash);
     const token = await sql.begin(async (tx) => {
-      const created = await createSession(tx, keys, user, request.headers['user-agent']);
+      const created = await createSession(tx, keys, user, request.headers['user-agent'], true);
+      await rememberDevice(tx, config, request, reply, user.id);
       await audit(tx, keys, 'login', user.id);
       return created;
     });

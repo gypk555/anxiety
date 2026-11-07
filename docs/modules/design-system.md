@@ -45,6 +45,7 @@ Also: `--haldi-deep`, `--on-haldi`, `--thread-faint`, `--scrim`.
 | Class | What |
 | --- | --- |
 | `.btn` + `-primary`, `-secondary`, `-quiet`, `-ghost`, `-call`, `-small` | Buttons. Min height 3.25rem, small 2.75rem |
+| `.btn-google` | The Google button, per Google's branding guidelines. A deliberate exception to the palette, using `--google-fill`, `--google-ink` and `--google-outline` |
 | `.link` | Inline link with a stitched underline |
 | `.patch`, `.patch-quilted` | A card. The quilted one marks what matters most |
 | `.stitch-rule` | A dashed divider |
@@ -64,6 +65,8 @@ Also: `--haldi-deep`, `--on-haldi`, `--thread-faint`, `--scrim`.
 - `PageTitle`: the h1. Sets the document title and moves focus after navigation.
 - `Sheet`, `ConfirmSheet`: native modal `<dialog>`, for focus trap, Esc and an inert background.
 - `OtpInput`: one real input with boxes drawn behind it.
+- `PasswordField`: a real password input, for password managers and paste, with a show or hide button in the tab order.
+- `GoogleButton`: a plain link with a local SVG mark, shown only when `/meta` says Google is on.
 - `Stitches`: a progress bar.
 - `Skeleton`, `PageSkeleton`, `ErrorState`.
 - `StitchRing`, `Knot`, `RingsMark`, `Logomark`: decorative.

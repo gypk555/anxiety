@@ -37,14 +37,25 @@ export function mockFetch(table: Record<string, MockResponse | ((body: unknown) 
   return { fn, calls };
 }
 
+export const META = {
+  operatorName: 'Test Operator',
+  grievanceEmail: 'grievance@example.com',
+  consentVersion: '2026-11-07',
+  backupRetentionDays: 7,
+  dataLocation: 'Mumbai, India',
+  serverLocation: 'Singapore',
+  mailProvider: 'our email provider',
+  googleEnabled: false,
+};
+
 export const ME = {
   id: '11111111-1111-4111-8111-111111111111',
   email: 'asha@example.in',
   displayName: 'Asha',
   createdAt: '2026-08-01T04:00:00.000Z',
   consentRequired: false,
-  consentVersion: '2026-11-06',
-  acceptedConsentVersion: '2026-11-06' as string | null,
+  consentVersion: '2026-11-07',
+  acceptedConsentVersion: '2026-11-07' as string | null,
 };
 
 export const problem = (status: number, code: string) => ({

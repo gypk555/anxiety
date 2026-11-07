@@ -12,7 +12,7 @@ async function guestThenSignUp(page: Page, answers = SEVEN, difficulty = 1) {
   const email = uniqueEmail('saver');
   await page.getByRole('link', { name: 'Sign in to save' }).click();
   await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Email me a code instead' }).click();
   await enterCode(page, await waitForCode(email, 'login'));
   await acceptConsent(page);
   await expect(page).toHaveURL(/\/result$/);

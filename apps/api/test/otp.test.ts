@@ -10,7 +10,7 @@ afterAll(async () => {
   await h.close();
 });
 
-const wrong = (code: string) => (code === '00000000' ? '11111111' : '00000000');
+const wrong = (code: string) => (code === '000000' ? '111111' : '000000');
 const attemptsFor = async () => (await h.admin`SELECT max(attempts)::int AS n FROM app.otp_codes WHERE attempts > 0`)[0]!.n as number;
 
 describe('OTP request', () => {
@@ -63,10 +63,10 @@ describe('OTP request', () => {
     expect((await h.admin`SELECT count(*)::int AS n FROM app.users`)[0]!.n).toBe(before);
   });
 
-  it('stores only an HMAC of the code, generates eight digits, sets a ten-minute expiry', async () => {
+  it('stores only an HMAC of the code, generates six digits, sets a ten-minute expiry', async () => {
     const email = uniqueEmail();
     const code = await requestCode(h, new Client(h), email);
-    expect(code).toMatch(/^\d{8}$/);
+    expect(code).toMatch(/^\d{6}$/);
     const [row] = await h.admin`
       SELECT code_hmac, expires_at, created_at,
         encode(code_hmac, 'escape') LIKE ${'%' + code + '%'} AS contains_code
@@ -124,7 +124,7 @@ describe('OTP verify', () => {
     const client = new Client(h);
     const code = await requestCode(h, client, email);
     const a = await client.post(`${API}/auth/otp/verify`, { email, code: wrong(code) });
-    const b = await client.post(`${API}/auth/otp/verify`, { email: uniqueEmail('none'), code: '12345678' });
+    const b = await client.post(`${API}/auth/otp/verify`, { email: uniqueEmail('none'), code: '123456' });
     expect(a.statusCode).toBe(400);
     expect(b.statusCode).toBe(400);
     expect(a.json().code).toBe('invalid_code');
@@ -333,7 +333,7 @@ describe('Email change', () => {
     const request = await client.post(`${API}/me/email/request`, { newEmail: taken.email });
     expect(request.statusCode).toBe(202);
     // Wrong code: same generic failure, nothing about the address.
-    expect((await client.post(`${API}/me/email/verify`, { newEmail: taken.email, currentCode: '00000000', code: '00000000' })).json().code).toBe('invalid_code');
+    expect((await client.post(`${API}/me/email/verify`, { newEmail: taken.email, currentCode: '000000', code: '000000' })).json().code).toBe('invalid_code');
     await h.app.drainBackground();
     const code = h.mailer.codeFor(taken.email, 'email_change');
     const currentCode = h.mailer.codeFor(email, 'email_change_current');
@@ -348,11 +348,11 @@ describe('Email change', () => {
 describe('Mail content', () => {
   it('is neutral: code in the body only, nothing about the product or health', () => {
     for (const purpose of ['login', 'email_change', 'account_delete'] as const) {
-      const mail = otpMail('a@example.com', purpose, '12345678');
+      const mail = otpMail('a@example.com', purpose, '123456');
       expect(mail.subject).not.toContain('1234');
-      expect(mail.text).toContain('1234 5678');
+      expect(mail.text).toContain('123 456');
       expect(`${mail.subject} ${mail.text}`).not.toMatch(/anxi|health|mental|gad|screen|therap|mood|journal/i);
     }
-    expect(otpMail('a@example.com', 'login', '12345678').subject).toBe('Your sign-in code');
+    expect(otpMail('a@example.com', 'login', '123456').subject).toBe('Your sign-in code');
   });
 });

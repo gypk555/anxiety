@@ -10,8 +10,8 @@ export const me = (over: Record<string, unknown> = {}) => ({
   displayName: 'Asha',
   createdAt: '2026-08-01T04:00:00.000Z',
   consentRequired: false,
-  consentVersion: '2026-11-06',
-  acceptedConsentVersion: over.consentRequired ? null : '2026-11-06',
+  consentVersion: '2026-11-07',
+  acceptedConsentVersion: over.consentRequired ? null : '2026-11-07',
   ...over,
 });
 
@@ -59,7 +59,7 @@ export const ENTRIES = [
 ];
 
 export const SESSIONS = [
-  { id: '44444444-4444-4444-8444-444444444441', deviceLabel: 'Chrome on Android', createdAt: '2026-10-01T04:00:00.000Z', lastSeenAt: '2026-11-06T04:00:00.000Z', current: true },
+  { id: '44444444-4444-4444-8444-444444444441', deviceLabel: 'Chrome on Android', createdAt: '2026-10-01T04:00:00.000Z', lastSeenAt: '2026-11-07T04:00:00.000Z', current: true },
   { id: '44444444-4444-4444-8444-444444444442', deviceLabel: 'Safari on iPhone', createdAt: '2026-09-01T04:00:00.000Z', lastSeenAt: '2026-10-29T15:20:00.000Z', current: false },
 ];
 
@@ -69,13 +69,16 @@ export interface MockOptions {
   /** With consentRequired: what they last accepted, which makes this a re-prompt. */
   acceptedConsentVersion?: string;
   empty?: boolean;
+  googleEnabled?: boolean;
+  methods?: { password: boolean; google: boolean };
+  loginFails?: boolean;
 }
 
 const unauth = { type: 'about:blank', title: 'Unauthenticated', status: 401, code: 'unauthenticated' };
 
 /** A stand-in for the API, from the shared contract, for visual and accessibility checks. */
 export async function mockApi(page: Page, options: MockOptions = {}) {
-  const { signedIn = false, consentRequired = false, empty = false, acceptedConsentVersion } = options;
+  const { signedIn = false, consentRequired = false, empty = false, acceptedConsentVersion, googleEnabled = false, methods = { password: true, google: false }, loginFails = false } = options;
   const account = () => me({ consentRequired, ...(acceptedConsentVersion ? { acceptedConsentVersion } : {}) });
   await page.route('**/api/v1/**', async (route) => {
     const url = new URL(route.request().url());
@@ -84,11 +87,16 @@ export async function mockApi(page: Page, options: MockOptions = {}) {
     const json = (body: unknown, status = 200) =>
       route.fulfill({ status, contentType: status >= 400 ? 'application/problem+json' : 'application/json', body: JSON.stringify(body) });
 
-    if (path === '/meta') return json({ operatorName: 'AnxioCare Health LLP', grievanceEmail: 'grievance@anxiocare.example', consentVersion: '2026-11-06', backupRetentionDays: 7, dataLocation: 'Mumbai, India', serverLocation: 'Singapore', mailProvider: 'our email provider' });
+    if (path === '/meta') return json({ operatorName: 'AnxioCare Health LLP', grievanceEmail: 'grievance@anxiocare.example', consentVersion: '2026-11-07', backupRetentionDays: 7, dataLocation: 'Mumbai, India', serverLocation: 'Singapore', mailProvider: 'our email provider', googleEnabled });
     if (method === 'POST' && path === '/auth/otp/request') return route.fulfill({ status: 202 });
     if (path === '/auth/otp/verify') return json(account());
+    if (method === 'POST' && (path === '/auth/register/request' || path === '/auth/password/forgot')) return route.fulfill({ status: 202 });
+    if (path === '/auth/login' && loginFails) return json({ type: 'about:blank', title: 'That email and password did not match', status: 400, code: 'invalid_credentials' }, 400);
+    if (['/auth/login', '/auth/register/verify', '/auth/password/reset'].includes(path)) return json(account());
     if (!signedIn) return json(unauth, 401);
     if (path === '/me' && method === 'GET') return json(account());
+    if (path === '/me/sign-in-methods') return json(methods);
+    if (path === '/me/password/set/request') return route.fulfill({ status: 202 });
     if (path === '/auth/sessions') return json({ items: SESSIONS, nextCursor: null });
     if (path === '/assessments') return json({ items: empty ? [] : ASSESSMENTS, nextCursor: null });
     if (path.startsWith('/assessments/')) {

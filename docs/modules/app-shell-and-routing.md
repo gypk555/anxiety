@@ -33,7 +33,11 @@ The frame around every screen, the URL map, access guards, global error and sess
 | `/journal/:id` | Entry | **Yes** | |
 | `/journal/:id/edit` | Edit | **Yes** | focus |
 | `/settings` | Settings | No | |
-| `/sign-in` | Email | No | focus |
+| `/sign-in` | Email and password | No | focus |
+| `/create-account` | Name, email and password | No | focus |
+| `/create-account/code` | Code | No | focus |
+| `/forgot-password` | Email | No | focus |
+| `/forgot-password/reset` | Code and new password | No | focus |
 | `/sign-in/code` | Code | No | focus |
 | `/consent` | Consent | Handled itself | focus, wide |
 | `/privacy`, `/terms`, `/about` | Legal | No | wide |

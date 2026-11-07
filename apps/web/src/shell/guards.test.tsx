@@ -9,7 +9,7 @@ import { ApiError } from '@/lib/api';
 import { Help } from '@/routes/Help';
 import Consent from '@/routes/Consent';
 import { SignIn, SignInCode } from '@/routes/SignIn';
-import { ME, mockFetch, problem, renderRoutes } from '@/test/render';
+import { META, ME, mockFetch, problem, renderRoutes } from '@/test/render';
 import { RequireAccount } from './Guards';
 
 const routes = [
@@ -47,7 +47,7 @@ describe('routing guards', () => {
   it('sends a guest to sign-in, remembering where they were going', async () => {
     mockFetch({});
     const { router } = renderRoutes(routes, '/journal/new?step=2', queryClient);
-    await screen.findByRole('heading', { name: 'Sign in with your email' });
+    await screen.findByRole('heading', { name: 'Sign in' });
     expect(router.state.location.search).toBe('?next=%2Fjournal%2Fnew%3Fstep%3D2');
   });
 
@@ -119,12 +119,12 @@ describe('sign-in', () => {
     });
     const { router } = renderRoutes(routes, '/sign-in?next=%2Ftrends', queryClient);
     await user.type(await screen.findByLabelText('Email address'), 'Asha@Example.in');
-    await user.click(screen.getByRole('button', { name: 'Email me a code' }));
+    await user.click(screen.getByRole('button', { name: 'Email me a code instead' }));
     await screen.findByRole('heading', { name: 'Check your email' });
     expect(calls.find((c) => c.key === 'POST /auth/otp/request')!.body).toEqual({ email: 'asha@example.in' });
     expect(screen.getByRole('button', { name: /Send a new code in \d+s/ })).toBeDisabled();
 
-    await user.type(screen.getByLabelText('8-digit code'), '12345678');
+    await user.type(screen.getByLabelText('6-digit code'), '123456');
     await screen.findByRole('heading', { name: 'Before we save anything' });
     expect(router.state.location.search).toBe('?next=%2Ftrends');
   });
@@ -134,7 +134,7 @@ describe('sign-in', () => {
     const { calls } = mockFetch({});
     renderRoutes(routes, '/sign-in', queryClient);
     await user.type(await screen.findByLabelText('Email address'), 'not-an-email');
-    await user.click(screen.getByRole('button', { name: 'Email me a code' }));
+    await user.click(screen.getByRole('button', { name: 'Email me a code instead' }));
     expect(screen.getByRole('alert')).toHaveTextContent(/doesn't look like an email/);
     expect(calls.some((c) => c.key === 'POST /auth/otp/request')).toBe(false);
   });
@@ -142,20 +142,20 @@ describe('sign-in', () => {
   it('explains a wrong code, clears the boxes, and keeps the guest result', async () => {
     const user = userEvent.setup();
     guestResult();
-    mockFetch({ 'POST /auth/otp/request': { status: 202 }, 'POST /auth/otp/verify': problem(400, 'invalid_code') });
+    mockFetch({ 'GET /meta': { body: META }, 'POST /auth/otp/request': { status: 202 }, 'POST /auth/otp/verify': problem(400, 'invalid_code') });
     renderRoutes(routes, '/sign-in', queryClient);
     await user.type(await screen.findByLabelText('Email address'), 'a@example.in');
-    await user.click(screen.getByRole('button', { name: 'Email me a code' }));
-    await user.type(await screen.findByLabelText('8-digit code'), '00000000');
+    await user.click(screen.getByRole('button', { name: 'Email me a code instead' }));
+    await user.type(await screen.findByLabelText('6-digit code'), '000000');
     expect(await screen.findByRole('alert')).toHaveTextContent(/didn't work/);
-    expect(screen.getByLabelText('8-digit code')).toHaveValue('');
+    expect(screen.getByLabelText('6-digit code')).toHaveValue('');
     expect(loadGuestResult()).not.toBeNull();
   });
 
   it('goes straight back to email entry if the code screen has no email', async () => {
     mockFetch({});
     renderRoutes(routes, '/sign-in/code', queryClient);
-    expect(await screen.findByRole('heading', { name: 'Sign in with your email' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 });
 

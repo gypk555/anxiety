@@ -7,7 +7,7 @@ import { mockFetch, renderRoutes } from '@/test/render';
 import { Help } from './Help';
 import { About, Privacy } from './Legal';
 
-const META = { operatorName: 'Op', grievanceEmail: 'g@example.com', consentVersion: CONSENT_VERSION, backupRetentionDays: 7, dataLocation: 'Mumbai', serverLocation: 'Singapore', mailProvider: 'Mailer Co' };
+const META = { operatorName: 'Op', grievanceEmail: 'g@example.com', consentVersion: CONSENT_VERSION, backupRetentionDays: 7, dataLocation: 'Mumbai', serverLocation: 'Singapore', mailProvider: 'Mailer Co', googleEnabled: true };
 const page = (element: React.ReactNode) => renderRoutes([{ path: '/', element }, { path: '*', element: <p>other</p> }], '/', queryClient);
 
 afterEach(() => {
@@ -78,5 +78,20 @@ describe('Privacy notice', () => {
     mockFetch({ 'GET /meta': { body: META } });
     page(<Privacy />);
     expect(screen.getByText(/you can still download your data, delete your account or sign out without accepting/)).toBeInTheDocument();
+  });
+});
+
+describe('Privacy notice on sign-in', () => {
+  it('says plainly what Google learns, and that this applies only to people who choose it', async () => {
+    mockFetch({ 'GET /meta': { body: META } });
+    page(<Privacy />);
+    expect(await screen.findByText(/If you choose "Continue with Google"/)).toHaveTextContent(/Google.*learns that you use this service/);
+  });
+
+  it('says how passwords are kept, and no longer claims there is no password', async () => {
+    mockFetch({ 'GET /meta': { body: META } });
+    page(<Privacy />);
+    expect(await screen.findByText(/one-way scrambled form/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/no password/i);
   });
 });

@@ -56,8 +56,53 @@ export const SCREENS: Screen[] = [
     path: '/sign-in',
     act: async (p) => {
       await p.getByLabel('Email address').fill('asha.menon@example.in');
+      await p.getByRole('button', { name: 'Email me a code instead' }).click();
+      await p.getByLabel('6-digit code').fill('123');
+    },
+  },
+  { name: 'sign-in-google', path: '/sign-in', api: { googleEnabled: true } },
+  { name: 'sign-in-google-failed', path: '/sign-in?error=google', api: { googleEnabled: true } },
+  {
+    name: 'sign-in-wrong-password',
+    path: '/sign-in',
+    api: { loginFails: true },
+    act: async (p) => {
+      await p.getByLabel('Email address').fill('asha.menon@example.in');
+      await p.getByLabel('Password', { exact: true }).fill('not the right one');
+      await p.getByRole('button', { name: 'Sign in' }).click();
+      await p.getByRole('alert').waitFor();
+    },
+  },
+  { name: 'create-account', path: '/create-account' },
+  { name: 'create-account-google', path: '/create-account', api: { googleEnabled: true } },
+  {
+    name: 'create-account-password-problem',
+    path: '/create-account',
+    act: async (p) => {
+      await p.getByLabel('Email address').fill('asha.menon@example.in');
+      await p.getByLabel('Password', { exact: true }).fill('short');
+      await p.getByRole('button', { name: 'Continue' }).click();
+    },
+  },
+  {
+    name: 'create-account-code',
+    path: '/create-account',
+    act: async (p) => {
+      await p.getByLabel('Email address').fill('asha.menon@example.in');
+      await p.getByLabel('Password', { exact: true }).fill('river stone quiet morning');
+      await p.getByRole('button', { name: 'Continue' }).click();
+      await p.getByLabel('6-digit code').fill('123');
+    },
+  },
+  { name: 'forgot-password', path: '/forgot-password' },
+  {
+    name: 'forgot-password-reset',
+    path: '/forgot-password',
+    act: async (p) => {
+      await p.getByLabel('Email address').fill('asha.menon@example.in');
       await p.getByRole('button', { name: 'Email me a code' }).click();
-      await p.getByLabel('8-digit code').fill('1234');
+      await p.getByLabel('New password').fill('short');
+      await p.getByRole('button', { name: 'Set new password' }).click();
     },
   },
   { name: 'consent', path: '/consent', api: { signedIn: true, consentRequired: true } },
@@ -92,6 +137,24 @@ export const SCREENS: Screen[] = [
     },
   },
   { name: 'settings-account', path: '/settings', api: signedIn },
+  { name: 'settings-account-google', path: '/settings', api: { signedIn: true, googleEnabled: true, methods: { password: true, google: true } } },
+  { name: 'settings-account-no-password', path: '/settings', api: { signedIn: true, googleEnabled: true, methods: { password: false, google: true } } },
+  {
+    name: 'settings-change-password',
+    path: '/settings',
+    api: signedIn,
+    act: (p) => p.getByRole('button', { name: 'Change password' }).click(),
+  },
+  {
+    name: 'settings-add-password',
+    path: '/settings',
+    api: { signedIn: true, methods: { password: false, google: false } },
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Add a password' }).click();
+      await p.getByRole('button', { name: 'Email me a code' }).click();
+      await p.getByLabel('New password').waitFor();
+    },
+  },
   {
     name: 'settings-delete',
     path: '/settings',

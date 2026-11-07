@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": { "node": ">=24.7" },
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev:api": "npm run dev -w @anxiocare/api",
@@ -11,6 +11,9 @@
     "build": "npm run build -w @anxiocare/web && npm run build -w @anxiocare/api",
     "start": "npm run start -w @anxiocare/api",
     "migrate": "npm run migrate -w @anxiocare/api",
+    "db:setup": "npm run db:setup -w @anxiocare/api --",
+    "db:verify": "npm run db:verify -w @anxiocare/api",
+    "doctor": "npm run doctor -w @anxiocare/api --",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "oxlint",
     "test": "npm run test --workspaces --if-present",

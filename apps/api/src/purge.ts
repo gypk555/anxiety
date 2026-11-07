@@ -37,6 +37,9 @@ export async function runPurge(sql: Sql): Promise<PurgeResult> {
   `;
   const otpCodes = await purgeOtpCodes(sql);
   await sql`DELETE FROM app.otp_failures WHERE created_at <= now() - interval '24 hours'`;
+  await sql`DELETE FROM app.login_failures WHERE created_at <= now() - interval '24 hours'`;
+  await sql`DELETE FROM app.device_tokens WHERE expires_at <= now()`;
+  await sql`DELETE FROM app.oauth_state_uses WHERE expires_at <= now()`;
   const auditRows = await sql`DELETE FROM app.audit_log WHERE created_at <= now() - interval '1 year'`;
   return {
     sessions: sessions.count,

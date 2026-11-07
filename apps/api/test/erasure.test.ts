@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { auditActor, emailBlindIndex } from '../src/crypto.ts';
-import { emailQuotaKey } from '../src/otp.ts';
+import { emailQuotaKey, loginQuotaKey } from '../src/otp.ts';
 import { API, assessmentPayload, Client, createHarness, journalPayload, requestCode, signIn, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
 
 let h: Harness;
@@ -72,7 +72,7 @@ describe('account deletion', () => {
     const { client, id } = await signInConsented(h);
     await client.post(`${API}/me/delete/request`);
     await h.app.drainBackground();
-    const r = await client.post(`${API}/me/delete/confirm`, { code: '00000000' });
+    const r = await client.post(`${API}/me/delete/confirm`, { code: '000000' });
     // All zeros could only collide once in a hundred million runs.
     expect(r.statusCode).toBe(400);
     const [row] = await h.admin`SELECT count(*)::int AS n FROM app.users WHERE id = ${id}::uuid`;
@@ -183,5 +183,24 @@ describe('audit', () => {
     expect(new Set(rows.map((r) => r.action))).toEqual(
       new Set(['login', 'consent', 'session_revoke', 'email_change', 'logout', 'logout_all']),
     );
+  });
+});
+
+describe('erasure and sign-in data', () => {
+  it('removes login failures for every spelling of the address, and the password hash with the row', async () => {
+    const { client, email, id } = await signInConsented(h);
+    const quota = loginQuotaKey(h.config.keys, email);
+    const [local, domain] = email.split('@');
+    await new Client(h).post(`${API}/auth/login`, { email, password: 'a wrong password here' });
+    await new Client(h).post(`${API}/auth/login`, { email: `${local}+tag@${domain}`, password: 'a wrong password here' });
+    const before = await h.admin<{ n: number }[]>`SELECT count(*)::int AS n FROM app.login_failures WHERE quota_hash = ${quota}`;
+    expect(before[0]!.n).toBe(2);
+    await client.post(`${API}/me/delete/request`);
+    await h.app.drainBackground();
+    expect((await client.post(`${API}/me/delete/confirm`, { code: h.mailer.codeFor(email, 'account_delete') })).statusCode).toBe(204);
+    const after = await h.admin<{ n: number }[]>`SELECT count(*)::int AS n FROM app.login_failures WHERE quota_hash = ${quota}`;
+    expect(after[0]!.n).toBe(0);
+    const users = await h.admin<{ n: number }[]>`SELECT count(*)::int AS n FROM app.users WHERE id = ${id}::uuid`;
+    expect(users[0]!.n).toBe(0);
   });
 });

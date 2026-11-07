@@ -12,6 +12,8 @@ export interface UserRow {
   dek_key_version: string;
   consent_version: string | null;
   created_at: Date;
+  /** Argon2id PHC string. Null for an account that signs in by email code or Google only. */
+  password_hash: string | null;
 }
 
 export const dekFor = (keys: Keys, user: Pick<UserRow, 'id' | 'wrapped_dek' | 'dek_key_version'>) =>
@@ -41,7 +43,30 @@ export async function loadUser(db: Db, id: string): Promise<UserRow> {
 }
 
 /**
- * Sign-up and sign-in share this path. The unique blind index settles a first-login race:
+ * Create account, after the code proved the address. Null if the address has an account by now: it may have got
+ * one another way since the code was sent, and a code that predates it must not set its password or sign in to it.
+ */
+export async function createUserWithPassword(
+  sql: Sql,
+  keys: Keys,
+  input: { email: string; emailHash: Buffer; passwordHash: string; displayName: string | null },
+): Promise<UserRow | null> {
+  const id = randomUUID();
+  const dek = keys.ring.generateDataKey();
+  const { wrapped, version } = keys.ring.wrap(dek, id);
+  const emailCt = sealText(dek, input.email, 'users.email', id, id);
+  const nameCt = input.displayName ? sealText(dek, input.displayName, 'users.display_name', id, id) : null;
+  const [created] = await sql<UserRow[]>`
+    INSERT INTO app.users (id, email_hash, email_ct, display_name_ct, wrapped_dek, dek_key_version, password_hash)
+    VALUES (${id}::uuid, ${input.emailHash}, ${emailCt}, ${nameCt}, ${wrapped}, ${version}, ${input.passwordHash})
+    ON CONFLICT (email_hash) DO NOTHING
+    RETURNING *
+  `;
+  return created ?? null;
+}
+
+/**
+ * Email-code sign-in and Google share this path. The unique blind index settles a first-login race:
  * the loser's insert does nothing and it reads the winner's row, whose key its own copy never touched.
  */
 export async function findOrCreateUser(sql: Sql, keys: Keys, email: string, emailHash: Buffer): Promise<UserRow & { firstSignIn: boolean }> {

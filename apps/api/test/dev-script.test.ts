@@ -98,6 +98,13 @@ describe('scripts/dev.ts when migrating fails', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  it('adds a pepper to a keys file from before passwords existed, keeping everything else', () => {
+    const saved = JSON.parse(readFileSync(`${pgDir}.keys.json`, 'utf8')) as Record<string, string>;
+    expect(saved.PASSWORD_PEPPER).toMatch(/^[A-Za-z0-9+/]{43}=$/);
+    expect(saved.superPassword).toBe(PASSWORD);
+    expect(saved.runtimePassword).toBe('devruntime');
+  });
+
   it('exits with a failure', () => {
     expect(result.code, result.output).toBe(1);
   });

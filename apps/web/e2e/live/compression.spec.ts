@@ -97,3 +97,18 @@ test('API answers holding personal data are never compressed, signed in or not',
   expect(signedOut.status).toBe(401);
   expect(signedOut.headers['content-encoding']).toBeUndefined();
 });
+
+test('the common-password list stays out of the first bundle, and is there on the screens that use it', async ({ request, page }) => {
+  const html = await (await request.get('/')).text();
+  const scripts = [...html.matchAll(/(?:src|href)="(\/[^"]+\.js)"/g)].map((m) => m[1]!);
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const script of scripts) expect(await (await request.get(script)).text(), script).not.toContain('iloveindia');
+
+  const loaded: Promise<string>[] = [];
+  page.on('response', (r) => {
+    if (r.url().endsWith('.js')) loaded.push(r.text());
+  });
+  await page.goto('/create-account');
+  await page.getByLabel('Email address').waitFor();
+  expect((await Promise.all(loaded)).some((text) => text.includes('iloveindia'))).toBe(true);
+});

@@ -93,10 +93,12 @@ test('the session cookie is HttpOnly and SameSite=Strict, and scripts cannot see
   await acceptConsent(page);
 
   const cookies = await context.cookies();
-  expect(cookies).toHaveLength(1);
-  const [cookie] = cookies;
-  // Development is plain http on localhost; production uses __Host-session with Secure.
-  expect(cookie!.name).toBe('session');
+  expect(cookies.map((c) => c.name).sort()).toEqual(['device', 'session']);
+  const cookie = cookies.find((c) => c.name === 'session');
+  // Development is plain http on localhost; production uses __Host-session and __Host-device with Secure.
+  const device = cookies.find((c) => c.name === 'device')!;
+  expect(device).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/' });
+  expect(device.expires * 1000 - Date.now()).toBeGreaterThan(300 * 24 * 3600 * 1000);
   expect(cookie!.httpOnly).toBe(true);
   expect(cookie!.sameSite).toBe('Strict');
   expect(cookie!.path).toBe('/');

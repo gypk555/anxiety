@@ -1,7 +1,7 @@
 import { OTP_LENGTH } from '@anxiocare/shared';
 import { forwardRef, useId } from 'react';
 
-/** Keeps digits only, so a pasted "1234 5678" or "Your code: 1234 5678" still works. */
+/** Keeps digits only, so a pasted "123 456" or "Your code: 123 456" still works. */
 export const cleanCode = (raw: string) => raw.replace(/\D/g, '').slice(0, OTP_LENGTH);
 
 /**

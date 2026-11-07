@@ -1,6 +1,6 @@
 # 010. Eight-digit codes and quotas
 
-Status: accepted, 2026-11-06. Decided by: the builder.
+Status: **partly superseded on 2026-11-07 by [decision 012](012-passwords-google-and-six-digit-codes.md)**: codes are now 6 digits, and the failed-guess cap is 20 a rolling day, with the sign-in, reset and register purposes sharing one budget. The send quotas and the reasoning about client-address limits below still stand. Accepted 2026-11-06. Decided by: the builder.
 
 ## Context
 

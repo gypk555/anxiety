@@ -32,7 +32,7 @@ describe('logs', () => {
     await client.post(`${API}/assessments`, assessmentPayload());
     await client.get(`${API}/journal?limit=2&cursor=LogMarkerCursor`); // 400
     await client.get(`${API}/journal/${entry.id}?LogMarkerQuery=1`);
-    await client.post(`${API}/auth/otp/verify`, { email, code: '00000000' }); // failure path
+    await client.post(`${API}/auth/otp/verify`, { email, code: '000000' }); // failure path
     await client.post(`${API}/auth/otp/request`, { email: 'bad-LogMarkerEmail' });
     await client.get('/nothing/here?LogMarkerQuery=1');
     await client.request({ method: 'POST', url: `${API}/auth/otp/request`, payload: '{bad LogMarkerJson', headers: { 'content-type': 'application/json' } });
@@ -110,7 +110,7 @@ describe('logs', () => {
     const r = await app.inject({
       method: 'POST',
       url: `${API}/auth/otp/verify`,
-      payload: { email: 'a@example.com', code: '12345678' },
+      payload: { email: 'a@example.com', code: '123456' },
       headers: { origin: ORIGIN, 'x-anxiocare-csrf': '1' },
     });
     await app.close();

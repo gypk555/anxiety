@@ -25,7 +25,7 @@ describe('session cookie', () => {
     await client.post(`${API}/auth/otp/request`, { email });
     await h.app.drainBackground();
     const r = await client.post(`${API}/auth/otp/verify`, { email, code: h.mailer.codeFor(email) });
-    const raw = String(r.headers['set-cookie']);
+    const raw = String([r.headers['set-cookie']].flat().find((c) => String(c).startsWith('__Host-session=')));
     expect(raw).toMatch(/^__Host-session=[A-Za-z0-9_-]{43};/);
     expect(raw).toContain('HttpOnly');
     expect(raw).toContain('Secure');

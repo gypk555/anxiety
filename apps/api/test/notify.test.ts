@@ -15,6 +15,7 @@ const secrets = {
   EMAIL_INDEX_KEY: key(),
   OTP_PEPPER: key(),
   AUDIT_KEY: key(),
+  PASSWORD_PEPPER: key(),
 };
 
 let h: Harness;

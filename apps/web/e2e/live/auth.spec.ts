@@ -91,7 +91,7 @@ test('signing in again skips consent, and goes back to where it was headed', asy
   await page.goto('/journal');
   await expect(page).toHaveURL(/\/sign-in\?next=%2Fjournal$/);
   await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Email me a code instead' }).click();
   await enterCode(page, await waitForCode(email, 'login', 1));
   await expect(page).toHaveURL(/\/journal$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Your thought records' })).toBeVisible();

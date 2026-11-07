@@ -14,13 +14,13 @@ Everyone sees:
 - **Keep it on your phone**: an "Add to home screen" button where the browser offers it, instructions on iOS, and nothing when already installed.
 - **About and legal**: links to Privacy, Terms and About.
 
-Signed out: a "You're not signed in" card with a Sign in button.
+Signed out: a "You're not signed in" card with Sign in and Create an account buttons.
 
 Signed in and consented, also:
 
 - **Your name**: optional, up to 60 characters, used only to greet.
 - **Email**: shows the address. "Change email" opens a sheet that asks for the new address, then a code from each inbox.
-- **Signed-in devices**: label, last used, and sign-out for each other device.
+- **Sign-in and security**: how this account can sign in (password, Google if on or connected, email codes). **Change password** with the current one, or **Add a password** through an emailed code. **Connect Google** when Google is on and not yet connected, and **Disconnect Google** when it is. Each first asks the person to confirm it's them, with their password or an emailed code, unless they did in the last 10 minutes; connecting then goes to Google and back to Settings, which says whether it worked (`?google=connected`, `taken` or `failed`). Disconnecting needs no password, because email codes always remain. Changing or adding a password signs out other devices. Also **Signed-in devices**: label, last used, and sign-out for each other device.
 - **Your data**: "Download my data" gives a JSON file, and warns it isn't encrypted once downloaded.
 - **Sign out** and **Sign out on all devices**, the second with a confirmation.
 - **Delete your account**: a sheet states what goes and how backups age out, emails a code, and deletes on confirmation. After that, the page shows "Your account and all your data have been deleted."
@@ -43,7 +43,7 @@ Server behaviour is documented where it lives: [auth and sessions](auth-and-sess
 
 ## Data and API used
 
-Endpoints: `GET /me`, `PATCH /me`, `POST /me/email/request`, `POST /me/email/verify`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/logout`, `POST /auth/logout-all`, `GET /me/export`, `POST /me/delete/request`, `POST /me/delete/confirm`, `GET /meta`.
+Endpoints: `GET /me`, `PATCH /me`, `GET /me/sign-in-methods`, `POST /me/password`, `POST /me/password/set/request`, `POST /me/password/set`, `DELETE /me/identities/google`, `POST /me/email/request`, `POST /me/email/verify`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/logout`, `POST /auth/logout-all`, `GET /me/export`, `POST /me/delete/request`, `POST /me/delete/confirm`, `GET /meta`.
 
 Browser: `localStorage` key `anxiocare-theme`. That is the app's only `localStorage` use.
 
