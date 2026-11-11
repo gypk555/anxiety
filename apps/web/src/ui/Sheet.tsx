@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { QuickExitButton } from './QuickExit';
 
 /** Accessible bottom sheet on a native modal <dialog>: focus trap, Esc, inert background, focus returns. */
 export function Sheet({ open, onClose, title, children }: {
@@ -35,9 +36,13 @@ export function Sheet({ open, onClose, title, children }: {
         <div className="px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="flex items-start justify-between gap-3">
             <h2 id={titleId} className="text-xl pt-1.5">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Close" className="-mr-2 -mt-1 grid size-11 shrink-0 place-items-center rounded-full">
-              <X aria-hidden="true" className="size-5" />
-            </button>
+            <div className="-mr-2 -mt-1 flex shrink-0 items-center gap-1">
+              {/* The header is inert behind a modal, so the way out comes along. */}
+              <QuickExitButton />
+              <button type="button" onClick={onClose} aria-label="Close" className="grid size-11 shrink-0 place-items-center rounded-full">
+                <X aria-hidden="true" className="size-5" />
+              </button>
+            </div>
           </div>
           <div className="mt-3">{children}</div>
         </div>

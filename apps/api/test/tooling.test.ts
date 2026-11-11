@@ -166,7 +166,7 @@ describe('npm run db:setup', () => {
     expect(readFileSync(p.secretsFile).equals(before), 'the secrets file is byte for byte the same').toBe(true);
     expect(await db`SELECT count(*)::int AS n FROM app.users`).toEqual([{ n: 1 }]);
     const applied = await db`SELECT count(*)::int AS n FROM app.schema_migrations`;
-    expect(applied[0]!.n).toBe(3);
+    expect(applied[0]!.n).toBe(4);
     await db.end();
   });
 

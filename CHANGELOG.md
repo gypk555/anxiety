@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+From [the safety and tracking spec](docs/superpowers/specs/2026-11-11-safety-and-tracking-design.md).
+
+### Added
+
+- **Quick exit.** A quiet "Quick exit" beside "Get help" on every screen, and in every sheet, plus Escape three times outside a text field.
+  - It replaces the current history entry with a weather search.
+  - It hides the app at once and clears memory, drafts, the guest check-in and form text.
+  - It is synchronous: no confirmation, and no request, sign-out included.
+  - Help explains what it can't do. See [quick exit](docs/modules/quick-exit.md).
+- **Personal safety plan** at `/safety-plan`, after the Stanley-Brown structure.
+  - Seven optional steps, with examples as hints only.
+  - One-tap calls to the people added, and 112 and every helpline always listed.
+  - Linked from Help, Tools and the severe result. Print or save as PDF.
+  - Accounts store it encrypted on the server. Guests keep it on the device only.
+  - It opens offline from an encrypted IndexedDB copy under a non-extractable WebCrypto key. Sign-out, deletion and another account's sign-in remove the copy. A guest plan can move to an account. See [safety plan](docs/modules/safety-plan.md) and [decision 013](docs/decisions/013-encrypted-offline-safety-plan.md).
+- **Daily mood log.** "How are you today?" on Home: Very low to Very good, with an optional note of up to 280 characters.
+  - One entry per local day. Past days up to 366 days back can be changed or deleted on `/mood`.
+  - Trends has its own chart and table, "Your daily mood log, not a test score". No streaks. See [mood log](docs/modules/mood-log.md).
+- **Doctor report** at `/report`, built in the browser from data already fetched.
+  - Choose the period and the sections. Private writing and the name are off by default.
+  - A4 print stylesheet with a page per section, and a "screening, not a diagnosis" footer. See [doctor report](docs/modules/doctor-report.md).
+- API: `GET /moods`, `PUT` and `DELETE /moods/:day`, and `GET`, `PUT` and `DELETE /safety-plan`. Migration `004_mood_and_safety_plan.sql`. Both are in the export, and erasure removes them.
+
+### Changed
+
+- `CONSENT_VERSION` is now `2026-11-11`. The privacy notice covers the mood log, the safety plan, other people's numbers in it, and the on-device copy. Everyone with an account is asked to accept again.
+- Below 390px the header shows the logomark without the wordmark, to make room for Quick exit.
+- The report, safety plan and mood log are lazy-loaded chunks. The initial JS stays within the 170 KB gzip budget.
+
 ## 1.0.0 (unreleased)
 
 A full rewrite of the earlier prototype. Not deployed: it has not run on Supabase, Render or real SMTP.

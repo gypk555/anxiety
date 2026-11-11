@@ -4,7 +4,7 @@ import { loadConfig } from '../src/config.ts';
 import { DecryptError, KeyRing, open, openJson, openText, seal, sealText } from '../src/crypto.ts';
 import { rotateKeys } from '../src/rotate.ts';
 import { toMe, type UserRow } from '../src/users.ts';
-import { API, assessmentPayload, baseEnv, createHarness, journalPayload, key, signInConsented, type Harness } from './helpers.ts';
+import { API, assessmentPayload, baseEnv, createHarness, journalPayload, key, moodPayload, safetyPlanPayload, signInConsented, type Harness } from './helpers.ts';
 
 let h: Harness;
 beforeAll(async () => {
@@ -37,6 +37,8 @@ describe('encryption at rest', () => {
     await client.patch(`${API}/me`, { displayName: 'SecretDisplayName' });
     await client.post(`${API}/assessments`, assessmentPayload());
     await client.post(`${API}/journal`, journalPayload({ feelings: ['SecretFeeling'] }));
+    await client.request({ method: 'PUT', url: `${API}/moods/${new Date().toISOString().slice(0, 10)}`, payload: moodPayload() });
+    await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload() });
 
     const dump = await dumpAll();
     for (const secret of [
@@ -50,6 +52,15 @@ describe('encryption at rest', () => {
       'moderate',
       'severity',
       '"answers"',
+      'SECRET-MOOD-NOTE',
+      '"rating"',
+      'SECRET-WARNING',
+      'SECRET-REASON',
+      'SecretContactName',
+      '98765 43210',
+      '9876543210',
+      'SecretDoctor',
+      '2345 6789',
     ]) {
       expect(dump).not.toContain(secret);
     }

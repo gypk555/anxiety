@@ -6,7 +6,8 @@ The frame around every screen, the URL map, access guards, global error and sess
 
 ## User-facing behaviour
 
-- Header: wordmark and "Get help", plus tabs at the `md` breakpoint.
+- Header: wordmark, "Quick exit" and "Get help", plus tabs at the `md` breakpoint. Below 390px the wordmark shows only the logomark, so both buttons fit at 320px.
+- Quick exit is also in every open sheet, and Escape three times anywhere outside a text field does the same. See [quick exit](quick-exit.md).
 - Bottom tab bar on phones: Home, Tools, Journal, Trends, Settings. One-task screens hide it. "Get help" never goes away.
 - Real URLs, and a working back button. Focus moves to the new screen's heading after navigation, and scroll resets except on back.
 - Skeletons while loading, error states with "Go to Help", and a 404 screen with Home and Help.
@@ -28,6 +29,10 @@ The frame around every screen, the URL map, access guards, global error and sess
 | `/tools/ground` | Grounding | No | focus |
 | `/tools/sounds` | Sounds | No | |
 | `/trends` | Trends | **Yes** | |
+| `/mood` | Mood log | **Yes** | |
+| `/report` | Doctor report | **Yes** | wide |
+| `/safety-plan` | Safety plan | No, a guest's plan stays on the device | |
+| `/safety-plan/edit` | Write or change the plan | No | focus |
 | `/journal` | Journal list | **Yes** | |
 | `/journal/new` | New entry | **Yes** | focus |
 | `/journal/:id` | Entry | **Yes** | |
@@ -55,6 +60,8 @@ Handles (`RouteHandle`): `focus` hides the tab bar, `night` forces the dark canv
 
 **Global handling.** `handleApiError` is attached to the query and mutation caches. A 401 redirects once to sign-in, and calls `sessionEnded`. A 403 `consent_required` refreshes `/me` and redirects to consent.
 
+**Session changes and the device.** `wipeClientData` also removes the encrypted account copy of the safety plan. `fetchMe` removes a copy that belongs to another account. See [safety plan](safety-plan.md).
+
 **Startup.** `main.tsx` imports `zod-config` first, which sets `jitless`, since Zod's JIT would otherwise probe `new Function` and trip the CSP.
 
 ## Key files
@@ -66,6 +73,7 @@ Handles (`RouteHandle`): `focus` hides the tab bar, `night` forces the dark canv
 - [apps/web/src/shell/RouteError.tsx](../../apps/web/src/shell/RouteError.tsx)
 - [apps/web/src/lib/api.ts](../../apps/web/src/lib/api.ts)
 - [apps/web/src/lib/queries.ts](../../apps/web/src/lib/queries.ts)
+- [apps/web/src/lib/quick-exit.ts](../../apps/web/src/lib/quick-exit.ts)
 - [apps/web/src/lib/held.ts](../../apps/web/src/lib/held.ts)
 - [apps/web/src/lib/next-path.ts](../../apps/web/src/lib/next-path.ts)
 - [apps/web/src/lib/zod-config.ts](../../apps/web/src/lib/zod-config.ts)
@@ -102,6 +110,8 @@ Handles (`RouteHandle`): `focus` hides the tab bar, `night` forces the dark canv
 - [apps/web/src/shell/Shell.test.tsx](../../apps/web/src/shell/Shell.test.tsx)
 - [apps/web/src/lib/api.test.ts](../../apps/web/src/lib/api.test.ts)
 - [apps/web/src/lib/held.test.ts](../../apps/web/src/lib/held.test.ts)
+- [apps/web/src/lib/session-vault.test.ts](../../apps/web/src/lib/session-vault.test.ts)
+- [apps/web/e2e/live/quick-exit.spec.ts](../../apps/web/e2e/live/quick-exit.spec.ts)
 - [apps/web/src/lib/misc.test.ts](../../apps/web/src/lib/misc.test.ts) (`safeNext`)
 - [apps/web/e2e/live/navigation.spec.ts](../../apps/web/e2e/live/navigation.spec.ts)
 - [apps/web/e2e/live/authorisation.spec.ts](../../apps/web/e2e/live/authorisation.spec.ts)

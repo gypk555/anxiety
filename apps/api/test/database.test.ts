@@ -38,7 +38,7 @@ describe('migration 002', () => {
     });
     await owner.end();
 
-    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql']);
+    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql', '004_mood_and_safety_plan.sql']);
     expect(await migrate(sql), 'and runs once').toEqual([]);
 
     const [user] = await sql<{ password_hash: string | null; email_ct: Buffer }[]>`SELECT password_hash, email_ct FROM app.users WHERE id = ${id}::uuid`;
@@ -71,6 +71,8 @@ describe('the runtime role on the new tables', () => {
     ['user_identities', ['DELETE', 'INSERT', 'SELECT']],
     ['login_failures', ['DELETE', 'INSERT', 'SELECT']],
     ['oauth_state_uses', ['DELETE', 'INSERT', 'SELECT']],
+    ['mood_entries', ['DELETE', 'INSERT', 'SELECT', 'UPDATE']],
+    ['safety_plans', ['DELETE', 'INSERT', 'SELECT', 'UPDATE']],
   ])('%s has exactly the grants it needs', async (table, expected) => {
     expect(await grants(table)).toEqual(expected);
   });
@@ -90,6 +92,26 @@ describe('the runtime role on the new tables', () => {
     expect(policies.every((p) => String(p.roles) === String(['anxiocare_runtime']))).toBe(true);
   });
 
+  it('mood entries and safety plans are walled off by RLS, cascade with the user, and allow one row per day and one plan', async () => {
+    const tables = await h.admin`SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'app' AND tablename IN ('mood_entries', 'safety_plans')`;
+    expect(tables.map((t) => [t.tablename, t.rowsecurity]).sort()).toEqual([['mood_entries', true], ['safety_plans', true]]);
+    const policies = await h.admin`SELECT tablename, roles FROM pg_policies WHERE schemaname = 'app' AND tablename IN ('mood_entries', 'safety_plans')`;
+    expect(policies).toHaveLength(2);
+    expect(policies.every((p) => String(p.roles) === String(['anxiocare_runtime']))).toBe(true);
+    for (const statement of ['TRUNCATE app.mood_entries', 'DROP TABLE app.safety_plans', 'ALTER TABLE app.mood_entries ADD COLUMN x int']) {
+      await denied(() => h.runtime.unsafe(statement));
+    }
+    const id = randomUUID();
+    await h.admin`INSERT INTO app.users (id, email_hash, email_ct, wrapped_dek, dek_key_version) VALUES (${id}::uuid, ${Buffer.from(id)}, '\\x01', '\\x01', 'v1')`;
+    await h.admin`INSERT INTO app.mood_entries (user_id, day, payload_ct) VALUES (${id}::uuid, '2026-11-01', '\\x01')`;
+    await expect(h.admin`INSERT INTO app.mood_entries (user_id, day, payload_ct) VALUES (${id}::uuid, '2026-11-01', '\\x02')`).rejects.toThrow();
+    await h.admin`INSERT INTO app.safety_plans (user_id, payload_ct) VALUES (${id}::uuid, '\\x01')`;
+    await expect(h.admin`INSERT INTO app.safety_plans (user_id, payload_ct) VALUES (${id}::uuid, '\\x02')`).rejects.toThrow();
+    await h.admin`DELETE FROM app.users WHERE id = ${id}::uuid`;
+    const [left] = await h.admin`SELECT (SELECT count(*) FROM app.mood_entries WHERE user_id = ${id}::uuid)::int + (SELECT count(*) FROM app.safety_plans WHERE user_id = ${id}::uuid)::int AS n`;
+    expect(left!.n).toBe(0);
+  });
+
   it('the app can read and write password_hash on users through its existing grant', async () => {
     const [row] = await h.runtime`SELECT password_hash FROM app.users LIMIT 1`;
     expect(row === undefined || row.password_hash === null || typeof row.password_hash === 'string').toBe(true);
@@ -102,7 +124,7 @@ describe('schema placement', () => {
     expect(pub).toEqual([]);
     const app = await h.admin`SELECT tablename FROM pg_tables WHERE schemaname = 'app' ORDER BY 1`;
     expect(app.map((t) => t.tablename)).toEqual([
-      'assessments', 'audit_log', 'consents', 'device_tokens', 'journal_entries', 'login_failures', 'oauth_state_uses', 'otp_codes', 'otp_failures', 'schema_migrations', 'sessions', 'user_identities', 'users',
+      'assessments', 'audit_log', 'consents', 'device_tokens', 'journal_entries', 'login_failures', 'mood_entries', 'oauth_state_uses', 'otp_codes', 'otp_failures', 'safety_plans', 'schema_migrations', 'sessions', 'user_identities', 'users',
     ]);
   });
 

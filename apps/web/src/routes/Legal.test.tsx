@@ -95,3 +95,23 @@ describe('Privacy notice on sign-in', () => {
     expect(document.body.textContent).not.toMatch(/no password/i);
   });
 });
+
+describe('privacy notice for the mood log and safety plan', () => {
+  it("covers other people's phone numbers, the device copy and when it is removed", async () => {
+    mockFetch({ 'GET /meta': { body: META } });
+    page(<Privacy />);
+    expect(screen.getByRole('heading', { name: 'Other people in your safety plan' })).toBeInTheDocument();
+    expect(screen.getByText(/that person's personal information/)).toHaveTextContent(/never written to our logs/);
+    expect(screen.getByText(/an encrypted copy of it is kept in this browser's storage/)).toHaveTextContent(/removed when you sign out/);
+    expect(screen.getByText(/Your daily mood log, if you keep one/)).toBeInTheDocument();
+    expect(screen.getByText(`Version dated ${formatDate(CONSENT_VERSION)}`)).toBeInTheDocument();
+  });
+
+  it('Help explains quick exit, including what it cannot do', () => {
+    page(<Help />);
+    expect(screen.getByRole('heading', { name: 'About quick exit' })).toBeInTheDocument();
+    expect(screen.getByText(/can't remove the pages you visited before it/)).toBeInTheDocument();
+    expect(screen.getByText(/private or incognito window/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open your safety plan' })).toHaveAttribute('href', '/safety-plan');
+  });
+});

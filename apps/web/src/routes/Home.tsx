@@ -9,6 +9,7 @@ import { withNext } from '@/lib/next-path';
 import { assessmentsKey, fetchAssessments, useMe } from '@/lib/queries';
 import { PageTitle } from '@/ui/PageTitle';
 import { RingsMark } from '@/ui/Rings';
+import { MoodCard } from '@/ui/MoodCard';
 import { ErrorState, Skeleton } from '@/ui/States';
 
 export function Home() {
@@ -98,6 +99,8 @@ function AccountHome({ me }: { me: Me }) {
       {latest.isPending && <Skeleton className="h-52 w-full rounded-[1.25rem]" />}
       {latest.isError && <ErrorState error={latest.error} onRetry={() => void latest.refetch()} />}
       {latest.isSuccess && (last ? <LastResult assessment={last} /> : <NoResultYet />)}
+
+      <MoodCard />
 
       {hasDirtyDraft(NEW_DRAFT) && (
         <Link to="/journal/new" className="patch block no-underline">

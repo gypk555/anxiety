@@ -10,6 +10,10 @@ import { PageTitle } from '@/ui/PageTitle';
 import { ConfirmSheet } from '@/ui/Sheet';
 import { ErrorState, PageSkeleton } from '@/ui/States';
 import { TrendChart } from '@/ui/TrendChart';
+import { addDays } from '@anxiocare/shared';
+import { useQuery } from '@tanstack/react-query';
+import { fetchMoods, moodsKey, todayLocal } from '@/lib/mood';
+import { MoodChart } from '@/ui/MoodChart';
 
 export default function Trends() {
   const client = useQueryClient();
@@ -51,6 +55,7 @@ export default function Trends() {
       {items.length > 0 && (
         <>
           <TrendChart points={points} />
+          <Link className="link self-start py-2 text-sm" to="/report">Make a report for your doctor</Link>
           {items.length === 1 && <p className="text-sm text-ink-soft">One check-in so far. The line starts with your next one.</p>}
           <section aria-labelledby="history" className="flex flex-col">
             <h2 id="history" className="text-xl">History</h2>
@@ -79,6 +84,9 @@ export default function Trends() {
         </>
       )}
 
+      <hr className="stitch-rule" />
+      <MoodSection />
+
       <ConfirmSheet
         open={pending !== null}
         onClose={() => setPending(null)}
@@ -92,5 +100,17 @@ export default function Trends() {
         {pending ? `Your check-in from ${formatDate(pending.takenAt)} will be removed. This can't be undone.` : ''}
       </ConfirmSheet>
     </div>
+  );
+}
+
+/** The last 30 days of the mood log: a separate chart, a separate axis of words, never combined with GAD-7. */
+function MoodSection() {
+  const today = todayLocal();
+  const from = addDays(today, -29);
+  const moods = useQuery({ queryKey: [...moodsKey, from, today], queryFn: () => fetchMoods(from, today) });
+  if (moods.isPending) return null;
+  if (moods.isError) return <ErrorState error={moods.error} onRetry={() => void moods.refetch()} title="Your mood log didn't load" />;
+  return (
+    <MoodChart entries={moods.data} from={from} to={today} footer={<Link className="link self-start py-2 text-sm" to="/mood">See and change your mood log</Link>} />
   );
 }

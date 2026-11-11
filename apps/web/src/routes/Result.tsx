@@ -125,6 +125,7 @@ function ResultView({ result, footer }: { result: ResultData; footer: React.Reac
             Call {primary.display}
           </a>
           <Link className="btn btn-secondary" to="/help">See all helplines</Link>
+          <Link className="btn btn-quiet" to="/safety-plan">Open your safety plan</Link>
         </section>
       )}
 

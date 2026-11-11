@@ -14,6 +14,8 @@ Without an account:
 - Result with score, severity range, plain meaning, next steps and a print view for a doctor.
 - Paced breathing (slow exhale, box, 4-7-8), 5-4-3-2-1 grounding, and soundscapes generated on the device.
 - Help screen: emergency 112 and helplines as `tel:` links. It needs no login and works offline after one visit. "Get help" is in the header of every screen.
+- Quick exit beside "Get help" on every screen, or Escape three times: leaves at once for a neutral page.
+- A personal safety plan, kept encrypted on the device only, that opens offline, with one-tap calls.
 - Privacy, Terms and About pages. Light and dark themes. Installable as a PWA.
 
 With an account (password, Google, or an emailed code):
@@ -21,6 +23,9 @@ With an account (password, Google, or an emailed code):
 - Save check-ins, including a result taken before signing in.
 - Trends: a chart with a table alternative, a history list, and deleting an entry.
 - Journal: CBT thought records. Create, edit, delete.
+- Daily mood log, in words, with its own chart and table on Trends. No streaks.
+- Safety plan saved to the account, with an encrypted offline copy on the device that is removed at sign-out.
+- A report for a doctor: choose the period and sections, preview it, and save it as an A4 PDF through the browser.
 - Settings: name, email change (a code from each inbox), signed-in devices, download all data as JSON, delete the account at once.
 
 Not in the app, on purpose: diagnosis, AI advice, streaks or celebration of scores, third-party analytics, trackers, ads, CDNs, remote fonts, and clinician or employer access. It is not for under-18s.
@@ -128,7 +133,7 @@ render.yaml         Render service definition
 
 **Modules**
 
-[Auth and sessions](docs/modules/auth-and-sessions.md) · [Consent and privacy rights](docs/modules/consent-and-privacy-rights.md) · [Encryption](docs/modules/encryption.md) · [Email](docs/modules/email.md) · [Background jobs](docs/modules/background-jobs.md) · [Check-in and scoring](docs/modules/check-in-and-scoring.md) · [Results](docs/modules/results.md) · [Trends](docs/modules/trends.md) · [Journal](docs/modules/journal.md) · [Relief tools](docs/modules/relief-tools.md) · [Help and crisis](docs/modules/help-and-crisis.md) · [Settings](docs/modules/settings.md) · [PWA and offline](docs/modules/pwa-and-offline.md) · [Design system](docs/modules/design-system.md) · [App shell and routing](docs/modules/app-shell-and-routing.md) · [API foundation](docs/modules/api-foundation.md)
+[Auth and sessions](docs/modules/auth-and-sessions.md) · [Consent and privacy rights](docs/modules/consent-and-privacy-rights.md) · [Encryption](docs/modules/encryption.md) · [Email](docs/modules/email.md) · [Background jobs](docs/modules/background-jobs.md) · [Check-in and scoring](docs/modules/check-in-and-scoring.md) · [Results](docs/modules/results.md) · [Trends](docs/modules/trends.md) · [Journal](docs/modules/journal.md) · [Relief tools](docs/modules/relief-tools.md) · [Help and crisis](docs/modules/help-and-crisis.md) · [Settings](docs/modules/settings.md) · [PWA and offline](docs/modules/pwa-and-offline.md) · [Design system](docs/modules/design-system.md) · [App shell and routing](docs/modules/app-shell-and-routing.md) · [API foundation](docs/modules/api-foundation.md) · [Quick exit](docs/modules/quick-exit.md) · [Safety plan](docs/modules/safety-plan.md) · [Mood log](docs/modules/mood-log.md) · [Doctor report](docs/modules/doctor-report.md)
 
 **Decisions**
 
@@ -144,6 +149,7 @@ render.yaml         Render service definition
 10. [Eight-digit codes and quotas](docs/decisions/010-eight-digit-codes-and-quotas.md) (partly superseded by 012)
 11. [Hand-built SVG chart](docs/decisions/011-hand-built-svg-chart.md)
 12. [Passwords, Google and six-digit codes](docs/decisions/012-passwords-google-and-six-digit-codes.md)
+13. [Encrypted offline copy of the safety plan](docs/decisions/013-encrypted-offline-safety-plan.md)
 
 **Security, privacy and safety**
 

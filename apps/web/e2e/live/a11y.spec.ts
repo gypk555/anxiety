@@ -1,4 +1,4 @@
-import { acceptConsent, answerItems, enterCode, expect, expectAccessible, expectNoOverflowAt320, requestCode, seedAssessment, seedJournal, test, uniqueEmail } from './support';
+import { acceptConsent, answerItems, enterCode, expect, expectAccessible, expectNoOverflowAt320, localDay, requestCode, seedAssessment, seedJournal, seedMood, seedPlan, signUp, test, uniqueEmail } from './support';
 import type { Page } from '@playwright/test';
 
 async function check(page: Page, label: string) {
@@ -12,7 +12,7 @@ for (const theme of ['light', 'dark'] as const) {
   test(`axe and 320px, guest screens, ${theme}`, async ({ page }) => {
     test.setTimeout(120_000);
     await page.emulateMedia({ colorScheme: theme });
-    for (const path of ['/', '/help', '/check-in', '/tools', '/tools/breathe', '/tools/ground', '/tools/sounds', '/settings', '/sign-in', '/privacy', '/terms', '/about', '/no-such-page']) {
+    for (const path of ['/', '/help', '/check-in', '/tools', '/tools/breathe', '/tools/ground', '/tools/sounds', '/safety-plan', '/safety-plan/edit', '/settings', '/sign-in', '/privacy', '/terms', '/about', '/no-such-page']) {
       await page.goto(path);
       await check(page, path);
     }
@@ -28,7 +28,7 @@ for (const theme of ['light', 'dark'] as const) {
   });
 
   test(`axe and 320px, signed-in screens with long real data, ${theme}`, async ({ page, context, guard }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(240_000);
     guard.expectHttpError(/^\/api\/v1\/assessments\//, 404);
     await page.emulateMedia({ colorScheme: theme });
     // An address and words too long to wrap: the things that break a 320px layout in real use.
@@ -94,6 +94,51 @@ for (const theme of ['light', 'dark'] as const) {
     await expectAccessible(page, 'delete sheet');
     await expectNoOverflowAt320(page, 'delete sheet');
     await page.getByRole('dialog').getByRole('button', { name: 'Keep my account' }).click();
+  });
+
+  test(`axe and 320px, mood log, safety plan and report with long real data, ${theme}`, async ({ page, context }) => {
+    test.setTimeout(180_000);
+    await page.emulateMedia({ colorScheme: theme });
+    const unbroken = 'Unbrokenwordthatwillnotwrapanywhereatallunlessthelayoutletsit'.repeat(2);
+    await signUp(page, 'a11y-tracking');
+    await seedAssessment(context, [1, 1, 2, 1, 2, 1, 2], 2);
+    await seedJournal(context, { situation: unbroken });
+    await page.goto('/mood');
+    await check(page, 'empty mood log');
+    await page.goto('/safety-plan');
+    await check(page, 'empty safety plan');
+    await seedMood(context, localDay(1), 2, unbroken.slice(0, 280));
+    await seedMood(context, localDay(3), 4, 'A short walk helped.');
+    await seedPlan(context, {
+      warningSigns: [unbroken.slice(0, 200)],
+      helpContacts: [{ name: unbroken.slice(0, 80), phone: '+91 98765 43210' }],
+      reasonsToLive: ['My niece'],
+    });
+    await page.goto('/');
+    await check(page, 'home with mood card');
+    await page.goto('/mood');
+    await expect(page.getByRole('list', { name: 'Days you logged' })).toBeVisible();
+    await check(page, 'mood log');
+    await page.getByRole('button', { name: /^Change/ }).first().click();
+    await expectAccessible(page, 'mood day sheet');
+    await expectNoOverflowAt320(page, 'mood day sheet');
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+    await page.goto('/trends');
+    await page.getByRole('button', { name: 'Show the mood log as a table' }).click();
+    // Scrolled down, the sticky header covers part of the list, which axe counts as a small target.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await check(page, 'trends with mood table');
+    await page.goto('/safety-plan');
+    await expect(page.getByRole('link', { name: /Call Unbroken/ })).toBeVisible();
+    await check(page, 'safety plan');
+    await page.goto('/safety-plan/edit');
+    await check(page, 'safety plan edit');
+    await page.goto('/report');
+    for (const name of ['Mood notes', 'Safety plan', 'Journal entries', 'Put my name at the top']) await page.getByRole('checkbox', { name }).check();
+    await expect(page.getByRole('region', { name: 'Report preview' })).toContainText('A short walk helped.');
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await check(page, 'report');
+
   });
 }
 

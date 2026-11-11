@@ -2,7 +2,9 @@ import { createHmac } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { auditActor, emailBlindIndex } from '../src/crypto.ts';
 import { emailQuotaKey, loginQuotaKey } from '../src/otp.ts';
-import { API, assessmentPayload, Client, createHarness, journalPayload, requestCode, signIn, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
+import { API, assessmentPayload, Client, createHarness, journalPayload, moodPayload, requestCode, safetyPlanPayload, signIn, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 let h: Harness;
 beforeAll(async () => {
@@ -31,6 +33,8 @@ describe('export', () => {
     await client.patch(`${API}/me`, { displayName: 'Asha' });
     await client.post(`${API}/assessments`, assessmentPayload());
     await client.post(`${API}/journal`, journalPayload());
+    await client.request({ method: 'PUT', url: `${API}/moods/${today()}`, payload: moodPayload() });
+    await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload() });
 
     const r = await client.get(`${API}/me/export`);
     expect(r.statusCode).toBe(200);
@@ -45,6 +49,8 @@ describe('export', () => {
     expect(body.assessments[0]).toMatchObject({ score: 12, severity: 'moderate', answers: [3, 3, 2, 2, 1, 1, 0] });
     expect(body.journal[0].situation).toContain('SECRET-SITUATION');
     expect(body.sessions[0].deviceLabel).toBe('Safari on iPhone');
+    expect(body.moods).toEqual([expect.objectContaining({ day: today(), rating: 2, note: 'SECRET-MOOD-NOTE about the day' })]);
+    expect(body.safetyPlan).toMatchObject({ helpContacts: [{ name: 'SecretContactName', phone: '+91 98765 43210' }], reasonsToLive: ['SECRET-REASON my daughter'] });
     expect(r.body).not.toMatch(/token|wrapped|hash|_ct/i);
   });
 
@@ -55,6 +61,8 @@ describe('export', () => {
     const r = await b.client.get(`${API}/me/export`);
     expect(r.body).not.toContain('A-ONLY');
     expect(r.json().journal).toEqual([]);
+    expect(r.json().moods).toEqual([]);
+    expect(r.json().safetyPlan).toBeNull();
   });
 
   it('requires a session and is audited', async () => {
@@ -108,6 +116,8 @@ describe('account deletion', () => {
     await client.patch(`${API}/me`, { displayName: 'Erase Me' });
     const assessment = (await client.post(`${API}/assessments`, assessmentPayload())).json();
     const entry = (await client.post(`${API}/journal`, journalPayload())).json();
+    await client.request({ method: 'PUT', url: `${API}/moods/${today()}`, payload: moodPayload() });
+    await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload() });
     await signIn(h, email); // a second session
     await requestCode(h, new Client(h), email); // and a live login code
     await client.post(`${API}/me/email/request`, { newEmail: uniqueEmail('never') });
@@ -123,7 +133,7 @@ describe('account deletion', () => {
 
     const emailHash = emailBlindIndex(h.config.keys, email).toString('hex');
     expect(await rowsContaining([id, assessment.id, entry.id, emailHash])).toEqual([]);
-    for (const table of ['users', 'sessions', 'consents', 'assessments', 'journal_entries']) {
+    for (const table of ['users', 'sessions', 'consents', 'assessments', 'journal_entries', 'mood_entries', 'safety_plans']) {
       const column = table === 'users' ? 'id' : 'user_id';
       const [row] = await h.admin.unsafe(`SELECT count(*)::int AS n FROM app.${table} WHERE ${column} = '${id}'::uuid`);
       expect([table, row!.n]).toEqual([table, 0]);

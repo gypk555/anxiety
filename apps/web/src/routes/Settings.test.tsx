@@ -1,3 +1,4 @@
+import { CONSENT_VERSION } from '@anxiocare/shared';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -5,7 +6,7 @@ import { queryClient } from '@/lib/queries';
 import { ME, mockFetch, renderRoutes } from '@/test/render';
 import Settings from './Settings';
 
-const META = { operatorName: 'Op', grievanceEmail: 'g@example.com', consentVersion: '2026-11-07', backupRetentionDays: 7, dataLocation: 'Mumbai', serverLocation: 'Singapore', mailProvider: 'mail', googleEnabled: false };
+const META = { operatorName: 'Op', grievanceEmail: 'g@example.com', consentVersion: CONSENT_VERSION, backupRetentionDays: 7, dataLocation: 'Mumbai', serverLocation: 'Singapore', mailProvider: 'mail', googleEnabled: false };
 const routes = [
   { path: '/settings', element: <Settings /> },
   { path: '/consent', element: <p>Consent page</p> },

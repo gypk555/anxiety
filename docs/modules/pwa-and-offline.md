@@ -7,7 +7,8 @@ Installable on a phone, with Help and the tools working with no network, while t
 ## User-facing behaviour
 
 - Add to home screen, from Settings or the browser. Opens standalone, in either orientation, with shortcuts to Help and Breathe.
-- After one visit, offline still gives: Help, Tools, Sounds, the check-in with a guest result, and the legal pages minus server-provided details.
+- After one visit, offline still gives: Help, Tools, Sounds, the check-in with a guest result, the safety plan, and the legal pages minus server-provided details.
+- The safety plan opens offline from an encrypted copy on the device: a guest's plan always, and a signed-in person's plan once it has loaded. See [safety plan](safety-plan.md).
 - A banner says "You're offline. Help, breathing and grounding still work."
 - Screens that need data show a clear offline state, with a Help link.
 - When a new version is ready, a small "New version available" prompt offers Later or Refresh. It never interrupts on its own.
@@ -17,7 +18,7 @@ Installable on a phone, with Help and the tools working with no network, while t
 `vite-plugin-pwa` generates the service worker from [vite.config.ts](../../apps/web/vite.config.ts):
 
 - `strategies: 'generateSW'`, `registerType: 'prompt'`, `injectRegister: false`. Registration comes from the bundle through `useRegisterSW` in `UpdatePrompt`, because the CSP forbids inline script.
-- `globPatterns: ['**/*.{js,css,html,woff2,png,svg,webmanifest}']`, ignoring Vietnamese font files. The last build precached 42 entries, about 841 KiB.
+- `globPatterns: ['**/*.{js,css,html,woff2,png,svg,webmanifest}']`, ignoring Vietnamese font files. The last build, on 2026-11-11, precached 53 entries, 938.84 KiB.
 - `runtimeCaching: []`. It caches nothing it wasn't told to at build time.
 - `navigateFallback: '/index.html'`, with `navigateFallbackDenylist: [/^\/api(\/|$)/]`.
 - `skipWaiting: false`, `clientsClaim: false`, `cleanupOutdatedCaches: true`.
@@ -41,12 +42,12 @@ Icons are committed in `apps/web/public/icons`, generated from `public/icon.svg`
 
 ## Data and API used
 
-None. The service worker's cache holds only built files. In-progress data stays in `sessionStorage` or memory.
+None. The service worker's cache holds only built files. In-progress data stays in `sessionStorage` or memory. The one exception, outside the service worker: the safety plan's encrypted copy in IndexedDB `anxiocare-vault`, with a non-extractable key ([decision 013](../decisions/013-encrypted-offline-safety-plan.md)). `runtimeCaching` is still `[]`, and `GET /safety-plan` is never cached.
 
 ## Security/privacy notes
 
 - `/api` is never cached. Two e2e tests inspect the caches, and API responses also carry `no-store`.
-- `GET /me` and any other data are never available offline, so an unattended device doesn't expose them from a cache.
+- `GET /me` and any other data are never available offline, so an unattended device doesn't expose them from a cache. The safety plan copy is ciphertext, and goes at sign-out.
 - All files come from this origin. Fonts are self-hosted. `assetsInlineLimit: 0`, because the CSP has no `data:` source.
 - Sign-out leaves the app's files cached, not personal data.
 
@@ -61,12 +62,16 @@ None. The service worker's cache holds only built files. In-progress data stays 
 | A mid-session deploy removes old chunks | A chunk error screen appears with Help and Reload. Precached chunks still load |
 | Offline at the end of a signed-in check-in | The result stays in the tab, and can be saved later |
 | iOS | There's no install prompt event, so Settings shows Safari's steps |
+| Reload offline with a safety plan copy | The plan opens from the device, read-only for an account |
+| Safari, 7 days without a visit | WebKit may delete IndexedDB, and with it the offline plan, outside a home-screen app |
 
 ## Tests that cover it
 
 - [apps/web/e2e/resilience.spec.ts](../../apps/web/e2e/resilience.spec.ts)
 - [apps/web/e2e/live/safety.spec.ts](../../apps/web/e2e/live/safety.spec.ts)
 - [apps/web/e2e/live/failures.spec.ts](../../apps/web/e2e/live/failures.spec.ts)
+- [apps/web/e2e/live/safety-plan.spec.ts](../../apps/web/e2e/live/safety-plan.spec.ts) (offline plan, and storage holds no plaintext)
+- [apps/web/e2e/live/quick-exit.spec.ts](../../apps/web/e2e/live/quick-exit.spec.ts) (exit offline)
 - [apps/web/src/shell/Shell.test.tsx](../../apps/web/src/shell/Shell.test.tsx)
 - [apps/api/test/http.test.ts](../../apps/api/test/http.test.ts) (`static files`)
 

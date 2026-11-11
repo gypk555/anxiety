@@ -1,6 +1,6 @@
 # Manual test cases
 
-Step-by-step human tests for AnxioCare. 264 cases: 92 P0, 132 P1, 39 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-07. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
+Step-by-step human tests for AnxioCare. 286 cases: 103 P0, 141 P1, 41 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-07, and on 2026-11-11 for MT-QX and MT-SP. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
 
 **None of these has been run yet.** The Result lines are blank on purpose. See `docs/testing/TEST-REPORT.md` for what has and hasn't been tested, and `docs/testing/TEST-CASES.md` for the automated catalogue.
 
@@ -27,6 +27,8 @@ Automation is green and proves a lot on localhost. It does not prove the followi
 | Real password managers, real Google, and the database tools on real Supabase | Tests check attributes, use a fake provider, and embedded Postgres. Nothing has met the real thing | MT-AUTH-11 to 22 | Tester, owner |
 | Clinical wording and legal text are right | A code test cannot judge this | MT-CLN-01 to 10 | Clinician, lawyer |
 | Supabase and Render behave as designed | The code has never run there | MT-DEP-01 to 20 | Owner |
+| Quick exit really hides the app | Tested in emulation with a stubbed weather page. No real back button, tab switcher or installed app | MT-QX-01 to 10 | Tester, two phones |
+| The safety plan opens offline and dials | Tested with a browser switch and `tel:` attributes | MT-SP-01 to 12 | Tester, a test contact's phone |
 | Production headers survive the edge | Tested behind a local TLS terminator, not Cloudflare | MT-SEC-01 to 14 | Owner or engineer |
 
 ### Order of work
@@ -4925,6 +4927,397 @@ From a laptop. `export ORIGIN=https://<service>.onrender.com`. These repeat on t
 3. Read the latest CodeQL run.
 
 **Expected result:** First is clean. Second passes: the six low and moderate build-tool items are documented in `docs/SECURITY-EXCEPTIONS.md`. CodeQL has no open high items.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+## Quick exit on real phones (MT-QX)
+
+Automation proves the history entry is replaced, memory is cleared and Escape works, in emulated browsers with a local stub for the weather page. It can't show what a real phone's back button, tab switcher, recent-apps screen or installed app do.
+
+### MT-QX-01: Tap Quick exit on Android Chrome
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome
+
+**Preconditions:** Two tabs of history: open **About**, then **Tools**.
+
+**Steps:**
+
+1. Tap **Quick exit** in the header.
+2. Time how long the app stays visible.
+3. Press the phone's Back button once.
+
+**Expected result:** The weather search replaces the app at once, with no question asked. Back lands on **About**, not **Tools**. Nothing of Tools flashes on screen.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-02: Tap Quick exit on iPhone Safari
+
+**Priority:** P0 | **Device:** Recent iPhone, Safari
+
+**Preconditions:** As MT-QX-01.
+
+**Steps:**
+
+1. Tap **Quick exit**.
+2. Swipe back from the left edge.
+3. Open the tab switcher.
+
+**Expected result:** The weather search appears at once. Back lands on **About**. Note whether the tab switcher thumbnail still shows the app: that is outside the app's control, and should be recorded.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-03: Quick exit in the installed app
+
+**Priority:** P0 | **Device:** Low-end Android, installed; Recent iPhone, home-screen app
+
+**Preconditions:** App installed to the home screen and opened from its icon.
+
+**Steps:**
+
+1. Open **Tools**, then tap **Quick exit**.
+2. Note where the weather page opens: inside the app window, or in the browser.
+3. Open the recent-apps screen.
+
+**Expected result:** The app content is gone at once. Record where the weather page opened and what the recent-apps screen shows. If the app's own window still shows AnxioCare in recent apps, raise it with the owner.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-04: Quick exit mid check-in
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Start the check-in and answer two questions.
+2. Tap **Quick exit**.
+3. Go Back until you reach the app.
+
+**Expected result:** The app opens without the answers: the check-in starts again. **Get help** and **Quick exit** were both visible on the question screen.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-05: Quick exit with a sheet open, and with an unsaved draft
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** Signed in.
+
+**Steps:**
+
+1. Settings, tap **Delete my account**, so the sheet is open. Tap **Quick exit** inside the sheet.
+2. Open the app again. Journal, write a few words in a new thought record, and tap **Quick exit**.
+
+**Expected result:** Both leave at once. No "Leave site?" or other dialog appears.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-06: Quick exit with no connection
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** One earlier visit. Airplane mode on.
+
+**Steps:**
+
+1. Open **Help**.
+2. Tap **Quick exit**.
+
+**Expected result:** The app is gone from the screen at once, even though the weather page can't load. The browser's own offline page is fine.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-07: Escape three times on a keyboard
+
+**Priority:** P1 | **Device:** Tablet or phone with a Bluetooth keyboard; laptop browser
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. On **Sign in**, type in the email field and press Escape three times quickly.
+2. Tap the page heading, then press Escape three times quickly.
+3. Press Escape three times slowly, a second apart.
+
+**Expected result:** Typing in the field never exits. Three quick presses outside a field exit at once. Slow presses don't.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-08: Quick exit with a screen reader
+
+**Priority:** P1 | **Device:** Android TalkBack; iPhone VoiceOver
+
+**Preconditions:** Screen reader on.
+
+**Steps:**
+
+1. Swipe through the header.
+2. Activate **Quick exit**.
+
+**Expected result:** It is announced as "Quick exit, button", before **Get help**. Activating it leaves at once.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-09: Quick exit leaves the account signed in, as Help says
+
+**Priority:** P1 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** Signed in.
+
+**Steps:**
+
+1. Tap **Quick exit**.
+2. Open the app again from history or the icon.
+3. Read **About quick exit** on **Help**.
+
+**Expected result:** The account is still signed in, which is what Help says. The wording is plain about what quick exit can't do.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-QX-10: Quick exit at 320px and in landscape
+
+**Priority:** P2 | **Device:** Small phone, or a 320px-wide browser
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Look at the header in portrait at 320px.
+2. Rotate to landscape.
+
+**Expected result:** **Quick exit** reads **Exit** and sits beside **Get help**. Nothing overlaps or is cut off. **Get help** remains the most prominent.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+## Safety plan, mood log and report on real phones (MT-SP)
+
+Automation proves the plan opens offline after one load, that nothing readable is stored, and that sign-out and another account clear it, all with a browser switch, not a radio. Nobody has dialled from the plan, kept it for a week in Safari, or looked at the PDF.
+
+### MT-SP-01: Signed-in plan opens in airplane mode after one load
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** Signed in, a plan with one person and a phone number saved. Open **Your safety plan** once while online.
+
+**Steps:**
+
+1. Close the browser. Airplane mode on.
+2. Open the app and go to the plan from **Help**, **Open your safety plan**.
+
+**Expected result:** The plan shows, with **You're offline. This is the copy saved on this device on <date>.** The call buttons are there. Changing the plan says it needs a connection.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-02: Offline plan in the installed app
+
+**Priority:** P0 | **Device:** Low-end Android, installed; Recent iPhone, home-screen app
+
+**Preconditions:** As MT-SP-01, in the installed app.
+
+**Steps:**
+
+1. Airplane mode on. Open the installed app.
+2. Open the plan.
+
+**Expected result:** As MT-SP-01.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-03: One-tap call from the plan rings the right person
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** A plan with a test contact whose number you own, written as **+91 98xxx xxxxx** with spaces.
+
+**Steps:**
+
+1. Open the plan. Tap **Call <name>, <number>**.
+2. Let it ring, then hang up.
+3. Tap **Call 112** and cancel in the dialler, without calling.
+
+**Expected result:** The dialler opens with the right number, spaces removed, and the call goes through. 112 opens the dialler.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-04: Signing out removes the offline copy
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** As MT-SP-01, online.
+
+**Steps:**
+
+1. Settings, **Sign out**.
+2. Airplane mode on. Open **Your safety plan**.
+
+**Expected result:** No plan from the account is shown. The helplines still are.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-05: Second account on the same phone
+
+**Priority:** P0 | **Device:** One phone, two test accounts
+
+**Preconditions:** Account A has a plan, opened once on this phone.
+
+**Steps:**
+
+1. Clear cookies or let A's session lapse, without signing out.
+2. Sign in as account B, open **Your safety plan**.
+3. Airplane mode on, reload.
+
+**Expected result:** B never sees A's plan, online or offline.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-06: Guest plan, then sign in and move it
+
+**Priority:** P1 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** Not signed in.
+
+**Steps:**
+
+1. Make a plan as a guest. Read the line about where it's kept.
+2. Sign in. Open **Your safety plan**.
+3. Tap **Move it to your account**.
+
+**Expected result:** The guest line says it is kept only on this device, encrypted. After signing in, the offer appears. After moving, the plan is in the account and the offer is gone.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-07: Safari 7-day eviction
+
+**Priority:** P1 | **Device:** Recent iPhone, Safari
+
+**Preconditions:** A guest plan in Safari, not installed.
+
+**Steps:**
+
+1. Don't open the site for 8 days.
+2. Open **Your safety plan**.
+
+**Expected result:** Record whether the plan survived. If it is gone, that matches the known limit in docs/modules/safety-plan.md. Check the same in the home-screen app.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-08: Plan readable in a crisis
+
+**Priority:** P1 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** A full plan.
+
+**Steps:**
+
+1. Read the plan at arm's length, in both themes, with large text on in the phone's settings.
+
+**Expected result:** The steps are numbered and in large type. Nothing is cut off. Call buttons are easy to hit.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-09: Print or save the plan as PDF
+
+**Priority:** P1 | **Device:** Android Chrome; iPhone Safari
+
+**Preconditions:** A full plan.
+
+**Steps:**
+
+1. Tap **Print or save as PDF**.
+2. Save as PDF, and open the file.
+
+**Expected result:** Black on white. Every step and number is there. No buttons or header.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-10: Doctor report as an A4 PDF
+
+**Priority:** P1 | **Device:** Android Chrome; iPhone Safari; a desktop browser
+
+**Preconditions:** Signed in with check-ins, mood days and a plan.
+
+**Steps:**
+
+1. Open **Make a report for your doctor** from Trends.
+2. Turn on **Mood notes** and **Safety plan**. Tap **Save as PDF or print**.
+3. Save as PDF. Print one page on paper if you can.
+
+**Expected result:** A4 pages, black on white, each section starting on a new page. The footer reads **Self-reported. A screening, not a diagnosis.**, then the GAD-7 attribution and the date. No controls. Record where page breaks fell on each browser.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-11: A clinician reads the report
+
+**Priority:** P1 | **Device:** Paper or PDF from MT-SP-10
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Give the report to a clinician. Ask what it tells them and what is missing or misleading.
+
+**Expected result:** They can read scores, ranges, difficulty and the mood averages without explanation, and nothing reads as a diagnosis.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-SP-12: Daily mood log on a real phone
+
+**Priority:** P2 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** Signed in.
+
+**Steps:**
+
+1. Log today on Home. Change it.
+2. Log yesterday on **Your mood log**. Try a future date in the picker.
+3. Check the time zone: log just after midnight.
+
+**Expected result:** One entry per day, on the phone's own date. Future dates can't be chosen. No streaks or reminders anywhere.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 

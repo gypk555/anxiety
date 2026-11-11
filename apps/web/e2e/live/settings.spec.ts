@@ -84,6 +84,8 @@ test('email change needs a code from each inbox; the account and its data move w
 
 test('sessions: a second device is listed, and revoking it signs that device out', async ({ page, newContext, guard }) => {
   guard.expectHttpError(/^\/api\/v1\/assessments$/, 401);
+  // Trends also asks for the mood log, so the revoked device hears 401 there too.
+  guard.expectHttpError(/^\/api\/v1\/moods$/, 401);
   const email = await signUp(page, 'sessions');
 
   const second = await newContext();

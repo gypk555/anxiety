@@ -58,6 +58,8 @@ Also: `--haldi-deep`, `--on-haldi`, `--thread-faint`, `--scrim`.
 | `.boot`, `.boot-late`, `.boot-call`, `.boot-noscript` | Static first paint |
 | `.breath-*`, `.hero*` | Breathing and first-run art |
 | `.print-only`, `.no-print` | Print view |
+| `.plan-number` | A safety plan step's number, in a ring of running stitch |
+| `.report`, `.report-header`, `.report-section`, `.report-footer` | The doctor report: a plain sheet on screen, and A4 with a page per section in print |
 | `.night` | Forces dark tokens within its subtree |
 
 **Components** in [apps/web/src/ui/](../../apps/web/src/ui/):
@@ -71,6 +73,8 @@ Also: `--haldi-deep`, `--on-haldi`, `--thread-faint`, `--scrim`.
 - `Skeleton`, `PageSkeleton`, `ErrorState`.
 - `StitchRing`, `Knot`, `RingsMark`, `Logomark`: decorative.
 - `TrendChart`: see [trends](trends.md).
+- `QuickExitButton`: the quiet outlined pill beside Get help, and in every sheet. See [quick exit](quick-exit.md).
+- `MoodCard`, `MoodPicker`, `MoodNote`, `MoodChart`: see [mood log](mood-log.md). Mood words use `.chip` with `aria-pressed`.
 
 Icons come from `lucide-react`, always `aria-hidden`, with text alongside.
 
@@ -98,9 +102,9 @@ None. Only `localStorage` key `anxiocare-theme`.
 
 | Situation | What happens |
 | --- | --- |
-| Very narrow (320px) | No horizontal scroll, tested at 320, 390 and 430 |
+| Very narrow (320px) | No horizontal scroll, tested at 320, 390 and 430. Below 390px the wordmark shows only the logomark, and below 480px Quick exit reads "Exit", so the header fits |
 | Tall text setting | Text sizes are in rem |
-| Printing | Paper is always light, using `!important`, and the score scale keeps its backgrounds |
+| Printing | Paper is always light, using `!important`, and the score scale keeps its backgrounds. Pages are A4. Safety plan call buttons print as plain lines of text |
 | Font fails to load | Falls back to Georgia or the system sans |
 
 ## Tests that cover it

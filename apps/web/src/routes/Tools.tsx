@@ -1,4 +1,4 @@
-import { Ear, NotebookPen, Waves, type LucideIcon } from 'lucide-react';
+import { Ear, ListChecks, NotebookPen, CalendarDays, Waves, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import { PageTitle } from '@/ui/PageTitle';
 import { RingsMark } from '@/ui/Rings';
@@ -6,7 +6,9 @@ import { RingsMark } from '@/ui/Rings';
 const OTHERS: { to: string; name: string; text: string; icon: LucideIcon; note?: string }[] = [
   { to: '/tools/ground', name: 'Grounding', text: 'Five senses, step by step, to come back to the room you are in.', icon: Ear },
   { to: '/tools/sounds', name: 'Sounds', text: 'Rain, the sea, a ceiling fan, a tanpura. Made on your phone, so no data used.', icon: Waves },
+  { to: '/safety-plan', name: 'Safety plan', text: 'Your own steps for a hard moment, and who to call. Works without an account.', icon: ListChecks },
   { to: '/journal/new', name: 'Thought record', text: 'Write down a worry, then look at it from another side. Needs an account.', icon: NotebookPen },
+  { to: '/mood', name: 'Mood log', text: 'One word a day for how you are. Needs an account.', icon: CalendarDays },
 ];
 
 export default function Tools() {

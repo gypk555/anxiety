@@ -3,18 +3,18 @@ import { GAD7_ITEMS } from './gad7.ts';
 import { passwordLength, PASSWORD_MAX, PASSWORD_MIN } from './password-length.ts';
 
 /** Bump when the privacy notice changes materially; users are asked to accept again. */
-export const CONSENT_VERSION = '2026-11-07';
+export const CONSENT_VERSION = '2026-11-11';
 
 /**
  * Shown to everyone asked to accept again, so it must be rewritten with every bump: a test fails while
  * `version` differs from CONSENT_VERSION. Plain words, and only what really changed from the last version.
  */
 export const CONSENT_CHANGES = {
-  version: '2026-11-07',
+  version: '2026-11-11',
   summary: [
-    'You can now sign in with a password, which we keep only in a one-way form.',
-    'You can now choose to sign in with Google. If you do, Google learns that you use this service. If you never choose it, Google learns nothing from us.',
-    'To limit guessing, we keep a one-way code made from an email address for an hour after a failed password attempt.',
+    'You can now keep a daily mood log: a rating from Very low to Very good, and a short note if you want. Both are encrypted.',
+    'You can now write a personal safety plan. If you add the names and phone numbers of people who can help, those are encrypted too, never shared, and used only to show you a call button.',
+    'So that your safety plan opens without a connection, an encrypted copy can be kept on your device. It is removed when you sign out.',
   ],
 } as const;
 /** Every state-changing API request must carry this header (CSRF defence in depth). */

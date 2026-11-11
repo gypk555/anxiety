@@ -17,6 +17,7 @@ import { clearDrafts } from './drafts';
 import { clearGuestData } from './guest';
 import { discardHeld, holdWork, settleHeld } from './held';
 import { withNext } from './next-path';
+import { clearAccountCopy, forgetOtherAccounts } from './vault';
 
 /** Registered by the router module, to avoid an import cycle. */
 let navigate: (to: string) => void = () => {};
@@ -30,6 +31,8 @@ function wipeClientData(client: QueryClient): void {
   client.clear();
   clearGuestData();
   clearDrafts();
+  // The encrypted offline copy of an account's safety plan. A guest plan made on purpose stays.
+  void clearAccountCopy();
 }
 
 /** Everything personal the browser is holding. For a deliberate sign-out and after account deletion. */
@@ -98,12 +101,16 @@ export async function fetchMe(client: QueryClient = queryClient): Promise<Me | n
   try {
     const me = await request('GET', '/me', { schema: meResponse });
     reconcileHeld(me);
+    void forgetOtherAccounts(me.id);
     return me;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
       // Not signed in is a normal state for a guest. Only a session that has just
       // ended clears what the browser is holding, or a guest would lose their result.
       if (client.getQueryData<Me | null>(meKey)) sessionEnded(client);
+      // Even on a cold load: a session that ended elsewhere (expiry, "sign out everywhere", deletion on another device)
+      // must not leave that account's safety plan readable offline. A guest's own plan and result are kept.
+      else void clearAccountCopy();
       return null;
     }
     throw error;

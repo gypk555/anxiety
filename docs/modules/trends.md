@@ -12,6 +12,8 @@ Show a person how their saved scores change over time, in a form that works for 
 - A history list, each entry linking to its result, with a delete button and a confirmation.
 - "Show older check-ins" loads more.
 - No check-ins: an explanation and a "Start the check-in" button. One check-in: a dot, and a note that the line starts with the next one.
+- Under the chart, "Make a report for your doctor" opens the [doctor report](doctor-report.md).
+- Below a stitched rule, a separate section, "Your daily mood log, not a test score", has its own 30-day chart and table, with a link to `/mood`. It never shares an axis with the GAD-7. See [mood log](mood-log.md).
 
 Home also shows the latest result and next check-in date: `Next check-in: {date}`, or a nudge once it's been two weeks or more.
 
@@ -53,6 +55,7 @@ Endpoints: `GET /assessments`, `DELETE /assessments/:id`. Table: `assessments`, 
 ## Tests that cover it
 
 - [apps/web/src/ui/TrendChart.test.tsx](../../apps/web/src/ui/TrendChart.test.tsx)
+- [apps/web/src/routes/Trends.test.tsx](../../apps/web/src/routes/Trends.test.tsx) (the mood section stands apart)
 - [apps/web/e2e/live/results.spec.ts](../../apps/web/e2e/live/results.spec.ts) (`trends: list, chart, table, delete`)
 - [apps/api/test/data.test.ts](../../apps/api/test/data.test.ts) (`pagination`, `cross-user access`)
 - [apps/web/e2e/live/a11y.spec.ts](../../apps/web/e2e/live/a11y.spec.ts)

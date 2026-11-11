@@ -1,26 +1,24 @@
 # Test report
 
-**Date: 2026-11-07.** Branch `production-rebuild`, last commit `a5a1800`, on an **uncommitted working tree**: no commit identifies this exact code yet. The results below are from final runs on this machine on 2026-11-07, between 17:02 and 17:13 for Playwright, after the accounts and database-setup work in [the accounts spec](../superpowers/specs/2026-11-07-accounts-and-database-design.md) and the fixes from the [second security review](#second-security-review-accounts-code-2026-11-07).
+**Date: 2026-11-11.** Branch `production-rebuild`, last commit `ed1bf19`, on an **uncommitted working tree**: no commit identifies this exact code yet. This run follows the [safety and tracking spec](../superpowers/specs/2026-11-11-safety-and-tracking-design.md): quick exit, the personal safety plan, the daily mood log and the doctor report. The results below are from the final runs on this machine on 2026-11-11: Playwright between 21:25 and 21:45 IST, then the static checks. The previous run, of 2026-11-07, is kept further down for its security reviews.
 
 ## Summary
 
-- **All automated checks passed:** typecheck clean, lint with 0 errors and 18 warnings, 835 of 835 Vitest, Playwright 565 passed and 1 skipped (566 runs) on each of two consecutive full runs, build succeeded, `npm audit --omit=dev` found 0 vulnerabilities. The clean `npm ci --ignore-scripts` check below is from the earlier run and was not repeated.
-- **Initial JS is 149.6 KB gzipped, against a 170 KB budget.** The common-password list is kept out of it, and a test checks that.
-- **The app has never run on a real phone, Supabase, Render, a real mail provider, real Google or GitHub Actions. `db:setup`, `db:verify` and `doctor` have only met embedded Postgres and an SMTP stub. Google has only been a local fake provider. No password manager has been tried. No helpline has been phoned.**
-- **This is not a release sign-off.** Passing here means it's ready for manual testing. See [What has not been tested](#what-has-not-been-tested).
+- **All automated checks passed:**
+  - typecheck clean
+  - lint with 0 errors and 19 warnings
+  - Vitest 939 of 939
+  - Playwright 663 passed and 1 skipped (664 runs) on each of two consecutive full runs, and again with `CI=1` (CI's trace and screenshot settings)
+  - build succeeded
+  - `npm audit --omit=dev` found 0 vulnerabilities
+- **Initial JS is 155.9 KB gzipped (155,905 bytes), against a 170 KB budget.** The report, safety plan and mood log are lazy chunks.
+- **Found and fixed during this run:** after the new modules changed how the bundle split, Zod's schemas were built in a chunk that ran before `z.config({ jitless: true })`. Zod's `eval` probe then broke the CSP on every screen. The audit suite's CSP check caught it. `vite.config.ts` now keeps Zod, its setting and the shared contract in one `contract` chunk, setting first. The password list stays out of it.
+- **Not done:** none of the new features has been tried on a real phone, with a real dialler, a real printer, or Safari's storage eviction. No clinician has read the safety-plan wording, and no lawyer the new privacy notice. See [What has not been tested](#what-has-not-been-tested) and MT-QX and MT-SP in [MANUAL-TEST-CASES.md](MANUAL-TEST-CASES.md).
+- **This is not a release sign-off.**
 
 ## Environment
 
-| Item | Value | Source |
-| --- | --- | --- |
-| OS | macOS 27.2 (Darwin 27.2.0) | `sw_vers`, on the same machine |
-| Node | 26.0.0 (`.node-version`: 26) | `node -v`, on the same machine |
-| Test runners | Vitest 4.1.12, Playwright 1.65.0 | Test output, `playwright --version` |
-| Browsers | Chromium 158.0.8127.18 (revision 1254), WebKit 27.2 (revision 2388), headless builds bundled with Playwright | `playwright-core/browsers.json`, and the installed `ms-playwright` folders |
-| Device profiles | Playwright `iPhone 14` on WebKit, `Pixel 7` on Chromium. **Emulated viewports on desktop browser engines** | `apps/web/playwright.config.ts` |
-| Accessibility engine | axe-core 4.14.0 through `@axe-core/playwright` 4.14.0 | `node_modules` |
-| Database | Embedded PostgreSQL, `embedded-postgres` 18.6.0-beta.19 (a beta package) | `node_modules` |
-| Build | Vite 8.3.6, vite-plugin-pwa 2.0.0, TypeScript 6 | Build output, `package.json` |
+As in the previous run: macOS 27.2, Node 26.0.0, Vitest 4.1.12, Playwright 1.65.0 (Chromium 158 and WebKit 27.2, headless, emulated `iPhone 14` and `Pixel 7` profiles), axe-core 4.14.0, embedded PostgreSQL 18.6.0-beta.19, Vite 8.3.6, vite-plugin-pwa 2.0.0. New dev dependency: `fake-indexeddb` 6, for the device-vault unit tests in jsdom.
 
 ## Results
 
@@ -28,68 +26,86 @@
 
 | Check | Result | Detail |
 | --- | --- | --- |
-| `npm run typecheck` | Pass | `shared`, `api` and `web`. No errors printed |
-| `npm run lint` | Pass with warnings | 0 errors, **18 warnings** |
-| `npm run build` | Pass | 2331 modules transformed. PWA precache: 45 entries, 886.82 KiB. API bundle `dist/server.js` 129.3 kb |
+| `npm run typecheck` | Pass | `shared`, `api` and `web` |
+| `npm run lint` | Pass with warnings | 0 errors, **19 warnings** |
+| `npm run build` | Pass | PWA precache: 54 entries, 940.18 KiB |
 | `npm audit --omit=dev` | Clean: 0 vulnerabilities | |
-| `npm audit` | 6: 2 low, 4 moderate. All in build tooling | Unchanged. Documented in `docs/SECURITY-EXCEPTIONS.md` |
-| Clean install | Pass | A copy of the working tree, `npm ci --ignore-scripts`, `npm run build`, then its `dist/server.js` started by `https-stack.ts` with `NODE_ENV=production` and Google configured: `/healthz` and `/readyz` ok, `/meta` shows `googleEnabled: true`, Google start answers 302 to `accounts.google.com`, which was not followed |
-| `node scripts/generate-test-catalogue.mjs --check` | Pass | 1118 tests listed |
+| `node scripts/generate-test-catalogue.mjs --check` | Pass | 1,271 tests listed. The script had gone stale since the last report (`brevo.test.ts`, `user-rate-limit.test.ts` and a renamed `hardening.test.ts` test weren't mapped), and was brought up to date |
 
 ### Vitest
 
-| Workspace | Files | Tests | Passed | Failed | Duration (as logged) |
-| --- | --- | --- | --- | --- | --- |
-| `@anxiocare/shared` | 2 | 83 | 83 | 0 | 228 ms |
-| `@anxiocare/api` | 18 | 566 | 566 | 0 | 21.21 s |
-| `@anxiocare/web` | 19 | 186 | 186 | 0 | 12.54 s |
-| **Total** | **39** | **835** | **835** | **0** | |
+| Workspace | Files | Tests | Passed | Failed |
+| --- | --- | --- | --- | --- |
+| `@anxiocare/shared` | 3 | 94 | 94 | 0 |
+| `@anxiocare/api` | 21 | 601 | 601 | 0 |
+| `@anxiocare/web` | 28 | 244 | 244 | 0 |
+| **Total** | **52** | **939** | **939** | **0** |
 
-New in this pass: `security-regressions.test.ts` (26 tests, one block per finding of the second review). Also new API files from the accounts work: `accounts.test.ts` (password flows, caps, semaphore, rehash, reset, purposes, logging), `google.test.ts` (fake provider, every rejection, linking, disconnect, erasure), `tooling.test.ts` (`db:setup`, `db:verify` and `doctor` as subprocesses, against embedded Postgres with TLS and a non-superuser admin role).
+New files:
+- `packages/shared/src/tracking.test.ts`
+- `apps/api/test/tracking.test.ts`
+- web:
+  - `lib/vault.test.ts`
+  - `lib/session-vault.test.ts`
+  - `lib/quick-exit.test.ts`
+  - `ui/MoodCard.test.tsx`
+  - `ui/MoodChart.test.tsx`
+  - `routes/MoodLog.test.tsx`
+  - `routes/Trends.test.tsx`
+  - `routes/SafetyPlan.test.tsx`
+  - `routes/Report.test.tsx`
+
+They are additions to `Shell.test.tsx`, `Legal.test.tsx` and the API's pinning tests.
 
 ### Playwright
 
-**First run: 565 passed, 1 skipped, 0 failed, in 5.5 minutes (17:02 to 17:08). Second run, straight after: 565 passed, 1 skipped, 0 failed, in 5.4 minutes (17:08 to 17:13).** No retries are configured. The skip is the clipboard paste test on WebKit, where Playwright can't grant clipboard permission. Paste is also covered in a component test.
+**Run 1: 663 passed, 1 skipped, 0 failed, 6.5 minutes (21:25 to 21:32). Run 2, straight after: 663 passed, 1 skipped, 0 failed, 6.5 minutes (21:32 to 21:38). `CI=1` run: 663 passed, 1 skipped, 0 failed, 6.6 minutes (21:38 to 21:45).** No retries are configured. The skip is the clipboard paste test on WebKit, as before.
 
 | Project | Suite | Runs |
 | --- | --- | --- |
-| `iphone` | Mocked (WebKit) | 133 |
-| `pixel` | Mocked (Chromium) | 133 |
-| `live-iphone` | Live (WebKit) | 143, 1 skipped |
-| `live-pixel` | Live (Chromium) | 143 |
+| `iphone` | Mocked (WebKit) | 163 |
+| `pixel` | Mocked (Chromium) | 163 |
+| `live-iphone` | Live (WebKit) | 162, 1 skipped |
+| `live-pixel` | Live (Chromium) | 162 |
 | `https-iphone` | HTTPS (WebKit) | 7 |
 | `https-pixel` | HTTPS (Chromium) | 7 |
-| **Total** | | **566** |
+| **Total** | | **664** |
 
-| Spec | `iphone` | `pixel` | `live-iphone` | `live-pixel` | `https-iphone` | `https-pixel` | Total |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `audit.spec.ts` | 127 | 127 | | | | | 254 |
-| `resilience.spec.ts` | 6 | 6 | | | | | 12 |
-| `live/a11y.spec.ts` | | | 4 | 4 | | | 8 |
-| `live/accounts.spec.ts` | | | 47 | 47 | | | 94 |
-| `live/auth.spec.ts` | | | 5 | 5 | | | 10 |
-| `live/authorisation.spec.ts` | | | 5 | 5 | | | 10 |
-| `live/compression.spec.ts` | | | 6 | 6 | | | 12 |
-| `live/consent.spec.ts` | | | 9 | 9 | | | 18 |
-| `live/failures.spec.ts` | | | 12 | 12 | | | 24 |
-| `live/guest.spec.ts` | | | 8 | 8 | | | 16 |
-| `live/journal.spec.ts` | | | 6 | 6 | | | 12 |
-| `live/keyboard.spec.ts` | | | 8 | 8 | | | 16 |
-| `live/landscape.spec.ts` | | | 2 | 2 | | | 4 |
-| `live/navigation.spec.ts` | | | 5 | 5 | | | 10 |
-| `live/results.spec.ts` | | | 8 | 8 | | | 16 |
-| `live/safety.spec.ts` | | | 6 | 6 | | | 12 |
-| `live/security.spec.ts` | | | 6 | 6 | | | 12 |
-| `live/settings.spec.ts` | | | 6 | 6 | | | 12 |
-| `https/https.spec.ts` | | | | | 7 | 7 | 14 |
+Per spec, for one device of each suite (the other device runs the same):
 
-The grand total of runs is 1,401: 835 Vitest and 566 Playwright. Unique tests: 1,118. Each is listed in [TEST-CASES.md](TEST-CASES.md).
+| Spec | Tests | Spec | Tests |
+| --- | --- | --- | --- |
+| `audit.spec.ts` | 157 | `live/keyboard.spec.ts` | 8 |
+| `resilience.spec.ts` | 6 | `live/landscape.spec.ts` | 2 |
+| `live/a11y.spec.ts` | 6 | `live/mood.spec.ts` (new) | 2 |
+| `live/accounts.spec.ts` | 47 | `live/navigation.spec.ts` | 5 |
+| `live/auth.spec.ts` | 5 | `live/quick-exit.spec.ts` (new) | 8 |
+| `live/authorisation.spec.ts` | 5 | `live/report.spec.ts` (new) | 1 |
+| `live/compression.spec.ts` | 6 | `live/results.spec.ts` | 8 |
+| `live/consent.spec.ts` | 9 | `live/safety-plan.spec.ts` (new) | 6 |
+| `live/failures.spec.ts` | 12 | `live/safety.spec.ts` | 6 |
+| `live/guest.spec.ts` | 8 | `live/security.spec.ts` | 6 |
+| `live/journal.spec.ts` | 6 | `live/settings.spec.ts` | 6 |
+| `https/https.spec.ts` | 7 | | |
 
-**Seen once, earlier in the day, not since.** In one development run before the final two, WebKit reported two failures that did not recur in three full runs after: `live/auth.spec.ts` "sign-up" with "Fetch API cannot load ... due to access control checks" from a fetch cut off by navigation, and `live/consent.spec.ts` "never consented" timing out waiting for a download. Both specs predate this work. Treat them as possible flakes to watch.
+The audit suite gained 15 screens in both themes, and print checks for the report and the safety plan. `a11y.spec.ts` gained a test for the mood log, safety plan and report with long real data. The guest, signed-in and landscape route lists now include the new screens.
+
+The grand total of runs is 1,603: 939 Vitest and 664 Playwright. Unique tests: 1,271, each listed in [TEST-CASES.md](TEST-CASES.md).
+
+**Seen in development runs, and dealt with:**
+
+- **WebKit, quick exit while the service worker registers.** Leaving at once while the page's `sw.js` request is in flight makes WebKit log the cancelled request as an uncaught error. Nothing breaks for the person. The quick-exit tests now wait for registration before exiting, so the guard stays strict.
+- **WebKit, Escape.** Escape is also WebKit's "stop loading" key, so it can cancel the page's service worker update check, which WebKit logs the same way. Only the Escape test allows that one line, through `guard.expectEscapeCancelsServiceWorkerCheck()`. The quick-exit spec then passed 192 of 192 in repeated runs, 64 of them with `CI=1`.
+- **`settings.spec.ts` "revoking it signs that device out".** Trends now also asks for the mood log, so the revoked device hears a second, expected 401. The test now lists it.
+- **Axe `target-size` and `scrollable-region-focusable`.** Wide tables with long unbroken notes scrolled sideways without a focusable container. They now wrap anywhere, and their scroll containers are focusable regions. The report's checkboxes are now 24px. Two screens that scroll as they're set up now go back to the top before axe runs, because the sticky header would otherwise cover part of a target.
 
 ### Traceability
 
-171 requirements are mapped in [TEST-CASES.md](TEST-CASES.md), including 28 from the accounts spec and its second review: 125 covered on the stack the tests run on, 30 partial, 16 with no automated test. "Covered" there means localhost and emulation, not production.
+191 requirements are mapped in [TEST-CASES.md](TEST-CASES.md): 145 covered on the stack the tests run on, 30 partial, 16 with no automated test. That includes 20 new rows (`ST-…`) for the safety and tracking spec, all covered here, and linked to the new MT-QX and MT-SP manual cases. "Covered" there means localhost and emulation, not production.
+
+## Previous run, 2026-11-07
+
+Summary, for reference: Vitest 835 of 835, Playwright 565 passed and 1 skipped on each of two runs, initial JS 149.6 KB. Its security reviews follow.
 
 ## Known issues
 
@@ -97,7 +113,7 @@ The grand total of runs is 1,401: 835 Vitest and 566 Playwright. Unique tests: 1
 
 ## Known warnings
 
-Lint gives 18 warnings, and no errors. None was fixed. The linter doesn't fail on warnings.
+Lint gives 19 warnings, and no errors (18 at the previous run). None was fixed. The linter doesn't fail on warnings. The new code adds none; the line numbers below are from the previous run.
 
 | Rule | Count | Where |
 | --- | --- | --- |
@@ -156,6 +172,19 @@ Timing, in the script, median ms for a password account, a code-only account and
 
 ## Performance: initial JS
 
+**2026-11-11: 155.9 KB gzipped (155,905 bytes), budget 170 KB, margin 14.1 KB.** Summed from the `.gz` files of the scripts `index.html` lists:
+
+- `index` 121,199
+- `contract` 29,359
+- `PageTitle` 3,522
+- `createLucideIcon` 1,479
+- `theme-init.js` 346
+
+`live/compression.spec.ts` checks the budget over real HTTP, and passed in all three runs. The report (3.5 KB), safety plan (4.3 KB) and mood log (1.7 KB) load only when opened. The device vault (`lib/vault.ts`) is in the initial bundle, because sign-out has to reach it.
+
+The figures below are from the previous run.
+
+
 **Measured: 149.6 KB gzipped (149,599 bytes, from the `.gz` files `index.html` lists). Budget: 170 KB. Margin: 20.4 KB.** The table below is from the previous report's measurement through HTTP. The entry file is now `index-CCY4Ezxe.js` at 145,731 gzip bytes. `live/compression.spec.ts` checks the budget over HTTP and passed in both runs. A first build put the common-password list in the entry chunk, at 152.4 KB. It now has its own chunk, loaded only by the screens that set a password, and a test checks it stays out.
 
 Method: `live/compression.spec.ts` starts from the real server over real HTTP, with Node's own client so that nothing decodes the bytes. It reads the scripts `index.html` lists, asks for each with `Accept-Encoding: gzip`, sums the bytes on the wire, and fails at 170,000. It also checks that each decoded response equals the raw file. The test doesn't print its total, so the table gives the sizes of the same precompressed files in `apps/web/dist`.
@@ -197,6 +226,10 @@ Stated plainly. None of the following has happened, in any form:
 | Haptics and wake lock | Never fired on hardware | MT-TOL-04 to 06 |
 | Real offline, 2G, airplane mode | Only a browser switch | MT-OFF |
 | Landscape on a phone, or installed | Emulated at 568x320, and the manifest is read. Never rotated, never installed | MT-DEV-06, 07 |
+| **Quick exit on a real phone** | Emulated only. Back-button behaviour, the tab switcher's snapshot, the installed app's window and a screen reader have not been tried on a device | MT-QX-01 to 10 |
+| **The offline safety plan on a real phone** | Airplane mode, an installed PWA, and Safari deleting IndexedDB after 7 days without a visit are untried. A real `tel:` from the plan has not dialled anyone | MT-SP-01 to 08 |
+| **Printing** | The print stylesheets are checked by computed style, not on paper or a real PDF. A4 from Android and iOS is untried | MT-SP-09, 10 |
+| **Clinician and lawyer review** | The safety-plan wording, the quick-exit text, the mood scale and the report have not been read by a clinician. The 2026-11-11 privacy notice has not been read by a lawyer | MT-SP-11, `docs/CLINICAL-SAFETY.md`, `docs/PRIVACY-COMPLIANCE.md` |
 | Mailing everyone | `notify-all` has run against a capture mailer and the file transport, on a test database. Never a real provider | `docs/OPERATIONS.md` |
 | Install to home screen | Never done | MT-PWA |
 | Screen readers, a person using a keyboard, large font, colour vision | Axe, and scripted key presses on the main journeys. See [../ACCESSIBILITY.md](../ACCESSIBILITY.md) | MT-ACC |

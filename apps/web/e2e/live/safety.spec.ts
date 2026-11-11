@@ -20,7 +20,7 @@ async function expectHelplines(page: Page) {
 }
 
 test('Get help is on every guest route, without an account', async ({ page, context }) => {
-  for (const path of ['/', '/help', '/check-in', '/tools', '/tools/breathe', '/tools/ground', '/tools/sounds', '/settings', '/sign-in', '/privacy', '/terms', '/about', '/no-such-page']) {
+  for (const path of ['/', '/help', '/check-in', '/tools', '/tools/breathe', '/tools/ground', '/tools/sounds', '/safety-plan', '/safety-plan/edit', '/settings', '/sign-in', '/privacy', '/terms', '/about', '/no-such-page']) {
     await helpIsOneTapAway(page, path);
   }
   await expectHelplines(page);
@@ -63,7 +63,7 @@ test('Get help is on every signed-in route, in the consent gate, the code screen
 
   const result = await seedAssessment(context, [1, 1, 1, 1, 1, 1, 1], 1);
   const entry = await seedJournal(context);
-  for (const path of ['/', '/trends', '/journal', '/journal/new', `/journal/${entry.id}`, `/journal/${entry.id}/edit`, `/result/${result.id}`, '/settings', '/result/00000000-0000-4000-8000-000000000000']) {
+  for (const path of ['/', '/trends', '/mood', '/report', '/safety-plan', '/safety-plan/edit', '/journal', '/journal/new', `/journal/${entry.id}`, `/journal/${entry.id}/edit`, `/result/${result.id}`, '/settings', '/result/00000000-0000-4000-8000-000000000000']) {
     await helpIsOneTapAway(page, path);
   }
 });

@@ -2,7 +2,7 @@
 
 > **This is not legal advice, and it must be reviewed by an Indian lawyer before launch.** It was written from the code and from public sources by someone who is not a lawyer, to help the owner brief one. Where it says "done", it means the app behaves that way, not that the behaviour satisfies the law.
 
-Checked on 2026-11-06. Sources are listed at the end. Law and vendor terms change, so re-check before relying on anything here.
+Checked on 2026-11-06, and updated on 2026-11-11 for the mood log, safety plan and doctor report. Sources are listed at the end. Law and vendor terms change, so re-check before relying on anything here.
 
 ## The five things to take to the lawyer first
 
@@ -110,6 +110,12 @@ The Government can notify a fiduciary or class as "significant", considering vol
 | GAD-7 answers, difficulty, score, severity | `assessments.payload_ct` | Encrypted, padded | Show history | Until deleted | Person, deletion |
 | When each check-in was taken | `assessments.taken_at`, `created_at` | **Plaintext** | Sorting | Until deleted | Person, deletion |
 | Thought records | `journal_entries.payload_ct` | Encrypted, padded in 4 KB steps | Show back | Until deleted | Person, deletion |
+| Mood rating and note | `mood_entries.payload_ct` | Encrypted, padded to 2 KB, so every row is the same size | Show back, the report | Until deleted | Person, deletion |
+| Days a mood was logged | `mood_entries.day`, `created_at`, `updated_at` | **Plaintext** dates and times | Ordering, one entry a day | Until deleted | Person, deletion |
+| Safety plan, including **other people's names and phone numbers** | `safety_plans.payload_ct` | Encrypted, padded in 16 KB steps. Never logged | Show back, one-tap calls | Until changed or deleted | Person, deletion |
+| Safety plan time | `safety_plans.updated_at` | **Plaintext** | Display | As the plan | As the plan |
+| Offline copy of an account's safety plan | Browser IndexedDB `anxiocare-vault` | Encrypted with a random, non-extractable WebCrypto key held in the same IndexedDB. Owner kept as a SHA-256 of the account id | Opening the plan with no connection | Until sign-out, session end, account deletion, or another account's sign-in on the device | Automatic, as listed |
+| Guest safety plan | Browser IndexedDB `anxiocare-vault` | Encrypted, as above. Never sent to the server | A plan without an account | Until the person deletes it, moves it to an account, or the browser clears site data | Person, browser. Safari may clear it after 7 days without a visit |
 | Journal times | `journal_entries.created_at`, `updated_at` | **Plaintext** | Sorting | Until deleted | Person, deletion |
 | Session token hash | `sessions.token_hash` | SHA-256 | Authentication | 30 days idle, 90 days at most, then purge within the hour | Sign-out, purge, deletion |
 | Device label | `sessions.device_label_ct` | Encrypted, coarse ("Safari on iPhone") | Session list | As the session | As the session |
@@ -126,9 +132,41 @@ The Government can notify a fiduciary or class as "significant", considering vol
 | Theme | Browser `localStorage` | Plaintext | Preference | Until changed | Person |
 | Guest answers | Browser `sessionStorage` | Plaintext | Result without an account | Until the tab closes | Automatic |
 | Signed-in data | Browser memory | Plaintext | Display | Until reload or sign-out | Automatic |
-| Downloaded export, printout | Person's device | Plaintext | Person's own copy | Person decides | Person |
+| Downloaded export, printout, saved doctor report | Person's device | Plaintext | Person's own copy | Person decides | Person |
 
-**Not collected:** age, gender, occupation, phone number, location, raw User-Agent, IP address in the database, analytics.
+**Not collected:** age, gender, occupation, the person's own phone number, location, raw User-Agent, IP address in the database, analytics.
+
+## Other people's data in a safety plan
+
+A safety plan can hold the names and phone numbers of people the person trusts. Those people are data principals too, and they never gave consent or saw a notice. What the app does about it:
+
+- **Purpose limitation.** They are used for one thing: showing the person a call button. They are never contacted, shared, analysed or logged. The logging test checks that a phone number and a contact name never reach the logs.
+- **Security.** They are sealed with the rest of the plan under the person's data key, and removed when the person removes them, deletes the plan, or deletes the account. They are in the export, because the person wrote them.
+- **Notice.** The privacy notice has a part, "Other people in your safety plan", which asks the person to add only people who would expect to be called.
+
+**Needs lawyer:** is this the person's own processing for personal purposes, outside the Act under s.3(c)(i), or the operator's processing of a third party's data? If it is the operator's, what basis applies to a contact who never consented, and does the notice need to say more?
+
+## Consent version 2026-11-11
+
+`CONSENT_VERSION` went from `2026-11-07` to `2026-11-11` for the mood log, the safety plan and the on-device copy. Everyone with an account is asked again, and sees `CONSENT_CHANGES`:
+
+1. "You can now keep a daily mood log: a rating from Very low to Very good, and a short note if you want. Both are encrypted."
+2. "You can now write a personal safety plan. If you add the names and phone numbers of people who can help, those are encrypted too, never shared, and used only to show you a call button."
+3. "So that your safety plan opens without a connection, an encrypted copy can be kept on your device. It is removed when you sign out."
+
+New parts of the notice in `Legal.tsx`:
+
+- "Other people in your safety plan"
+- "On your device"
+- the guest plan, in "Without an account"
+- mood log and safety plan in "What we store" and "How it's protected"
+- the export, in "Your rights"
+
+The Terms add that nobody reads the safety plan or mood log, and nobody is alerted by them.
+
+**Owner action: have the lawyer review this text before the deploy,** as for every bump. See [OPERATIONS.md](OPERATIONS.md#consent-version-bump).
+
+**The on-device copy.** It is health data stored on the person's own device, in a form only the app on that device can open. It is never sent anywhere. **Needs lawyer:** whether storing it needs anything beyond the notice and the consent above. Guests are told in one line before saving. A guest plan is never on the server, so it isn't in the export, and can't be erased by deleting an account.
 
 ## Processors
 
@@ -190,6 +228,8 @@ In addition to those above:
 14. How to answer a lawful demand for data, given the operator can decrypt?
 15. Review `Legal.tsx` in full, along with the mismatches above and the [breach templates](OPERATIONS.md#templates).
 16. Review the safe harbour wording in [SECURITY.md](../SECURITY.md).
+17. Other people's names and numbers in a safety plan: whose processing is it, and is the notice enough? See [above](#other-peoples-data-in-a-safety-plan).
+18. Is the doctor report, which the person prints or saves themselves, any new duty? Is the footer "Self-reported. A screening, not a diagnosis." enough?
 
 ## Sources
 

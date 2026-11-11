@@ -14,6 +14,7 @@ The worst outcome here is not a typical data breach. It is a person's employer, 
 | --- | --- | --- | --- |
 | A1 | Check-in answers, scores, severity | `app.assessments.payload_ct`, encrypted. Plaintext in server memory and in the browser. | Health data, identifiable through the account. |
 | A2 | Thought records | `app.journal_entries.payload_ct`, encrypted. | Free text. May hold the most sensitive things a person writes anywhere. |
+| A2a | Mood log and safety plan, including other people's names and numbers | `app.mood_entries`, `app.safety_plans`, encrypted. An encrypted copy of the plan in the browser's IndexedDB, under a non-extractable key. | Crisis planning, and third parties' personal data. |
 | A3 | Email address and display name | `app.users.email_ct`, `display_name_ct`, encrypted. Plaintext at the mail provider. | Links everything to a real person. |
 | A4 | The fact that someone uses this app | Mail subject and sender, lock screens, inboxes, browser history, an installed icon. | Disclosure alone can cause harm. |
 | A5 | Master keys | `ENCRYPTION_KEYS` in Render's environment and in the owner's secret store. | Holding these and a database copy reveals everything. |
@@ -114,6 +115,8 @@ Residual ratings are a judgement: **Low**, **Med**, **High**. Evidence is in `ap
 | I-6 | Lock screen or shared inbox reveals the subject (T1) | Fixed neutral subjects and bodies. Production refuses a revealing sender name or address, and export filename is neutral. | `hardening.test.ts:504,517,530,537`, `otp.test.ts:349`, `config.test.ts:145` | Med. The owner must also keep the sending domain neutral, and the code can only check `MAIL_FROM`. DKIM and Return-Path domains are visible to anyone who opens the headers. |
 | I-7 | Data stays on a shared device (T1) | Theme only in `localStorage`. Guest result in `sessionStorage`. Service worker never stores `/api`. Memory cleared on sign-out. No-store on API responses. | `e2e/resilience.spec.ts:4,65`, `e2e/live/safety.spec.ts:110`, `e2e/live/authorisation.spec.ts:43,90`, `e2e/live/guest.spec.ts:48` | Med. See R1. Downloads and printouts are the person's own, and stay on the device. |
 | I-8 | Cross-origin leak, XSS, framing, third-party script | CSP without inline script, `frame-ancestors 'none'`, no CORS, COOP and CORP, no third-party hosts, no `dangerouslySetInnerHTML`. | `http.test.ts:101,125`, `e2e/live/security.spec.ts:38,120,135` | Low. |
+| I-10 | The on-device safety plan copy is read from the browser's files or a phone backup (T1, T6) | AES-GCM with a random non-extractable WebCrypto key. Owner kept as a hash. Removed at sign-out, session end, deletion and another account's sign-in. Nothing in `localStorage` or `sessionStorage`. | `vault.test.ts`, `session-vault.test.ts`, `e2e/live/safety-plan.spec.ts` | Low for the files. Someone who can run the app on the unlocked phone can read it, as R1. |
+| I-11 | Someone nearby sees the app open (T1) | Quick exit on every screen and in every sheet, and Escape three times: replaces the history entry with a weather search, hides the app, and clears memory and the guest check-in. Synchronous, with no request. | `quick-exit.test.ts`, `e2e/live/quick-exit.spec.ts` | Med. Earlier history entries stay, the session stays signed in, and the recent-apps screen may hold a snapshot. Help says so. |
 | I-9 | Traffic between server and database is read | TLS with a pinned CA, hostname checked. Refused in production without a CA, and refused with `sslmode=disable`. | `tls.test.ts:69,73,77`, `database.test.ts:145`, `config.test.ts:123` | Low from the server to the pooler. **Unverified live.** Supabase's docs say its SSL enforcement setting governs both legs through the shared pooler, so the owner must turn it on. See [DEPLOYMENT.md](DEPLOYMENT.md#step-2-connection-strings-and-the-ca-certificate). |
 
 ### Denial of service
@@ -144,13 +147,13 @@ These are real and remain after everything above. The owner must read and accept
 
 **Scenario.** A parent, partner or colleague picks up a person's unlocked phone and opens the app. A session lasts up to 30 days idle or 90 days at most, and there is no PIN or app lock.
 
-**What they can do.** Read every result and thought record. Download all of it with a single tap, because export needs only the session (`routes/me.ts`). See that an account exists, from the icon or browser history.
+**What they can do.** Read every result, thought record, mood entry and the safety plan, including the numbers of people in it. Offline, they can read the device copy of the plan too. Download all of it with a single tap, because export needs only the session (`routes/me.ts`). See that an account exists, from the icon or browser history.
 
 **What they cannot do without the mailbox.** Delete the account, or move it to another address. Often the mailbox is on the same phone, in which case nothing stops them.
 
 **Why accepted.** A local lock is a meaningful feature that was not built. Much shorter sessions are possible, but in our judgement they would push people to sign in repeatedly, and every sign-in sends a mail to an inbox that may be shared.
 
-**Mitigations available to the person.** Sign out, "Sign out on all devices", use the app without an account.
+**Mitigations available to the person.** Sign out, "Sign out on all devices", use the app without an account. Quick exit hides the app in the moment, but doesn't end the session.
 
 **What would change this.** Any report of harm. An app lock or a re-check before export is the next step.
 

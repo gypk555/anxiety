@@ -32,6 +32,8 @@ A new user gets a fresh random 32-byte data key in `findOrCreateUser`. It is wra
 | --- | --- | --- |
 | `assessments.payload` | 256 | All severities have the same size |
 | `journal_entries.payload` | 4096 | Only a coarse size shows |
+| `mood_entries.payload` | 2048 | Every mood row the same size. The AAD row id is the day |
+| `safety_plans.payload` | 16384 | A typical plan is one step. The AAD row id is the user id |
 | `users.email` | 512 | Fixed |
 | `users.display_name` | 256 | Fixed |
 | `sessions.device_label` | 64 | Fixed |
@@ -95,7 +97,8 @@ All `_ct` columns and `wrapped_dek`. Column-by-column table: [DATABASE.md](../DA
 ## Known limits
 
 - Timing is visible: `taken_at`, `created_at`, `last_seen_at` and row counts are plaintext.
-- Journal length shows in 4 KB steps.
+- Journal length shows in 4 KB steps, and a safety plan's in 16 KB steps.
+- The safety plan's offline copy in the browser uses its own device key, not the data key: see [safety plan](safety-plan.md).
 - A data key is rewrapped but never itself replaced.
 - `EMAIL_INDEX_KEY` has no rotation path.
 - Rotation has been run only on local Postgres, not on Supabase.

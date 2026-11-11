@@ -6,6 +6,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { errorMessage, isNotFound, request } from '@/lib/api';
 import { deleteDraft, emptyDraft, getDraft, NEW_DRAFT, setDraft, type DraftValues } from '@/lib/drafts';
 import { journalKey } from '@/lib/queries';
+import { isExiting } from '@/lib/quick-exit';
 import { NotFound } from '@/shell/RouteError';
 import { PageTitle } from '@/ui/PageTitle';
 import { ConfirmSheet } from '@/ui/Sheet';
@@ -60,7 +61,10 @@ function Form({ draftKey, entryId, initial, doneTo, exitTo }: {
   // Closing the tab loses a draft for good, so the browser asks first.
   useEffect(() => {
     if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    // Never during a quick exit: a "Leave site?" prompt would hold the page on screen.
+    const warn = (e: BeforeUnloadEvent) => {
+      if (!isExiting()) e.preventDefault();
+    };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);

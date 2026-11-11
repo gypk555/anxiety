@@ -37,6 +37,12 @@ export function Help() {
         <SelfHarmGuidance />
       </section>
 
+      <section aria-labelledby="plan" className="flex flex-col gap-2">
+        <h2 id="plan" className="text-xl">Your safety plan</h2>
+        <p className="text-ink-soft">The steps you wrote for hard moments, and the people you can call. Works without an account, and offline once it has opened.</p>
+        <Link className="btn btn-secondary" to="/safety-plan">Open your safety plan</Link>
+      </section>
+
       <section aria-labelledby="now" className="flex flex-col gap-2">
         <h2 id="now" className="text-xl">While you wait, or if you can't call</h2>
         <div className="grid grid-cols-2 gap-2">
@@ -44,6 +50,8 @@ export function Help() {
           <Link className="btn btn-quiet" to="/tools/ground">Ground yourself</Link>
         </div>
       </section>
+
+      <QuickExitHelp />
 
       <p className="text-xs text-ink-soft">
         {helplinesCheckNote(HELPLINES_CHECK_METHOD, formatDate(HELPLINES_CHECKED_ON))} These services are run independently of AnxioCare, which is not an emergency service.
@@ -90,5 +98,19 @@ function HelplineItem({ line }: { line: Helpline }) {
         )}
       </div>
     </li>
+  );
+}
+
+/** What quick exit does and, as plainly, what it can't do. */
+function QuickExitHelp() {
+  return (
+    <section aria-labelledby="quick-exit" className="flex flex-col gap-2">
+      <h2 id="quick-exit" className="text-xl">About quick exit</h2>
+      <div className="flex flex-col gap-2 text-ink-soft">
+        <p>If you need to hide this app at once, tap "Quick exit" at the top of any screen, or press Escape three times quickly on a keyboard. It opens a weather search straight away and clears what this app was showing. It doesn't ask first, and it doesn't sign you out.</p>
+        <p>It can't remove the pages you visited before it from your browser's history. Someone pressing Back may still see that AnxioCare was open, and if you were signed in, your account is still signed in on this phone.</p>
+        <p>To leave no trace, use a private or incognito window, which your browser forgets when you close it. To clear it afterwards, delete your browsing history in your browser's settings, and sign out in Settings here.</p>
+      </div>
+    </section>
   );
 }

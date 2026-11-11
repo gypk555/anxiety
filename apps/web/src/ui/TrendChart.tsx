@@ -24,7 +24,7 @@ export function trendSummary(points: readonly TrendPoint[]): string {
   return `${lastText} That is ${change} your check-in on ${formatDate(prev.takenAt)}.`;
 }
 
-function useWidth() {
+export function useWidth() {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(340);
   useEffect(() => {

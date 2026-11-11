@@ -5,6 +5,8 @@ import { useOnline } from '@/lib/online';
 import { syncThemeColor } from '@/lib/theme';
 import { Logomark } from '@/ui/Rings';
 import { PageSkeleton } from '@/ui/States';
+import { installEscapeExit, quickExit } from '@/lib/quick-exit';
+import { QuickExitButton } from '@/ui/QuickExit';
 import { UpdatePrompt } from './UpdatePrompt';
 
 export interface RouteHandle {
@@ -43,7 +45,7 @@ function Wordmark() {
   return (
     <Link to="/" aria-label="AnxioCare, home" className="no-print -ml-1 flex min-h-11 items-center gap-2 pr-2 no-underline">
       <Logomark className="size-7" />
-      <span className="font-display text-[1.375rem] font-semibold tracking-tight">AnxioCare</span>
+      <span className="font-display text-[1.375rem] font-semibold tracking-tight max-[389px]:sr-only">AnxioCare</span>
     </Link>
   );
 }
@@ -105,6 +107,7 @@ export function Shell({ children }: { children?: ReactNode }) {
   const matches = useMatches();
   const handle = Object.assign({}, ...matches.map((m) => m.handle as RouteHandle | undefined)) as RouteHandle;
   useScrollReset();
+  useEffect(() => installEscapeExit(() => quickExit()), []);
 
   // The browser chrome follows the night canvas too.
   useEffect(() => {
@@ -126,7 +129,10 @@ export function Shell({ children }: { children?: ReactNode }) {
               <TabLinks layout="inline" />
             </nav>
           )}
-          <GetHelpLink />
+          <div className="flex shrink-0 items-center gap-2">
+            <QuickExitButton />
+            <GetHelpLink />
+          </div>
         </div>
       </header>
       <main

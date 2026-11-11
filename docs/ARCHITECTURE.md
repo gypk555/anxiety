@@ -13,9 +13,11 @@ flowchart LR
     SW["Service worker<br/>app files only, never /api"]
     SS["sessionStorage<br/>guest check-in and result"]
     LS["localStorage<br/>theme only"]
+    IDB["IndexedDB<br/>encrypted safety plan copy,<br/>non-extractable device key"]
     SPA --- SW
     SPA --- SS
     SPA --- LS
+    SPA --- IDB
   end
 
   subgraph render["Render web service, Singapore"]
@@ -143,12 +145,13 @@ sequenceDiagram
   A->>D: Check the code (purpose account_delete, this user)
   A->>D: One transaction: delete user (cascades, including Google identity and password hash), delete codes, code failures and login failures for the address, insert audit row
   A-->>W: 204, cookie cleared
-  W->>W: Clear query cache, guest data, drafts
+  W->>W: Clear query cache, guest data, drafts, device copy of the safety plan
 ```
 
 After this:
 
-- `users`, `sessions`, `consents`, `assessments` and `journal_entries` rows are gone, including the wrapped data key.
+- `users`, `sessions`, `consents`, `assessments`, `journal_entries`, `mood_entries` and `safety_plans` rows are gone, including the wrapped data key.
+- On the device that confirmed the deletion, the encrypted copy of the safety plan is removed too. A copy on another device goes when that device signs out, or next sees the session end. It can't be opened without that device's own key in any case.
 - Only `audit_log` rows remain. They hold an HMAC of the old user ID, an action and a day, and age out after a year.
 - Encrypted database backups keep a copy until they age out, `BACKUP_RETENTION_DAYS` later. Until then, a backup plus the master key can still decrypt it. The app states this to the person.
 
@@ -185,6 +188,7 @@ The threat analysis is in [docs/THREAT-MODEL.md](THREAT-MODEL.md).
 | [Guest check-in](decisions/009-guest-check-in.md) | A person in distress should not have to make an account. |
 | [Code quotas](decisions/010-eight-digit-codes-and-quotas.md) | The limits hold even with several server instances. Code length and guess cap are now in decision 012. |
 | [Hand-built SVG chart](decisions/011-hand-built-svg-chart.md) | Small, accessible, and it fits the strict CSP. |
+| [Encrypted offline safety plan](decisions/013-encrypted-offline-safety-plan.md) | The plan must open with no connection, and nothing readable may sit in browser storage. |
 
 ## Single-instance assumption
 

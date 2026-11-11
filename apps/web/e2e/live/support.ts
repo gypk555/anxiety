@@ -2,7 +2,7 @@ import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
-import { CONSENT_VERSION, CSRF_HEADER, CSRF_HEADER_VALUE, DIFFICULTY_OPTIONS, DIFFICULTY_STEM, GAD7_ITEMS, GAD7_OPTIONS, OTP_LENGTH } from '@anxiocare/shared';
+import { CONSENT_VERSION, CSRF_HEADER, emptySafetyPlan, type SafetyPlan, CSRF_HEADER_VALUE, DIFFICULTY_OPTIONS, DIFFICULTY_STEM, GAD7_ITEMS, GAD7_OPTIONS, OTP_LENGTH } from '@anxiocare/shared';
 import { test as base, expect, type BrowserContext, type Page } from '@playwright/test';
 import postgres from 'postgres';
 
@@ -35,6 +35,13 @@ export interface Guard {
    * That refusal is Playwright's, not the app's, so it must not fail the test.
    */
   release(context: BrowserContext): void;
+  /** This test goes to another site on purpose, served by a local stub so nothing leaves the machine: quick exit. */
+  allowHost(origin: string): void;
+  /**
+   * In WebKit, Escape is also "stop loading": it cancels the page's in-flight service worker update check, and WebKit
+   * reports that as an uncaught error. Only for a test that presses Escape on purpose.
+   */
+  expectEscapeCancelsServiceWorkerCheck(): void;
   readonly problems: readonly string[];
 }
 
@@ -43,10 +50,13 @@ const CSP_MARK = 'CSP-VIOLATION';
 function makeGuard(): Guard {
   const problems: string[] = [];
   // Every signed-out page load asks who is signed in, and "nobody" is a 401: the browser always logs that.
-  const expected: { path: RegExp; status: number }[] = [{ path: /^\/api\/v1\/me$/, status: 401 }];
+  // So is "no safety plan saved yet", a 404 by design (docs/API.md#safety-plan).
+  const expected: { path: RegExp; status: number }[] = [{ path: /^\/api\/v1\/me$/, status: 401 }, { path: /^\/api\/v1\/safety-plan$/, status: 404 }];
   let offline = false;
   let cspExpected = false;
   const released = new WeakSet<BrowserContext>();
+  const allowedHosts = new Set(OTHER_HOSTS_ALLOWED);
+  let escapeCancelsSwCheck = false;
 
   const networkLineIsExpected = (text: string, where: string) => {
     if (offline) return true;
@@ -70,6 +80,10 @@ function makeGuard(): Guard {
       cspExpected = on;
     },
     release: (context) => void released.add(context),
+    allowHost: (origin) => void allowedHosts.add(origin),
+    expectEscapeCancelsServiceWorkerCheck: () => {
+      escapeCancelsSwCheck = true;
+    },
     async watch(context) {
       await context.addInitScript((mark) => {
         document.addEventListener('securitypolicyviolation', (e) => {
@@ -80,7 +94,7 @@ function makeGuard(): Guard {
       context.on('request', (request) => {
         const target = request.url();
         if (target.startsWith('blob:') || target.startsWith('data:')) return;
-        if (!OTHER_HOSTS_ALLOWED.has(new URL(target).origin)) problems.push(`request to another host: ${target}`);
+        if (!allowedHosts.has(new URL(target).origin)) problems.push(`request to another host: ${target}`);
       });
       context.on('response', (response) => {
         if (new URL(response.url()).pathname.startsWith('/api') && response.fromServiceWorker()) {
@@ -101,6 +115,7 @@ function makeGuard(): Guard {
       });
       context.on('weberror', (error) => {
         if (released.has(context)) return;
+        if (escapeCancelsSwCheck && /Cannot load .*\/sw\.js due to access control checks/.test(String(error.error()))) return;
         problems.push(`uncaught: ${String(error.error())}`);
       });
     },
@@ -384,6 +399,65 @@ export async function seedJournal(context: BrowserContext, over: Partial<typeof 
   const response = await api(context).send('POST', '/journal', { ...JOURNAL_SEED, ...over });
   expect(response.status()).toBe(201);
   return (await response.json()) as typeof JOURNAL_SEED & { id: string; createdAt: string };
+}
+
+/** The phone's calendar day, `daysAgo` before today, as the app sends it. */
+export const localDay = (daysAgo = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+export async function seedMood(context: BrowserContext, day: string, rating: number, note = '') {
+  const response = await api(context).send('PUT', `/moods/${day}`, { rating, note });
+  expect(response.status()).toBe(200);
+  return response.json();
+}
+
+export async function seedPlan(context: BrowserContext, plan: Partial<SafetyPlan>) {
+  const response = await api(context).send('PUT', '/safety-plan', { ...emptySafetyPlan(), ...plan });
+  expect(response.status()).toBe(200);
+  return response.json();
+}
+
+/**
+ * Everything this origin keeps in the browser: both storages and every IndexedDB record, bytes rendered as text so a
+ * plaintext marker would show. CryptoKey objects are reported by their properties, which never include key bytes.
+ */
+export async function browserStorageDump(page: Page): Promise<string> {
+  return page.evaluate(async () => {
+    const out: Record<string, unknown> = { local: { ...localStorage }, session: { ...sessionStorage } };
+    const render = (v: unknown): unknown => {
+      if (v instanceof CryptoKey) return { cryptoKey: true, extractable: v.extractable, algorithm: v.algorithm, usages: v.usages };
+      if (v instanceof ArrayBuffer) return new TextDecoder('latin1').decode(new Uint8Array(v));
+      if (ArrayBuffer.isView(v)) return new TextDecoder('latin1').decode(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+      if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, render(x)]));
+      return v;
+    };
+    for (const info of await indexedDB.databases()) {
+      if (!info.name) continue;
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const r = indexedDB.open(info.name!);
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+      for (const store of db.objectStoreNames) {
+        const rows = await new Promise<Record<string, unknown>>((resolve) => {
+          const found: Record<string, unknown> = {};
+          const cursor = db.transaction(store).objectStore(store).openCursor();
+          cursor.onsuccess = () => {
+            const c = cursor.result;
+            if (!c) return resolve(found);
+            found[String(c.key)] = render(c.value);
+            c.continue();
+          };
+        });
+        out[`idb:${info.name}/${store}`] = rows;
+      }
+      db.close();
+    }
+    return JSON.stringify(out);
+  });
 }
 
 // ── Real faults: the real API, and a database that really misbehaves for one user ─────

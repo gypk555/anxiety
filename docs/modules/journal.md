@@ -15,7 +15,7 @@ CBT thought records: write down what happened and what went through your mind, w
   5. A more balanced view (optional), and optionally a strength now.
 - `/journal/:id`: read, then edit or delete with a confirmation.
 - `/journal/:id/edit`: the same form, filled in.
-- Leaving with unsaved changes asks first. Closing the tab triggers the browser's warning.
+- Leaving with unsaved changes asks first. Closing the tab triggers the browser's warning, except during a [quick exit](quick-exit.md), which must never be held up.
 - A draft survives moving around the app, and Home and the list point back to it. A reload or sign-out discards it.
 - All of it needs an account and current consent. The Tools screen says so.
 

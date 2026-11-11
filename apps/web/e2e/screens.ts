@@ -136,6 +136,53 @@ export const SCREENS: Screen[] = [
       await p.getByRole('button', { name: 'Close' }).click();
     },
   },
+  { name: 'safety-plan-guest-empty', path: '/safety-plan' },
+  { name: 'safety-plan-edit-guest', path: '/safety-plan/edit' },
+  { name: 'safety-plan', path: '/safety-plan', api: signedIn },
+  { name: 'safety-plan-empty', path: '/safety-plan', api: { signedIn: true, empty: true } },
+  { name: 'safety-plan-edit', path: '/safety-plan/edit', api: signedIn },
+  {
+    name: 'safety-plan-delete',
+    path: '/safety-plan',
+    api: signedIn,
+    act: (p) => p.getByRole('button', { name: 'Delete this plan' }).click(),
+  },
+  { name: 'mood-log', path: '/mood', api: signedIn },
+  { name: 'mood-log-empty', path: '/mood', api: { signedIn: true, empty: true } },
+  {
+    name: 'mood-log-change-day',
+    path: '/mood',
+    api: signedIn,
+    act: (p) => p.getByRole('button', { name: /^Change/ }).first().click(),
+  },
+  {
+    name: 'mood-log-another-day',
+    path: '/mood',
+    api: signedIn,
+    act: (p) => p.getByRole('button', { name: 'Log another day' }).click(),
+  },
+  {
+    name: 'trends-mood-table',
+    path: '/trends',
+    api: signedIn,
+    // Back to the top after opening it: scrolled, the sticky header covers part of the list, which axe counts as a small target.
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Show the mood log as a table' }).click();
+      await p.evaluate(() => window.scrollTo(0, 0));
+    },
+  },
+  { name: 'report', path: '/report', api: signedIn },
+  {
+    name: 'report-everything',
+    path: '/report',
+    api: signedIn,
+    act: async (p) => {
+      for (const name of ['Mood notes', 'Safety plan', 'Journal entries', 'Put my name at the top']) await p.getByRole('checkbox', { name }).check();
+      // Checking scrolls the page, and scrolled, the sticky header covers part of the form, which axe counts as a small target.
+      await p.evaluate(() => window.scrollTo(0, 0));
+    },
+  },
+  { name: 'report-empty', path: '/report', api: { signedIn: true, empty: true } },
   { name: 'settings-account', path: '/settings', api: signedIn },
   { name: 'settings-account-google', path: '/settings', api: { signedIn: true, googleEnabled: true, methods: { password: true, google: true } } },
   { name: 'settings-account-no-password', path: '/settings', api: { signedIn: true, googleEnabled: true, methods: { password: false, google: true } } },

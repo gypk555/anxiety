@@ -1,6 +1,6 @@
 # Database
 
-Postgres, in a private schema called `app`. The schema is in [apps/api/migrations](../apps/api/migrations): `001_init.sql`, `002_accounts.sql` and `003_devices_and_reauth.sql`. The planned host is Supabase, used as plain Postgres. It has not run there yet: tests and local development use `embedded-postgres`.
+Postgres, in a private schema called `app`. The schema is in [apps/api/migrations](../apps/api/migrations): `001_init.sql`, `002_accounts.sql`, `003_devices_and_reauth.sql` and `004_mood_and_safety_plan.sql`. The planned host is Supabase, used as plain Postgres. It has not run there yet: tests and local development use `embedded-postgres`.
 
 Column types below are from the migration. "Sealed" means AES-256-GCM encrypted by the application with the user's data key, before it reaches the database. See [encryption](modules/encryption.md).
 
@@ -143,6 +143,28 @@ Google `state` values already used, so one can never be replayed. Nothing about 
 | `created_at` | timestamptz(3) | No | Plain | |
 | `updated_at` | timestamptz(3) | No | Plain | |
 
+### `app.mood_entries`
+
+The daily mood log. One row per person per calendar day. From `004_mood_and_safety_plan.sql`.
+
+| Column | Type | Null | Encryption | Notes |
+| --- | --- | --- | --- | --- |
+| `user_id` | uuid | No | Plain | References `users`, cascade delete. Primary key with `day` |
+| `day` | date | No | Plain | The person's own local date, as their phone saw it. Plain, for ordering and one row a day |
+| `payload_ct` | bytea | No | Sealed, field `mood_entries.payload`, padded to 2 KB | JSON: `rating`, `note`. The AAD's row id is the day, so a ciphertext moved to another day fails to open. Every row is the same size |
+| `created_at` | timestamptz(3) | No | Plain | |
+| `updated_at` | timestamptz(3) | No | Plain | Moves when the same day is logged again |
+
+### `app.safety_plans`
+
+The personal safety plan. One row per account. From `004_mood_and_safety_plan.sql`.
+
+| Column | Type | Null | Encryption | Notes |
+| --- | --- | --- | --- | --- |
+| `user_id` | uuid, primary key | No | Plain | References `users`, cascade delete |
+| `payload_ct` | bytea | No | Sealed, field `safety_plans.payload`, padded in 16 KB steps | The whole plan as JSON, including other people's names and phone numbers. The AAD's row id is the user id. A typical plan is one step |
+| `updated_at` | timestamptz(3) | No | Plain | |
+
 ### `app.audit_log`
 
 No foreign key to `users` on purpose, so rows outlive erasure. Purged after a year.
@@ -166,7 +188,7 @@ Created by the runner in [apps/api/src/migrate.ts](../apps/api/src/migrate.ts), 
 
 ### What a database reader can see
 
-Plaintext: ids, timestamps (when a person checked in, wrote, signed in), row counts, the journal's 4 KB size step, consent versions, the audit action and day. Not visible: email, name, device, answers, score, severity, or journal text.
+Plaintext: ids, timestamps (when a person checked in, wrote, signed in), row counts, the journal's 4 KB size step, the safety plan's 16 KB size step and whether someone has a plan at all, the days on which someone logged a mood, consent versions, the audit action and day. Not visible: email, name, device, answers, score, severity, journal text, mood ratings and notes, or anything in a safety plan, including the names and numbers of other people.
 
 `assessments.payload` always has the same ciphertext size, so a dump cannot tell severities apart by length. This is tested in [hardening.test.ts](../apps/api/test/hardening.test.ts).
 
@@ -197,6 +219,8 @@ Plaintext: ids, timestamps (when a person checked in, wrote, signed in), row cou
 | `assessments_idempotency_key` | `assessments (user_id, client_request_id)`, unique | Idempotent saves |
 | `assessments_page_idx` | `assessments (user_id, taken_at DESC, id DESC)` | Keyset paging |
 | `journal_entries_page_idx` | `journal_entries (user_id, created_at DESC, id DESC)` | Keyset paging |
+| `mood_entries_pkey` | `mood_entries (user_id, day)`, primary key | One entry a day, and range reads |
+| `safety_plans_pkey` | `safety_plans (user_id)`, primary key | One plan per account |
 | `audit_log_created_idx` | `audit_log (created_at)` | Purge |
 
 Sort-key timestamps are `timestamptz(3)` because JavaScript dates carry milliseconds, so a cursor round-trips exactly.
@@ -222,6 +246,8 @@ Runtime grants, from the migration:
 | `sessions` | Yes | Yes | Yes | Yes |
 | `otp_codes` | Yes | Yes | Yes | Yes |
 | `journal_entries` | Yes | Yes | Yes | Yes |
+| `mood_entries` | Yes | Yes | Yes | Yes |
+| `safety_plans` | Yes | Yes | Yes | Yes |
 | `otp_failures` | Yes | Yes | No | Yes |
 | `user_identities` | Yes | Yes | No | Yes |
 | `login_failures` | Yes | Yes | No | Yes |
@@ -240,7 +266,7 @@ The role can write audit rows but cannot read them back. It can delete them beca
 
 ## Row-level security
 
-RLS is enabled on all twelve tables. Eleven have one policy:
+RLS is enabled on all fourteen tables. Thirteen have one policy:
 
 ```sql
 CREATE POLICY runtime_all ON app.<table> TO anxiocare_runtime USING (true) WITH CHECK (true);
@@ -250,7 +276,7 @@ CREATE POLICY runtime_all ON app.<table> TO anxiocare_runtime USING (true) WITH 
 
 - `anxiocare_runtime` can reach every row its table grants allow.
 - Any other non-owner role, such as Supabase's `anon` or `authenticated`, sees nothing, even if someone grants it a table by mistake.
-- **RLS does not separate one person from another.** `USING (true)` lets the runtime role see all users' rows. That separation comes only from `WHERE user_id = ...` in each query, and is covered by the cross-user tests in [data.test.ts](../apps/api/test/data.test.ts).
+- **RLS does not separate one person from another.** `USING (true)` lets the runtime role see all users' rows. That separation comes only from `WHERE user_id = ...` in each query, and is covered by the cross-user tests in [data.test.ts](../apps/api/test/data.test.ts) and [tracking.test.ts](../apps/api/test/tracking.test.ts).
 - The migration role owns the tables, and RLS is not forced, so it can see every row.
 
 Why it is this way: [decision 005](decisions/005-rls-role-scoped-policies.md). The design spec says "RLS enabled with no policies". The code is what applies.
@@ -271,7 +297,7 @@ Runner: [apps/api/src/migrate.ts](../apps/api/src/migrate.ts). `npm run migrate`
 - An applied file whose checksum changed, or that is missing from disk, stops the run. History must not be rewritten.
 - The server does not migrate at boot. `render.yaml` runs it as `preDeployCommand`, and starts the server without the migration URL.
 
-Applied so far: `001_init.sql`, `002_accounts.sql`.
+Applied so far: `001_init.sql`, `002_accounts.sql`, `003_devices_and_reauth.sql`, `004_mood_and_safety_plan.sql`.
 
 ### Adding a migration
 

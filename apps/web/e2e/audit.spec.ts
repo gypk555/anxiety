@@ -125,3 +125,34 @@ for (const name of ['checkin-q1', 'checkin-q2-long', 'checkin-difficulty']) {
     }
   });
 }
+
+test('print view of the doctor report: A4, black on white, a page per section, no controls', async ({ page }, info) => {
+  await openScreen(page, SCREENS.find((s) => s.name === 'report-everything')!);
+  await page.emulateMedia({ media: 'print', colorScheme: 'dark' });
+  await expect(page.getByRole('button', { name: 'Save as PDF or print' })).toBeHidden();
+  await expect(page.getByRole('checkbox', { name: 'Mood notes' })).toBeHidden();
+  await expect(page.getByRole('link', { name: /Get help/ })).toBeHidden();
+  const sections = page.locator('.report-section');
+  expect(await sections.count()).toBeGreaterThanOrEqual(4);
+  const style = await page.evaluate(() => {
+    const [first, second] = [...document.querySelectorAll('.report-section')];
+    return {
+      first: getComputedStyle(first!).breakBefore,
+      second: getComputedStyle(second!).breakBefore,
+      body: getComputedStyle(document.body).backgroundColor,
+      ink: getComputedStyle(document.querySelector('.report h2')!).color,
+    };
+  });
+  expect(style).toEqual({ first: 'auto', second: 'page', body: 'rgb(255, 255, 255)', ink: 'rgb(0, 0, 0)' });
+  await expect(page.getByText('Self-reported. A screening, not a diagnosis.')).toBeVisible();
+  if (SHOTS && info.project.name === 'pixel') await page.screenshot({ path: `${SHOTS}/report-print.png`, fullPage: true });
+});
+
+test('print view of the safety plan keeps every step and number, and drops the controls', async ({ page }, info) => {
+  await openScreen(page, SCREENS.find((s) => s.name === 'safety-plan')!);
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByRole('link', { name: 'Change your plan' })).toBeHidden();
+  await expect(page.getByText('Call Didi, +91 98765 43210')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Step 7:/ })).toBeVisible();
+  if (SHOTS && info.project.name === 'pixel') await page.screenshot({ path: `${SHOTS}/safety-plan-print.png`, fullPage: true });
+});

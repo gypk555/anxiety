@@ -119,6 +119,12 @@ Only in the API, with no shared schema:
 | `GET /journal/:id` | Yes | **Yes** | Global | 200 |
 | `PATCH /journal/:id` | Yes | **Yes** | 60 / min | 200 |
 | `DELETE /journal/:id` | Yes | **Yes** | Global | 204 |
+| `GET /moods?from=&to=` | Yes | **Yes** | Global | 200 `{ items }` |
+| `PUT /moods/:day` | Yes | **Yes** | 60 / min | 200 |
+| `DELETE /moods/:day` | Yes | **Yes** | Global | 204 |
+| `GET /safety-plan` | Yes | **Yes** | Global | 200 or 404 |
+| `PUT /safety-plan` | Yes | **Yes** | 60 / min | 200 |
+| `DELETE /safety-plan` | Yes | **Yes** | Global | 204 |
 | `GET /meta` | No | No | Global | 200 |
 | `GET /healthz` | No | No | None | 200 |
 | `GET /readyz` | No | No | Web bucket | 200 or 503 |
@@ -290,6 +296,8 @@ Needs a recent re-authentication, not a password: email codes always remain. 204
   "consents": [{ "version": "...", "adultConfirmed": true, "healthDataConsent": true, "acceptedAt": "ISO" }],
   "assessments": ["Assessment, newest first"],
   "journal": ["JournalEntry, newest first"],
+  "moods": ["MoodEntry, oldest day first"],
+  "safetyPlan": "SafetyPlan with updatedAt, or null",
   "sessions": [{ "id": "uuid", "deviceLabel": "...", "createdAt": "ISO", "lastSeenAt": "ISO", "expiresAt": "ISO" }]
 }
 ```
@@ -386,6 +394,60 @@ Query: `limit`, `cursor`. 200 page of `JournalEntry`, ordered by `createdAt`. Er
 #### `DELETE /journal/:id`
 
 204. Errors: 401, 403 `consent_required`, 404.
+
+### Daily mood log
+
+One entry per calendar day, where the day is the person's own local date as `YYYY-MM-DD`, sent by the phone. Schemas: `moodBody`, `moodResponse`, `moodRangeQuery` in [packages/shared/src/tracking.ts](../packages/shared/src/tracking.ts).
+
+```json
+{ "rating": 3, "note": "up to 280 characters, may be empty" }
+```
+
+`rating` is an integer from 1 (Very low) to 5 (Very good). `note` is trimmed and required, even if empty. Unknown keys are refused. `MoodEntry` is this plus `day`, `createdAt` and `updatedAt`.
+
+The server doesn't know the person's time zone, so it accepts any day from 366 days before today in UTC-12 up to today in UTC+14 (`moodDayAllowedOnServer`). The app applies the exact rule, no future day and nothing more than 366 days back, in the phone's own zone.
+
+#### `GET /moods?from=YYYY-MM-DD&to=YYYY-MM-DD`
+
+Both required. `to` on or after `from`, at most 400 days apart. 200 `{ "items": MoodEntry[] }`, ordered by day, oldest first, not paginated: a range holds at most 401 rows. Errors: 400, 401, 403 `consent_required`.
+
+#### `PUT /moods/:day`
+
+Idempotent upsert: logging again on the same day replaces the rating and note, keeps `createdAt` and moves `updatedAt`. 200 `MoodEntry`, for a new day and an update alike. Errors: 400 `validation_failed` for a day that isn't a real date, is in the future or is too old (`fieldErrors.day`), or for a bad body; 401; 403 `consent_required`.
+
+#### `DELETE /moods/:day`
+
+204. Errors: 400 for a day that isn't a real date, 401, 403 `consent_required`, 404 when there is no entry for that day.
+
+### Safety plan
+
+One plan per account, after the Stanley-Brown safety plan. PUT always sends the whole plan, and every section may be an empty list. Schemas: `safetyPlanBody`, `safetyPlanResponse`.
+
+```json
+{
+  "warningSigns": ["up to 10, each 1 to 200 characters"],
+  "copingStrategies": [],
+  "distractions": [],
+  "helpContacts": [{ "name": "1 to 80 characters", "phone": "up to 20 of 0-9 space + ( ) -, with a digit, or empty" }],
+  "professionals": [{ "name": "Dr Rao", "phone": "080 2345 6789" }],
+  "saferSurroundings": [],
+  "reasonsToLive": []
+}
+```
+
+Strings are trimmed. At most 10 contacts in each contact list. Helplines and 112 are not stored: the app shows them from `HELPLINES`. The response is the plan plus `updatedAt`. Other people's names and numbers are sealed with the rest of the plan, and never logged.
+
+#### `GET /safety-plan`
+
+200 plan. Errors: 401, 403 `consent_required`, 404 when none has been saved.
+
+#### `PUT /safety-plan`
+
+Upsert of the whole plan. 200 plan. Errors: 400, 401, 403 `consent_required`.
+
+#### `DELETE /safety-plan`
+
+204. Errors: 401, 403 `consent_required`, 404 when there is none.
 
 ### Public
 

@@ -48,7 +48,8 @@ each e2e test its own address, or `DEV_FRESH=1` between runs.
 - `GET /auth/sessions` returns `{ "items": SessionInfo[] }`, not paginated.
 - `POST /assessments` returns 201 for a new row and 200 with the original row on replay.
 - `GET /meta` returns `metaResponse` from `shared`: operator and consent details, plus `backupRetentionDays`, `dataLocation`, `serverLocation` and `mailProvider`.
-- `GET /me/export` returns `{ exportedAt, account, consents, assessments, journal, sessions }`.
+- `GET /me/export` returns `{ exportedAt, account, signInMethods, consents, assessments, journal, moods, safetyPlan, sessions }`.
+- `PUT /moods/:day` and `PUT /safety-plan` are upserts, and answer 200 either way. A day that isn't a real `YYYY-MM-DD` is `400 validation_failed`, not 404.
 - A verify failure is `400 invalid_code`. A taken address at email verify is `409 conflict`, only after both correct codes.
 - `POST /me/email/verify` takes `{ newEmail, currentCode, code }`: `currentCode` from the current inbox, `code` from the new one.
 - Past 2,000 journal entries or 1,000 assessments, a create is `409 conflict` with words for people in `detail`.
@@ -79,7 +80,7 @@ each e2e test its own address, or `DEV_FRESH=1` between runs.
   address, neutrally.
 - **Sign-in notice**: every sign-in after an account's first mails its owner the device label and how to sign out everywhere. New
   sessions cannot be told from old devices, because nothing identifying a device is stored, so a returning device also gets one.
-- **Padding**: every sealed text is padded inside `crypto.ts` before AES-GCM, to a fixed size or (journal) 4 KB steps, so that a database dump
+- **Padding**: every sealed text is padded inside `crypto.ts` before AES-GCM, to a fixed size (mood entries pad to 2 KB, so all are one size) or in steps (journal 4 KB, safety plan 16 KB), so that a database dump
   cannot read a severity or a length.
 - **Audit times** are to the UTC day, enforced by a `CHECK`, so audit rows cannot be joined to session times.
 - **Erasure**: rows go at once. Encrypted backups keep a copy until they age out, `BACKUP_RETENTION_DAYS` later, and a backup plus the master

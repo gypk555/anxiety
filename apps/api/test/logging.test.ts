@@ -1,7 +1,8 @@
 import { Writable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.ts';
-import { API, assessmentPayload, CapturingMailer, Client, createHarness, journalPayload, ORIGIN, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
+import { addDays } from '@anxiocare/shared';
+import { API, assessmentPayload, CapturingMailer, Client, createHarness, journalPayload, moodPayload, ORIGIN, safetyPlanPayload, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
 
 let h: Harness;
 beforeAll(async () => {
@@ -36,11 +37,19 @@ describe('logs', () => {
     await client.post(`${API}/auth/otp/request`, { email: 'bad-LogMarkerEmail' });
     await client.get('/nothing/here?LogMarkerQuery=1');
     await client.request({ method: 'POST', url: `${API}/auth/otp/request`, payload: '{bad LogMarkerJson', headers: { 'content-type': 'application/json' } });
+    const moodDay = addDays(new Date().toISOString().slice(0, 10), -123);
+    const rangeFrom = addDays(moodDay, -45);
+    await client.request({ method: 'PUT', url: `${API}/moods/${moodDay}`, payload: moodPayload({ note: 'LogMarkerMood' }) });
+    await client.get(`${API}/moods?from=${rangeFrom}&to=${moodDay}`);
+    await client.request({ method: 'PUT', url: `${API}/moods/${moodDay}`, payload: moodPayload({ rating: 9 }) }); // 400
+    await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload({ helpContacts: [{ name: 'LogMarkerContact', phone: '+91 91234 56781' }] }) });
+    await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload({ helpContacts: [{ name: 'LogMarkerBad', phone: 'LogMarkerPhone' }] }) }); // 400
+    await client.get(`${API}/safety-plan`);
     await client.get(`${API}/me/export`);
 
     const all = h.logs.join('\n');
     expect(h.logs.length).toBeGreaterThan(5);
-    for (const secret of [email, 'never-logged', cookie, code, ip, userAgent, userId, entry.id, 'LogMarker', 'cookie', 'set-cookie', 'authorization', 'x-forwarded']) {
+    for (const secret of [email, 'never-logged', cookie, code, ip, userAgent, userId, entry.id, 'LogMarker', moodDay, rangeFrom, '91234', 'SecretContactName', 'SECRET-', 'cookie', 'set-cookie', 'authorization', 'x-forwarded']) {
       expect([secret, all.includes(secret)]).toEqual([secret, false]);
     }
   });

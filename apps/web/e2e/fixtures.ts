@@ -1,3 +1,4 @@
+import { CONSENT_VERSION } from '@anxiocare/shared';
 import type { Page } from '@playwright/test';
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
@@ -10,8 +11,8 @@ export const me = (over: Record<string, unknown> = {}) => ({
   displayName: 'Asha',
   createdAt: '2026-08-01T04:00:00.000Z',
   consentRequired: false,
-  consentVersion: '2026-11-07',
-  acceptedConsentVersion: over.consentRequired ? null : '2026-11-07',
+  consentVersion: CONSENT_VERSION,
+  acceptedConsentVersion: over.consentRequired ? null : CONSENT_VERSION,
   ...over,
 });
 
@@ -63,6 +64,30 @@ export const SESSIONS = [
   { id: '44444444-4444-4444-8444-444444444442', deviceLabel: 'Safari on iPhone', createdAt: '2026-09-01T04:00:00.000Z', lastSeenAt: '2026-10-29T15:20:00.000Z', current: false },
 ];
 
+const localDay = (daysAgo: number) => {
+  const d = new Date(Date.now() - daysAgo * 86_400_000);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+/** A month of made-up mood days, with gaps, ending yesterday, so Home still asks about today. */
+export const MOODS = [26, 24, 21, 19, 18, 15, 12, 10, 9, 7, 5, 4, 2, 1].map((ago, i) => ({
+  day: localDay(ago),
+  rating: [3, 2, 2, 3, 4, 3, 1, 2, 3, 4, 4, 3, 2, 3][i]!,
+  note: ago === 4 ? 'Slept well for once. Walked to the market.' : ago === 12 ? 'Hard day at work.' : '',
+  createdAt: '2026-11-01T04:00:00.000Z',
+  updatedAt: '2026-11-01T04:00:00.000Z',
+}));
+
+export const PLAN = {
+  warningSigns: ['Not sleeping, lying awake going over things', 'Staying in my room and not answering calls'],
+  copingStrategies: ['Slow breathing, four in and six out', 'A cold glass of water, then a walk around the block'],
+  distractions: ['Chai with Meena downstairs', 'The park near the temple'],
+  helpContacts: [{ name: 'Didi', phone: '+91 98765 43210' }, { name: 'Rahul from college', phone: '98200 12345' }],
+  professionals: [{ name: 'Dr Iyer at the clinic', phone: '(080) 2345-6789' }],
+  saferSurroundings: ['Ask Didi to keep my tablets for now'],
+  reasonsToLive: ['My niece, who calls me every Sunday', 'Seeing the monsoon come in again'],
+  updatedAt: '2026-11-10T10:00:00.000Z',
+};
+
 export interface MockOptions {
   signedIn?: boolean;
   consentRequired?: boolean;
@@ -87,7 +112,7 @@ export async function mockApi(page: Page, options: MockOptions = {}) {
     const json = (body: unknown, status = 200) =>
       route.fulfill({ status, contentType: status >= 400 ? 'application/problem+json' : 'application/json', body: JSON.stringify(body) });
 
-    if (path === '/meta') return json({ operatorName: 'AnxioCare Health LLP', grievanceEmail: 'grievance@anxiocare.example', consentVersion: '2026-11-07', backupRetentionDays: 7, dataLocation: 'Mumbai, India', serverLocation: 'Singapore', mailProvider: 'our email provider', googleEnabled });
+    if (path === '/meta') return json({ operatorName: 'AnxioCare Health LLP', grievanceEmail: 'grievance@anxiocare.example', consentVersion: CONSENT_VERSION, backupRetentionDays: 7, dataLocation: 'Mumbai, India', serverLocation: 'Singapore', mailProvider: 'our email provider', googleEnabled });
     if (method === 'POST' && path === '/auth/otp/request') return route.fulfill({ status: 202 });
     if (path === '/auth/otp/verify') return json(account());
     if (method === 'POST' && (path === '/auth/register/request' || path === '/auth/password/forgot')) return route.fulfill({ status: 202 });
@@ -102,6 +127,13 @@ export async function mockApi(page: Page, options: MockOptions = {}) {
     if (path.startsWith('/assessments/')) {
       const found = ASSESSMENTS.find((a) => path.endsWith(a.id));
       return found ? json(found) : json({ type: 'about:blank', title: 'Not found', status: 404, code: 'not_found' }, 404);
+    }
+    if (path === '/moods') return json({ items: empty ? [] : MOODS });
+    if (path.startsWith('/moods/')) return method === 'DELETE' ? route.fulfill({ status: 204 }) : json({ ...MOODS[0]!, day: path.slice(7) });
+    if (path === '/safety-plan') {
+      if (method === 'GET') return empty ? json({ type: 'about:blank', title: 'Not found', status: 404, code: 'not_found' }, 404) : json(PLAN);
+      if (method === 'PUT') return json(PLAN);
+      return route.fulfill({ status: 204 });
     }
     if (path === '/journal') return json({ items: empty ? [] : ENTRIES, nextCursor: null });
     if (path.startsWith('/journal/')) {

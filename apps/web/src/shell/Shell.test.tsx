@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderRoutes, mockFetch } from '@/test/render';
 import { RouteError } from './RouteError';
 import { Shell } from './Shell';
+import * as exit from '@/lib/quick-exit';
+import { Sheet } from '@/ui/Sheet';
 
 const refresh = vi.fn();
 let needRefresh = false;
@@ -32,6 +34,7 @@ const routes = [
           { path: '/help', element: <h1>Help screen</h1> },
           { path: '/check-in/1', element: <h1>Question</h1>, handle: { focus: true } },
           { path: '/broken', element: <Boom /> },
+          { path: '/sheet', element: <><h1>With a sheet</h1><Sheet open onClose={() => {}} title="A sheet">Inside</Sheet></> },
         ],
       },
     ],
@@ -77,5 +80,39 @@ describe('shell', () => {
     mockFetch({});
     renderRoutes(routes, '/');
     expect(await screen.findByRole('status')).toHaveTextContent(/offline/);
+  });
+
+  it('has a quick exit next to "Get help" on every screen, including mid check-in, reachable by keyboard', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(exit, 'quickExit').mockImplementation(() => {});
+    mockFetch({});
+    renderRoutes(routes, '/check-in/1');
+    const button = await screen.findByRole('button', { name: 'Quick exit' });
+    const header = screen.getByRole('banner');
+    expect(header).toContainElement(button);
+    expect(within(header).getByRole('link', { name: 'Get help' })).toBeVisible();
+    button.focus();
+    await user.keyboard('{Enter}');
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('a quick exit is inside every open sheet too, because a modal makes the header unreachable', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(exit, 'quickExit').mockImplementation(() => {});
+    mockFetch({});
+    renderRoutes(routes, '/sheet');
+    const dialog = await screen.findByRole('dialog', { name: 'A sheet' });
+    await user.click(within(dialog).getByRole('button', { name: 'Quick exit' }));
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape three times exits from anywhere in the app', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(exit, 'quickExit').mockImplementation(() => {});
+    mockFetch({});
+    renderRoutes(routes, '/');
+    await screen.findByRole('heading', { name: 'Home' });
+    await user.keyboard('{Escape}{Escape}{Escape}');
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

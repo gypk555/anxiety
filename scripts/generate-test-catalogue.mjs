@@ -78,6 +78,17 @@ function level(file) {
 }
 
 const DESCRIBE_AREAS = [
+  [/^user-rate-limit\.test/, 'Security: per-user caps'],
+  [/^brevo\.test/, 'Security: mail'],
+  [/^tracking\.test.*safety plan/, 'Product: safety plan'],
+  [/^tracking\.test.*(at rest)/, 'Security: encryption'],
+  [/^tracking\.test.*access/, 'Security: authorisation'],
+  [/^tracking\.test/, 'Product: mood log'],
+  [/^(vault|session-vault)\.test/, 'Security: client storage'],
+  [/^quick-exit\.(test|spec)/, 'Clinical safety: quick exit'],
+  [/^SafetyPlan\.test|^safety-plan\.spec/, 'Product: safety plan'],
+  [/^(MoodCard|MoodChart|MoodLog|Trends)\.test|^mood\.spec/, 'Product: mood log'],
+  [/^Report\.test|^report\.spec/, 'Product: doctor report'],
   [/^notify\.test/, 'Operations: breach notification'],
   [/^dev-script\.test/, 'Operations: dev server'],
   [/^(sound|Sounds|Breathe)\.test/, 'Product: tools'],
@@ -299,7 +310,7 @@ const REQUIREMENTS = [
     R('SEC-HTTP-08', 'Per-route rate limits', 'Covered', [T('otp.test', /per-IP route limit/), T('http.test', /files and the API are counted apart/), T('hardening.test', /a route limit applies/)], '', ['MT-SEC-11']),
   ]},
   { section: 'Security: logging, config, client, mail, supply chain', rows: [
-    R('SEC-LOG-01', 'pino allow-list: method, route template, status, duration, request id. Never bodies, cookies, emails, IPs, query strings', 'Covered', [T('logging.test', /^logs > /), T('https.spec', /self-check line/), T('hardening.test', /logs the class of address once/)], '', ['MT-DEP-09']),
+    R('SEC-LOG-01', 'pino allow-list: method, route template, status, duration, request id. Never bodies, cookies, emails, IPs, query strings', 'Covered', [T('logging.test', /^logs > /), T('https.spec', /self-check line/), T('hardening.test', /logs each pattern of address headers once/)], '', ['MT-DEP-09']),
     R('SEC-LOG-02', 'Audit table: times to the day, HMAC-pseudonymised actor, for login, logout, consent, export, delete, email change', 'Covered', [T('erasure.test', /records login, logout/), T('erasure.test', /is audited/), T('erasure.test', /pseudonymous audit rows/), T('hardening.test', /stores audit times to the day/), T('hardening.test', /refuses a precise audit time/)]),
     R('SEC-CFG-01', 'Validate env at boot with zod; refuse to start if invalid', 'Covered', [T('config.test', /requires everything/), T('config.test', /names the variable/), T('config.test', /refuses PUBLIC_ORIGIN/), T('hardening.test', /refuses a header name/)], 'Tests `loadConfig`. The exit itself is manual.', ['MT-DEP-20']),
     R('SEC-CFG-02', 'Production refuses dev mail transport, missing CA, weak keys', 'Covered', [T('config.test', /refuses the dev mail transport/), T('config.test', /createMailer refuses/), T('config.test', /missing or invalid CA/), T('config.test', /refuses weak keys/), T('config.test', /refuses a weak key/)], '', ['MT-DEP-20']),
@@ -408,6 +419,29 @@ const REQUIREMENTS = [
     R('NG-04', 'No diagnosis, AI advice, invented statistics, or gamification', 'None', [], 'A copy review.', ['MT-CLN-04']),
     R('NG-05', 'Under-18s not served', 'Partial', [T('data.test', /requires all three/)], 'A self-declaration can only be checked for being required.', ['MT-CON-02']),
   ]},
+  // docs/superpowers/specs/2026-11-11-safety-and-tracking-design.md
+  { section: 'Safety and tracking (2026-11-11 spec)', rows: [
+    R('ST-QX-01', 'Quick exit on every screen, signed in or not, mid check-in and on Help, next to Get help, keyboard reachable', 'Covered', [T('Shell.test', /quick exit next to "Get help"/), T('live/quick-exit.spec', /from every guest screen/), T('live/quick-exit.spec', /from every signed-in screen/), T('live/quick-exit.spec', /reachable by keyboard/)], '', ['MT-QX-01', 'MT-QX-02', 'MT-QX-03', 'MT-QX-10']),
+    R('ST-QX-02', 'Replaces the history entry first, clears query cache, drafts and form text, attempts no sign-out', 'Covered', [T('quick-exit.test', /replaces the current history entry/), T('quick-exit.test', /clears the query cache/), T('quick-exit.test', /asks nothing of the network/), T('live/quick-exit.spec', /mid check-in/), T('live/quick-exit.spec', /gone from the screen before/)], 'The query cache is checked in a unit test: a page that has navigated away has no cache to inspect.', ['MT-QX-04', 'MT-QX-09']),
+    R('ST-QX-03', 'Escape three times within 1.5 s, except while typing', 'Covered', [T('quick-exit.test', /^Escape three times > /), T('Shell.test', /Escape three times/), T('live/quick-exit.spec', /Escape three times exits/)], '', ['MT-QX-07']),
+    R('ST-QX-04', 'Never blocked by modals, unsaved-change prompts, the service worker or the network; works offline', 'Covered', [T('Shell.test', /inside every open sheet/), T('live/quick-exit.spec', /not blocked by an open sheet/), T('live/quick-exit.spec', /not held back by an unsaved draft/), T('live/quick-exit.spec', /offline, the app still leaves/)], '', ['MT-QX-05', 'MT-QX-06']),
+    R('ST-QX-05', '"About quick exit" on Help says what it does and does not do', 'Covered', [T('Legal.test', /Help explains quick exit/)], 'Wording needs clinician and safety review.'),
+    R('ST-SP-01', 'Seven Stanley-Brown sections in order, all optional, examples as hints only, helplines prefilled', 'Covered', [T('tracking.test', /follows the Stanley-Brown order/), T('SafetyPlan.test', /example as a hint/), T('SafetyPlan.test', /always lists 112/)], 'Copy needs clinician review: docs/CLINICAL-SAFETY.md.'),
+    R('ST-SP-02', 'Signed-in plan on the server, sealed like the journal, one per account', 'Covered', [T('api/test/tracking.test', /is 404 until saved/), T('api/test/tracking.test', /16 KB size steps/), T('api/test/tracking.test', /moved to another person/), T('encryption.test', /raw SELECT of every table/)], ''),
+    R('ST-SP-03', 'Offline copy: non-extractable WebCrypto key and ciphertext in IndexedDB, nothing readable in any browser storage', 'Covered', [T('vault.test', /holds nothing readable/), T('vault.test', /cannot be exported/), T('live/safety-plan.spec', /opens offline after one load/), T('live/safety-plan.spec', /a guest makes a plan/)], '', ['MT-SP-01', 'MT-SP-02', 'MT-SP-07']),
+    R('ST-SP-04', 'Cleared on sign-out, account deletion and another account signing in', 'Covered', [T('session-vault.test', /^the device copy follows the session > /), T('vault.test', /another account's sign-in removes it/), T('live/safety-plan.spec', /signing out removes the device copy/), T('live/safety-plan.spec', /second account on the same device/)], '', ['MT-SP-04', 'MT-SP-05']),
+    R('ST-SP-05', 'Guests keep a device-only plan after a notice, can delete it, and can move it to an account after sign-in', 'Covered', [T('SafetyPlan.test', /guest is told in one line/), T('SafetyPlan.test', /delete the device copy/), T('SafetyPlan.test', /offers to move a guest plan/), T('live/safety-plan.spec', /guest plan moves to the account/)], '', ['MT-SP-06']),
+    R('ST-SP-06', 'One-tap tel: links for people and professionals; print view', 'Covered', [T('SafetyPlan.test', /one-tap call buttons/), T('audit.spec', /print view of the safety plan/)], 'A real dial needs a real phone.', ['MT-SP-03', 'MT-SP-08', 'MT-SP-09']),
+    R('ST-SP-07', 'Bounds: 10 items of 200, contacts 80 and 20 from [0-9 +()-]', 'Covered', [T('tracking.test', /bounds lists at 10 items/), T('api/test/tracking.test', /validates bounds/)], ''),
+    R('ST-MD-01', '1 to 5 in words, optional note of 280, one per local day, same-day update, no future, at most 366 back', 'Covered', [T('tracking.test', /five levels in words/), T('MoodCard.test', /saves today by the phone/), T('api/test/tracking.test', /refuses future days/), T('MoodLog.test', /never a future day/), T('live/mood.spec', /logs today from Home/)], '', ['MT-SP-12']),
+    R('ST-MD-02', 'Gentle Home card, no streaks or nagging', 'Covered', [T('MoodCard.test', /no streaks or reminders/), T('MoodLog.test', /never scolds/)], ''),
+    R('ST-MD-03', 'Separate chart and table, labelled not a test score, never on the GAD-7 axis', 'Covered', [T('MoodChart.test', /^MoodChart > /), T('Trends.test', /own chart/), T('live/mood.spec', /logs today from Home/)], ''),
+    R('ST-MD-04', 'Rating and note sealed, date plain; in export and erasure', 'Covered', [T('api/test/tracking.test', /same size/), T('api/test/tracking.test', /between two days/), T('erasure.test', /downloads all decrypted data/), T('erasure.test', /hard-deletes every row/)], ''),
+    R('ST-RP-01', 'Report: period and opt-in sections with the right defaults, name optional, footer', 'Covered', [T('Report.test', /by default/), T('Report.test', /sections on and off/), T('Report.test', /period limits/), T('live/report.spec', /sections on and off/)], ''),
+    R('ST-RP-02', 'Built in the browser, printed by the browser, A4 black on white, a page per section', 'Covered', [T('Report.test', /no server PDF/), T('audit.spec', /print view of the doctor report/), T('live/report.spec', /own stylesheet/)], 'A real A4 PDF from a phone is a manual check.', ['MT-SP-10', 'MT-SP-11']),
+    R('ST-API-01', 'Moods and safety-plan endpoints: auth, consent, cross-user 404, bounds, per-user limit', 'Covered', [T('api/test/tracking.test', /^access > /), T('api/test/tracking.test', /validates the range/)], ''),
+    R('ST-UX-01', 'Every new screen: axe, 320px, landscape, no CSP violations', 'Covered', [T('audit.spec', /^(safety-plan|mood-log|report|trends-mood)/), T('live/a11y.spec', /mood log, safety plan and report/), T('live/landscape.spec', /fit a small phone on its side/)], ''),
+  ]},
 ];
 
 // ── Rendering ─────────────────────────────────────────────────────────
@@ -458,7 +492,7 @@ function render(tests) {
 
 <!-- Generated by scripts/generate-test-catalogue.mjs. Do not edit by hand: change the script or the tests, then regenerate. -->
 
-Every automated test in the repository, as the test runners themselves list them, and a matrix from each requirement in \`${SPEC}\`, and the accounts spec \`docs/superpowers/specs/2026-11-07-accounts-and-database-design.md\`, to the tests that cover it.
+Every automated test in the repository, as the test runners themselves list them, and a matrix from each requirement in \`${SPEC}\`, the accounts spec \`docs/superpowers/specs/2026-11-07-accounts-and-database-design.md\`, and the safety and tracking spec \`docs/superpowers/specs/2026-11-11-safety-and-tracking-design.md\`, to the tests that cover it.
 
 **Regenerate** after changing tests, from the repository root. It needs only \`npm ci\`: it does not start a browser or a database, and it does not run anything.
 

@@ -233,6 +233,19 @@ export const journalPayload = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+export const moodPayload = (overrides: Record<string, unknown> = {}) => ({ rating: 2, note: 'SECRET-MOOD-NOTE about the day', ...overrides });
+
+export const safetyPlanPayload = (overrides: Record<string, unknown> = {}) => ({
+  warningSigns: ['SECRET-WARNING not sleeping'],
+  copingStrategies: [],
+  distractions: [],
+  helpContacts: [{ name: 'SecretContactName', phone: '+91 98765 43210' }],
+  professionals: [{ name: 'Dr SecretDoctor', phone: '080 2345 6789' }],
+  saferSurroundings: [],
+  reasonsToLive: ['SECRET-REASON my daughter'],
+  ...overrides,
+});
+
 export const assessmentPayload = (overrides: Record<string, unknown> = {}) => ({
   clientRequestId: randomUUID(),
   answers: [3, 3, 2, 2, 1, 1, 0],

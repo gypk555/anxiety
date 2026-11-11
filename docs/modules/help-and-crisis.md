@@ -6,10 +6,11 @@ A person in distress must reach a helpline in one tap, from anywhere, with no ac
 
 ## User-facing behaviour
 
-- **"Get help"** is in the header on every screen, including mid check-in, the code screen, the consent gate and not-found.
-- **`/help`**: a yellow "Call 112" button first, then each helpline with a call button, hours and a description. WhatsApp and website links where available. Then guidance on thoughts of self-harm, links to breathing and grounding, and how and when the numbers were checked. No login and no animation.
+- **"Get help"** is in the header on every screen, including mid check-in, the code screen, the consent gate and not-found. A quieter "Quick exit" sits beside it. See [quick exit](quick-exit.md).
+- **`/help`**: a yellow "Call 112" button first, then each helpline with a call button, hours and a description. WhatsApp and website links where available. Then guidance on thoughts of self-harm, a link to the person's [safety plan](safety-plan.md), links to breathing and grounding, "About quick exit", and how and when the numbers were checked. No login and no animation.
 - **Before the app loads**: after 2.5 seconds on a slow load, "Still loading" and call links fade in. With JavaScript off, the same links show.
-- **Results**: severe results show Tele-MANAS first, and every result says the GAD-7 doesn't ask about self-harm.
+- **Results**: severe results show Tele-MANAS first, then "Open your safety plan", and every result says the GAD-7 doesn't ask about self-harm.
+- **Safety plan**: step 5 always lists 112 and every helpline, from the same `HELPLINES`.
 - The manifest lists Help as a home-screen shortcut.
 
 Helplines in the code (`HELPLINES`):

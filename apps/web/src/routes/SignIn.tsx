@@ -6,6 +6,7 @@ import { ApiError, errorMessage, request } from '@/lib/api';
 import { safeNext, withNext } from '@/lib/next-path';
 import { hasHeldWork } from '@/lib/held';
 import { meKey, reconcileHeld, useMe } from '@/lib/queries';
+import { forgetOtherAccounts } from '@/lib/vault';
 import { GoogleButton } from '@/ui/GoogleButton';
 import { OtpInput } from '@/ui/OtpInput';
 import { PageTitle } from '@/ui/PageTitle';
@@ -37,6 +38,8 @@ export function useSignedIn(next: string) {
   const navigate = useNavigate();
   return (me: Me) => {
     reconcileHeld(me);
+    // Another account's offline safety plan goes now, not at the next /me refetch.
+    void forgetOtherAccounts(me.id);
     client.setQueryData(meKey, me);
     navigate(afterSignIn(me, next), { replace: true });
   };

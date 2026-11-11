@@ -23,6 +23,10 @@ const JournalDetail = page(() => import('@/routes/Journal').then((m) => ({ defau
 const JournalNew = page(() => import('@/routes/JournalForm').then((m) => ({ default: m.JournalNew })));
 const JournalEdit = page(() => import('@/routes/JournalForm').then((m) => ({ default: m.JournalEdit })));
 const Trends = page(() => import('@/routes/Trends'));
+const MoodLog = page(() => import('@/routes/MoodLog'));
+const Report = page(() => import('@/routes/Report'));
+const SafetyPlanView = page(() => import('@/routes/SafetyPlan').then((m) => ({ default: m.SafetyPlanView })));
+const SafetyPlanEdit = page(() => import('@/routes/SafetyPlan').then((m) => ({ default: m.SafetyPlanEdit })));
 const Settings = page(() => import('@/routes/Settings'));
 const SignIn = page(() => import('@/routes/SignIn').then((m) => ({ default: m.SignIn })));
 const SignInCode = page(() => import('@/routes/SignIn').then((m) => ({ default: m.SignInCode })));
@@ -68,11 +72,16 @@ export const routes = [
           { path: '/privacy', element: <Privacy />, handle: reading },
           { path: '/terms', element: <Terms />, handle: reading },
           { path: '/about', element: <About />, handle: reading },
+          // Guests can keep a plan on this device, so these are outside RequireAccount.
+          { path: '/safety-plan', element: <SafetyPlanView /> },
+          { path: '/safety-plan/edit', element: <SafetyPlanEdit />, handle: focus },
           {
             element: <RequireAccount />,
             children: [
               { path: '/result/:id', element: <SavedResultPage /> },
               { path: '/trends', element: <Trends /> },
+              { path: '/mood', element: <MoodLog /> },
+              { path: '/report', element: <Report />, handle: reading },
               { path: '/journal', element: <JournalList /> },
               { path: '/journal/new', element: <JournalNew />, handle: focus },
               { path: '/journal/:id', element: <JournalDetail /> },

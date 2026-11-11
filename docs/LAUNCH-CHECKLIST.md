@@ -36,7 +36,9 @@ Start these early. They can change the code and the words.
   - [ ] Retention for inactive accounts: decided.
   - [ ] How to file a breach report: written into [OPERATIONS.md](OPERATIONS.md#timeline).
   - [ ] Safe harbour wording: reviewed.
-- [ ] **Clinician review and signed form.** Use the [sign-off form](CLINICAL-SAFETY.md#clinician-review-sign-off). Include the [hazard log](CLINICAL-SAFETY.md#hazard-log). **Blocks launch: Yes.**
+- [ ] **Clinician review and signed form.** Use the [sign-off form](CLINICAL-SAFETY.md#clinician-review-sign-off). Include the [hazard log](CLINICAL-SAFETY.md#hazard-log), and the [safety plan wording](CLINICAL-SAFETY.md#safety-plan-wording), items 19 to 23. **Blocks launch: Yes.**
+- [ ] **Decide whether the Stanley-Brown safety plan needs attribution or permission.** See [clinical safety](CLINICAL-SAFETY.md#safety-plan-wording). **Blocks launch: Yes.**
+- [ ] **Run the real-phone quick exit and safety plan cases**, MT-QX and MT-SP in the [manual test cases](testing/MANUAL-TEST-CASES.md). **Blocks launch: Yes.**
 - [ ] **Have code and copy changes from both reviews made, reviewed and merged.** If the legal notice changes, set `CONSENT_VERSION`. [Operations](OPERATIONS.md#consent-version-bump). **Blocks launch: Yes.**
 
 ## 4. Build the production setup

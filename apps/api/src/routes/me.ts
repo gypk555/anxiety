@@ -20,6 +20,8 @@ import { emptyBody, parse } from '../validate.ts';
 import { signInMethods } from './accounts.ts';
 import { assessmentFromRow, type AssessmentRow } from './assessments.ts';
 import { journalFromRow, type JournalRow } from './journal.ts';
+import { moodFromRow, type MoodRow } from './moods.ts';
+import { safetyPlanFromRow, type SafetyPlanRow } from './safety-plan.ts';
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -117,13 +119,17 @@ export function meRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typeo
   app.get('/me/export', { ...signedIn, config: { rateLimit: { max: 10, timeWindow: '1 hour' } } }, async (request, reply) => {
     const { user } = authOf(request);
     const dek = dekFor(keys, user);
-    const [assessments, journal, sessions, consents] = await Promise.all([
+    const [assessments, journal, moods, plans, sessions, consents] = await Promise.all([
       sql<AssessmentRow[]>`
         SELECT id, taken_at, payload_ct FROM app.assessments WHERE user_id = ${user.id}::uuid ORDER BY taken_at DESC, id DESC
       `,
       sql<JournalRow[]>`
         SELECT id, created_at, updated_at, payload_ct FROM app.journal_entries WHERE user_id = ${user.id}::uuid ORDER BY created_at DESC, id DESC
       `,
+      sql<MoodRow[]>`
+        SELECT day::text AS day, created_at, updated_at, payload_ct FROM app.mood_entries WHERE user_id = ${user.id}::uuid ORDER BY day
+      `,
+      sql<SafetyPlanRow[]>`SELECT updated_at, payload_ct FROM app.safety_plans WHERE user_id = ${user.id}::uuid`,
       sql<{ id: string; device_label_ct: Buffer; created_at: Date; last_seen_at: Date; absolute_expires_at: Date }[]>`
         SELECT id, device_label_ct, created_at, last_seen_at, absolute_expires_at
         FROM app.sessions WHERE user_id = ${user.id}::uuid ORDER BY created_at DESC
@@ -145,6 +151,8 @@ export function meRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typeo
       })),
       assessments: assessments.map((row) => assessmentFromRow(dek, user.id, row)),
       journal: journal.map((row) => journalFromRow(dek, user.id, row)),
+      moods: moods.map((row) => moodFromRow(dek, user.id, row)),
+      safetyPlan: plans[0] ? safetyPlanFromRow(dek, user.id, plans[0]) : null,
       sessions: sessions.map((s) => ({
         id: s.id,
         deviceLabel: openText(dek, s.device_label_ct, 'sessions.device_label', s.id, user.id),
@@ -186,7 +194,7 @@ export function meRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typeo
       if (!(await consumeOtp(sql, keys, otpTarget(keys, 'account_delete', email, user.id), code))) throw invalidCode();
 
       await sql.begin(async (tx) => {
-        // Cascades remove sessions, consents, assessments, journal, Google identities, device tokens and the user's codes. The wrapped
+        // Cascades remove sessions, consents, assessments, journal, mood entries, the safety plan, Google identities, device tokens and the user's codes. The wrapped
         // data key goes with the row, so any stray copy of the ciphertext becomes unreadable.
         await tx`DELETE FROM app.users WHERE id = ${user.id}::uuid`;
         // Every spelling of the address, such as a +tag, shares the quota hash, and goes too.

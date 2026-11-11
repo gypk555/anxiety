@@ -39,11 +39,15 @@ export function open(key: Buffer, blob: Buffer, aad: string): Buffer {
 /**
  * Size steps for padding, by field. Length is the one thing AES-GCM does not hide: without this a
  * severity label, or how much someone wrote, can be read from a database dump. Each step is larger than
- * any value the field can hold, except the journal, whose steps deliberately leave only a coarse size.
+ * any value the field can hold, except the journal and the safety plan, whose steps deliberately leave only a coarse size.
  */
 const PAD_STEP: Readonly<Record<string, number>> = {
   'assessments.payload': 256,
   'journal_entries.payload': 4096,
+  // Larger than any rating and note can be, so every mood row is the same size.
+  'mood_entries.payload': 2048,
+  // A typical plan fits in one step, so a dump shows nothing of its size. The largest possible plan takes a few.
+  'safety_plans.payload': 16384,
   'users.email': 512,
   'users.display_name': 256,
   'sessions.device_label': 64,

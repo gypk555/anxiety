@@ -264,6 +264,46 @@
     outline-offset: -7px;
   }
 
+  /* A safety plan step: its number in a ring of running stitch, the order a person works through it. */
+  .plan-number {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    border: 2px dashed var(--thread);
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  /* The doctor report preview: a plain sheet of paper, large type, read on screen before it's printed. */
+  .report {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    font-size: var(--text-lg);
+  }
+  .report-header,
+  .report-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .report-footer {
+    border-top: 2px solid var(--line);
+    padding-top: 1rem;
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+  }
+
   /* Running stitch as a divider. */
   .stitch-rule {
     height: 2px;
@@ -558,7 +598,42 @@
     break-inside: avoid;
   }
   @page {
+    size: A4;
     margin: 18mm;
+  }
+  /* The doctor report: A4, black on white, a new page for each section, and no controls. */
+  .report {
+    border: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-size: 12pt;
+    gap: 6mm;
+  }
+  .report-section + .report-section {
+    break-before: page;
+  }
+  .report button {
+    display: none !important;
+  }
+  .report table {
+    break-inside: auto;
+  }
+  .report tr,
+  .report-entry {
+    break-inside: avoid;
+  }
+  .report-footer {
+    break-inside: avoid;
+    color: #000 !important;
+  }
+  /* The safety plan on paper: the call buttons become plain lines of text and numbers. */
+  .plan-step .btn {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none !important;
+    color: #000 !important;
+    justify-content: flex-start;
   }
 }
 

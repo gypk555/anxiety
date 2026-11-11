@@ -151,6 +151,11 @@ What each screen should do, from reading the code. **Scripted key presses cover 
 | Journal list | Main button, entries as links | Date, thought, situation for each |
 | Journal form | **Close**, field, **Previous step**, **Next**. Chips by Tab, and Enter in **Add your own** adds it | Step's question as heading and label, hint, error as an alert. "Step n of 5". Slider "n out of 10" |
 | Journal entry | **Edit**, **Delete** | Date, thought as heading, sections with headings |
+| Header | **Quick exit** before **Get help** | "Quick exit, button" (shows **Exit** below 480px) |
+| Safety plan | Call buttons, **Change your plan**, **Print or save as PDF**, **Delete this plan** | Steps as headings, "Step n: title". Calls named "Call <name>, <number>" |
+| Safety plan form | One fieldset per step: items, **Remove item n**, **Add another**, **Add a person** | Legend is the step title, prompt and example as text |
+| Mood card and log | Five word buttons with pressed state, note, **Save for today**, **Change** | Group named "How are you today?". Chart as one image with a summary, and a table |
+| Doctor report | Period radios, section checkboxes, **Save as PDF or print** | Preview region "Report preview", tables with captions and column headers |
 | Settings | Long Tab order, in section order. **Appearance** is one Tab stop, and arrow keys choose. With consent outstanding, the agreement prompt comes first, and the name and email change are absent | Section headings. "This device" or "Last used". "Sign out Chrome on Android" |
 | Any sheet | Focus goes inside, trapped. Esc or **Close** dismisses, and focus returns. Tapping the backdrop closes | Dialog named by its heading |
 | Legal pages | Links only | Heading structure, version date |

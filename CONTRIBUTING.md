@@ -69,7 +69,8 @@ Raise any change to these with the owner first. A passing test suite doesn't mak
 
 **Also:**
 
-- Nothing sensitive in `localStorage`: it's for the theme only. The query cache stays in memory.
+- Nothing sensitive in `localStorage`: it's for the theme only. The query cache stays in memory. The one thing kept on the device on purpose is the safety plan's encrypted copy, in IndexedDB, under a non-extractable key ([decision 013](docs/decisions/013-encrypted-offline-safety-plan.md)). Nothing readable goes there, and sign-out removes the account's copy.
+- Quick exit stays synchronous: no confirmation, no request, nothing awaited. Any `beforeunload` handler checks `isExiting()`.
 - The service worker never caches `/api`.
 - No `dangerouslySetInnerHTML`.
 - Mail wording never names the product or its subject.

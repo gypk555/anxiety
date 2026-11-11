@@ -172,7 +172,64 @@ Follow these for every word shown to a person. They come from the [design specif
 | Attribute the instrument wherever it is presented. | `GAD7_ATTRIBUTION`. |
 | A person's score belongs to them. | No sharing, no comparison with others. |
 
-Any change to clinical copy needs clinician review. That covers `gad7.ts` severity meanings, `Result.tsx`, `Help.tsx`, `CheckIn.tsx`, `Breathe.tsx`, `Ground.tsx`, the Journal prompts, and the Terms.
+Any change to clinical copy needs clinician review. That covers:
+
+- `gad7.ts` severity meanings
+- `Result.tsx`, `Help.tsx`, `CheckIn.tsx`, `Breathe.tsx` and `Ground.tsx`
+- the Journal prompts
+- the safety plan wording in `tracking.ts` and `SafetyPlan.tsx`
+- the mood scale words
+- the doctor report in `Report.tsx`
+- the Terms
+
+## Safety plan wording
+
+**Not yet reviewed by a clinician. It needs review before launch, as items 19 to 23 of the sign-off.**
+
+The plan follows the order and structure of the Stanley-Brown Safety Planning Intervention (Stanley and Brown, 2012). The wording is the app's own, not copied from the published template.
+
+**Owner to decide:** whether the Stanley-Brown authors' permission or an attribution is needed to describe it this way, or to follow its structure. This document doesn't assert either way. The app currently names Stanley-Brown only in code comments and these docs, not on screen.
+
+Rules applied:
+
+- Every section is optional.
+- Nothing is pre-filled except Emergency 112 and the shared `HELPLINES`, which come from `helplines.ts`.
+- Examples are shown as "For example: …" hints, never as values.
+
+Source: `SAFETY_PLAN_SECTIONS` in [packages/shared/src/tracking.ts](../packages/shared/src/tracking.ts), verbatim:
+
+| # | Title | Prompt | Example |
+| --- | --- | --- | --- |
+| 1 | Warning signs that a hard time may be starting | Thoughts, feelings or things you do that tell you it is getting harder. | Not sleeping, staying in my room all day |
+| 2 | Things I can do on my own to calm down | Small things that have helped before, even a little. | Slow breathing, a cold glass of water, a short walk |
+| 3 | People and places that help me take my mind off things | Somewhere to go, or someone to be with, without having to talk about it. | Chai with a friend, the park near home |
+| 4 | People I can ask for help | People you trust to call when it gets hard. | My sister, a friend from college |
+| 5 | Professionals and helplines | Your own doctor or therapist, if you have one. The helplines below are always here. | My doctor at the clinic |
+| 6 | Making my surroundings safer | Ways to put distance between you and anything you could use to hurt yourself. | Ask someone I trust to keep my medicines for now |
+| 7 | What matters most to me, and reasons to keep going | People, hopes, or things you love. | My family, my dog, seeing the monsoon again |
+
+Other plan copy, from [SafetyPlan.tsx](../apps/web/src/routes/SafetyPlan.tsx):
+
+- Under the title: "For hard moments: what helps, and who to call. Written by you, in your own words."
+- Empty plan: "Make a plan while things are calm". "A few lines in each part is plenty, and every part is optional. When a hard moment comes, it's here to read, one step at a time."
+- Form: "Write it at a calmer time. Short lines are best, and every part is optional. You can change it whenever you like."
+- Step 5, under Call 112: "Emergency services, if you or someone else is in immediate danger."
+- Guest: "Without an account, your plan is kept only on this device, encrypted. You can delete it at any time."
+- Account: "A copy is kept on this device, encrypted, so it opens without a connection. Signing out removes it."
+- Offline: "You're offline. This is the copy saved on this device on <date>. Changes need a connection." With no copy: "You're offline, and no safety plan is saved on this device. The helplines below still work."
+- Help: "Your safety plan". "The steps you wrote for hard moments, and the people you can call. Works without an account, and offline once it has opened." The severe result links to it as "Open your safety plan".
+
+**About quick exit**, on Help ([Help.tsx](../apps/web/src/routes/Help.tsx)), verbatim:
+
+> If you need to hide this app at once, tap "Quick exit" at the top of any screen, or press Escape three times quickly on a keyboard. It opens a weather search straight away and clears what this app was showing. It doesn't ask first, and it doesn't sign you out.
+>
+> It can't remove the pages you visited before it from your browser's history. Someone pressing Back may still see that AnxioCare was open, and if you were signed in, your account is still signed in on this phone.
+>
+> To leave no trace, use a private or incognito window, which your browser forgets when you close it. To clear it afterwards, delete your browsing history in your browser's settings, and sign out in Settings here.
+
+**Mood log.** The scale is Very low, Low, Okay, Good, Very good. Home asks "How are you today?". The chart and every mention say "Your daily mood log, not a test score". It's never on the GAD-7 axis. There are no streaks or reminders.
+
+**Doctor report.** The footer reads: "Self-reported. A screening, not a diagnosis.", then `GAD7_ATTRIBUTION`, then "Made on <date>, with AnxioCare." The mood section reads: "The person's own rating of each day, from 1 (Very low) to 5 (Very good). Not a test score, and not part of the GAD-7." Private writing (mood notes, plan, journal) is off by default.
 
 ## Hazard log
 
@@ -199,6 +256,11 @@ Likelihood and severity are unreviewed estimates. **The reviewer should change t
 | H17 | Trend chart read as progress or failure | Discouragement | No celebration. Plain text. Table alternative. | `TrendChart.test.tsx` | Low-Med. Clinician. |
 | H18 | Crisis wording itself causes distress | Distress | Calm wording. Shown only as needed. | Unreviewed | Unknown. Clinician. |
 | H19 | Thought record or check-in lost | Lost trust and work | Failures keep text in memory, and say so. Export. | `failures.spec.ts:38,105,211` | Low. Owner. |
+| H20 | Someone nearby sees the app | Coercion, harm, stigma | Quick exit on every screen and in every sheet, and Escape three times. Help says plainly what it can't do | `quick-exit.spec.ts`, `quick-exit.test.ts` | **Med.** Earlier history entries stay, and the account stays signed in. Owner, clinician. |
+| H21 | Safety plan unavailable in a crisis | Help not reached | Opens offline after one load. Helplines always shown in step 5 | `safety-plan.spec.ts` | Med. Safari can evict storage after 7 days. A first load needs a network. Owner. |
+| H22 | Safety plan wording or examples read as advice, or distress | Harm | Optional, gentle wording, examples as hints only | Unreviewed | Unknown. Clinician. |
+| H23 | Mood log read as a measure, or used to self-judge | Discouragement | "Not a test score". Own axis. No streaks or "missed" | `MoodChart.test.tsx`, `MoodCard.test.tsx` | Low-Med. Clinician. |
+| H24 | A doctor reads the report as a diagnosis | Wrong care | Footer and attribution on every report. Self-reported | `Report.test.tsx` | Low-Med. Clinician. |
 
 ## Clinician review sign-off
 
@@ -234,6 +296,11 @@ For each item, mark Accepted, Accepted with changes, or Not accepted, and add co
 | 16 | Trends display | | |
 | 17 | Hazard log: ratings changed, any hazards added | | |
 | 18 | Anything else that could cause harm | | |
+| 19 | Safety plan: section titles, prompts and examples, as in [Safety plan wording](#safety-plan-wording) | | |
+| 20 | Safety plan: guest, device-copy and offline lines, and the Stanley-Brown basis | | |
+| 21 | "About quick exit" on Help | | |
+| 22 | Mood log scale words, and "not a test score" | | |
+| 23 | Doctor report: sections, defaults, footer, mood wording | | |
 
 **Overall**
 

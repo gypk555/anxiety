@@ -27,6 +27,8 @@ const RUNTIME_GRANTS: Record<string, readonly string[]> = {
   login_failures: ['DELETE', 'INSERT', 'SELECT'],
   oauth_state_uses: ['DELETE', 'INSERT', 'SELECT'],
   device_tokens: ['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
+  mood_entries: ['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
+  safety_plans: ['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
 };
 const OUTSIDE_ROLES = ['anon', 'authenticated'];
 

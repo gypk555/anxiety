@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router';
+import { CONSENT_VERSION } from '@anxiocare/shared';
 import { vi } from 'vitest';
 
 /** Renders routes on a memory router. Shares the app's query client when one is passed. */
@@ -40,7 +41,7 @@ export function mockFetch(table: Record<string, MockResponse | ((body: unknown) 
 export const META = {
   operatorName: 'Test Operator',
   grievanceEmail: 'grievance@example.com',
-  consentVersion: '2026-11-07',
+  consentVersion: CONSENT_VERSION,
   backupRetentionDays: 7,
   dataLocation: 'Mumbai, India',
   serverLocation: 'Singapore',
@@ -54,8 +55,8 @@ export const ME = {
   displayName: 'Asha',
   createdAt: '2026-08-01T04:00:00.000Z',
   consentRequired: false,
-  consentVersion: '2026-11-07',
-  acceptedConsentVersion: '2026-11-07' as string | null,
+  consentVersion: CONSENT_VERSION,
+  acceptedConsentVersion: CONSENT_VERSION as string | null,
 };
 
 export const problem = (status: number, code: string) => ({
