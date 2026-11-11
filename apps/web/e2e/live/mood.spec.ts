@@ -2,16 +2,20 @@ import { api, expect, localDay, seedAssessment, seedMood, signUp, test } from '.
 
 test('logs today from Home, updates the same day, and shows it as its own chart and table on Trends', async ({ page, context }) => {
   await signUp(page, 'mood');
+  // A recent check-in, so Home leads with the full mood card rather than "Time for a check-in".
+  await seedAssessment(context, [1, 1, 1, 1, 1, 1, 1], 1);
+  await page.reload();
   const card = page.getByRole('group', { name: 'How are you today?' });
   await card.getByRole('button', { name: 'Low', exact: true }).click();
+  await expect(page.getByRole('heading', { name: "You're feeling low" })).toBeVisible();
+  await page.getByRole('button', { name: 'Add a note' }).click();
   await page.getByLabel('A note, if you like').fill('Long day at work.');
-  await page.getByRole('button', { name: 'Save for today' }).click();
-  await expect(page.getByText('Today you said')).toBeVisible();
+  await page.getByRole('button', { name: 'Save note' }).click();
+  await expect(page.getByText('Long day at work.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Change' }).click();
   await page.getByRole('group', { name: 'How are you today?' }).getByRole('button', { name: 'Good', exact: true }).click();
-  await page.getByRole('button', { name: 'Save for today' }).click();
-  await expect(page.getByText('Today you said')).toContainText('Good');
+  await expect(page.getByRole('heading', { name: "You're feeling good" })).toBeVisible();
 
   const today = localDay(0);
   const items = (await (await api(context).get(`/moods?from=${today}&to=${today}`)).json()).items;

@@ -12,6 +12,17 @@ The frame around every screen, the URL map, access guards, global error and sess
 - Real URLs, and a working back button. Focus moves to the new screen's heading after navigation, and scroll resets except on back.
 - Skeletons while loading, error states with "Go to Help", and a 404 screen with Home and Help.
 
+### Home
+
+Home leads with what matters today. Only that card is quilted.
+
+- **Signed in**: the date ("Thursday, 12 November") over the greeting; any work left half-done in this tab (resume rows, with a progress bar); then either
+  - **check-in due** (14 days since the last one, or none yet): "Time for a check-in" with both choices, Anxiety check (GAD-7) and Reflection, one tap each, and "Last time: <band>, <score> out of 21. See result"; today's mood follows as one quiet line; or
+  - **not due**: the mood card (one tap saves, see [mood log](mood-log.md)).
+  Then **For right now** (Breathe on the night surface, Ground, Sounds, Write), **Your check-ins** when not due (last result, a "Next <date>" badge, Check in now and See result), and **Your space**: Safety plan, Mood log, Report for your doctor.
+- **First visit or guest**: the rings, "How have the last two weeks been?", a privacy line, both check-in choices, "Overwhelmed? Breathe first", the 18+ line, and a "Want to see how you change over time?" card with Sign in and Create account.
+- The Reflection choice picks its questions on tap; the question bank is loaded then, not in the first bundle.
+
 ## How it works
 
 **Routes**, from [router.tsx](../../apps/web/src/router.tsx). `Help` and `Home` are in the first bundle. All others are `lazy`.

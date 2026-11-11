@@ -1,8 +1,8 @@
 import { emailSchema, googleConnectResponse, OTP_LENGTH, signInMethodsResponse, type Me, type SessionInfo } from '@anxiocare/shared';
 import { passwordProblem } from '@anxiocare/shared/passwords';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Download, Laptop, Moon, Sun } from 'lucide-react';
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Download, Info, KeyRound, Link2, LogOut, Mail, MailCheck, Moon, ScrollText, Shield, Smartphone, SquarePlus, Sun, Trash2, User } from 'lucide-react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { ApiError, errorMessage, NetworkError, passwordFieldError, request, requestFile } from '@/lib/api';
 import { formatDateTime } from '@/lib/dates';
@@ -13,21 +13,13 @@ import { PageTitle } from '@/ui/PageTitle';
 import { PASSWORD_HINT, PasswordField } from '@/ui/PasswordField';
 import { ResendCode } from '@/ui/ResendCode';
 import { ConfirmSheet, Sheet } from '@/ui/Sheet';
+import { SettingsGroup, SettingsRow } from '@/ui/SettingsList';
 import { ErrorState, PageSkeleton } from '@/ui/States';
 
 const CODE_HELP = "Check your spam folder too. If you don't get a code in a few minutes, try again later.";
 
-function Section({ title, id, children }: { title: string; id: string; children: ReactNode }) {
-  return (
-    <section aria-labelledby={id} className="flex flex-col gap-3">
-      <h2 id={id} className="text-xl">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
 const THEMES: { id: ThemeChoice; label: string; icon: typeof Sun }[] = [
-  { id: 'system', label: 'Phone setting', icon: Laptop },
+  { id: 'system', label: 'Phone', icon: Smartphone },
   { id: 'light', label: 'Light', icon: Sun },
   { id: 'dark', label: 'Dark', icon: Moon },
 ];
@@ -45,24 +37,17 @@ function ThemePicker() {
     e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus();
   };
   return (
-    <Section title="Appearance" id="appearance">
-      <div role="radiogroup" aria-labelledby="appearance" className="grid grid-cols-3 gap-2" onKeyDown={onKeyDown}>
+    <section aria-labelledby="appearance" className="flex flex-col gap-2">
+      <h2 id="appearance" className="mx-1 font-body text-sm font-semibold tracking-normal text-ink-soft">Appearance</h2>
+      <div role="radiogroup" aria-labelledby="appearance" className="segmented" onKeyDown={onKeyDown}>
         {THEMES.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={theme === id}
-            tabIndex={theme === id ? 0 : -1}
-            onClick={() => setTheme(id)}
-            className="chip min-h-16 flex-col justify-center gap-1 rounded-2xl px-1 text-center leading-tight"
-          >
-            <Icon aria-hidden="true" className="size-5" />
+          <button key={id} type="button" role="radio" aria-checked={theme === id} tabIndex={theme === id ? 0 : -1} onClick={() => setTheme(id)}>
+            <Icon aria-hidden="true" className="size-[1.125rem] shrink-0" />
             {label}
           </button>
         ))}
       </div>
-    </Section>
+    </section>
   );
 }
 
@@ -81,81 +66,108 @@ function InstallRow() {
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   if (standalone || (!installEvent && !ios)) return null;
   return (
-    <Section title="Keep it on your phone" id="install">
+    <SettingsGroup title="On this phone" id="install">
       {installEvent ? (
-        <button
-          type="button"
-          className="btn btn-quiet"
+        <SettingsRow
+          icon={SquarePlus}
+          title="Add to home screen"
+          description="Help and the tools then open offline."
           onClick={() => {
             void installEvent?.prompt();
             installEvent = null;
             force((n) => n + 1);
           }}
-        >
-          Add to home screen
-        </button>
+        />
       ) : (
-        <p className="text-sm text-ink-soft">In Safari, tap Share, then "Add to Home Screen". Help and the tools will then open offline.</p>
+        <SettingsRow icon={SquarePlus} title="Add to home screen" description={'In Safari, tap Share, then "Add to Home Screen". Help and the tools will then open offline.'} />
       )}
-    </Section>
+    </SettingsGroup>
   );
 }
 
-function LegalLinks() {
-  return (
-    <Section title="About and legal" id="legal">
-      <ul className="flex flex-col">
-        {[
-          { to: '/privacy', label: 'Privacy notice' },
-          { to: '/terms', label: 'Terms of use' },
-          { to: '/about', label: 'About AnxioCare and the GAD-7' },
-        ].map((l) => (
-          <li key={l.to}><Link className="link inline-block py-2.5" to={l.to}>{l.label}</Link></li>
-        ))}
-      </ul>
-    </Section>
-  );
-}
+const LEGAL = [
+  { to: '/privacy', label: 'Privacy notice', icon: Shield },
+  { to: '/terms', label: 'Terms of use', icon: ScrollText },
+  { to: '/about', label: 'About AnxioCare and the GAD-7', icon: Info },
+];
+
+const legalRows = () => LEGAL.map((l) => <SettingsRow key={l.to} icon={l.icon} title={l.label} to={l.to} />);
 
 export default function Settings() {
   const me = useMe();
   const location = useLocation();
   const notice = (location.state as { notice?: string } | null)?.notice;
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-6">
       <PageTitle className="pt-2 text-2xl" title="Settings">Settings</PageTitle>
       {notice && <p role="status" className="patch">{notice}</p>}
       {me.isPending && <PageSkeleton />}
       {me.isError && !(me.error instanceof NetworkError) && <ErrorState error={me.error} onRetry={() => void me.refetch()} />}
       {me.data ? (
         me.data.consentRequired ? <RightsOnlySettings me={me.data} /> : <AccountSettings me={me.data} />
-      ) : me.isError && me.error instanceof NetworkError ? (
-        <section className="patch flex flex-col gap-3">
-          <h2 className="text-xl">We can't load your account</h2>
-          <p className="text-ink-soft">You may be offline. If you're signed in, your details, and the controls to download or delete your data, will show here once you're connected. The check-in and tools still work.</p>
-          <button type="button" className="btn btn-quiet btn-small self-start" onClick={() => void me.refetch()}>Try again</button>
-        </section>
-      ) : me.isSuccess && !me.data ? (
-        <section className="patch flex flex-col gap-3">
-          <h2 className="text-xl">You're not signed in</h2>
-          <p className="text-ink-soft">The check-in and tools work without an account. Sign in to save check-ins, see trends and keep a journal.</p>
-          <Link className="btn btn-primary" to="/sign-in?next=%2Fsettings">Sign in</Link>
-          <Link className="btn btn-secondary" to="/create-account?next=%2Fsettings">Create an account</Link>
-        </section>
-      ) : null}
+      ) : (
+        <>
+          {me.isError && me.error instanceof NetworkError ? (
+            <section className="patch flex flex-col gap-3">
+              <h2 className="text-xl">We can't load your account</h2>
+              <p className="text-ink-soft">You may be offline. If you're signed in, your details, and the controls to download or delete your data, will show here once you're connected. The check-in and tools still work.</p>
+              <button type="button" className="btn btn-quiet btn-small self-start" onClick={() => void me.refetch()}>Try again</button>
+            </section>
+          ) : me.isSuccess ? (
+            <section aria-labelledby="signed-out" className="patch flex flex-col gap-3">
+              <div className="flex items-center gap-3.5">
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface-2 text-ink-soft"><User aria-hidden="true" className="size-6" /></span>
+                <div>
+                  <h2 id="signed-out" className="text-xl">You're not signed in</h2>
+                  <p className="text-sm text-ink-soft">The check-in and tools still work.</p>
+                </div>
+              </div>
+              <p className="text-sm text-ink-soft">Sign in to save check-ins, see trends and keep a journal.</p>
+              <div className="flex flex-col gap-2 min-[360px]:flex-row">
+                <Link className="btn btn-primary btn-small flex-1" to="/sign-in?next=%2Fsettings">Sign in</Link>
+                <Link className="btn btn-secondary btn-small flex-1" to="/create-account?next=%2Fsettings">Create an account</Link>
+              </div>
+            </section>
+          ) : null}
+          <ThemePicker />
+          <InstallRow />
+          <SettingsGroup title="About and legal" id="legal">{legalRows()}</SettingsGroup>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ProfileCard({ me }: { me: Me }) {
+  const initial = (me.displayName?.trim() || me.email).charAt(0).toUpperCase();
+  return (
+    <div className="patch flex items-center gap-4">
+      <span aria-hidden="true" className="profile-initial">{initial}</span>
+      <div className="min-w-0">
+        <p className="font-display text-xl font-semibold leading-tight">{me.displayName || 'Your account'}</p>
+        <p className="text-sm break-words text-ink-soft">{me.email}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Appearance, the phone and the legal pages: the same for everyone, signed in or not. */
+function SharedSettings() {
+  return (
+    <>
       <ThemePicker />
       <InstallRow />
-      <LegalLinks />
-    </div>
+    </>
   );
 }
 
 function AccountSettings({ me }: { me: Me }) {
   return (
     <>
-      <ProfileName me={me} />
-      <EmailChange me={me} />
+      <ProfileCard me={me} />
+      <AccountGroup me={me} />
       <SignInSecurity me={me} />
+      <SharedSettings />
       <YourData />
       <SignOut />
       <DeleteAccount />
@@ -179,10 +191,11 @@ function RightsOnlySettings({ me }: { me: Me }) {
         )}
         <Link className="btn btn-primary" to="/consent?next=%2Fsettings">Review and agree</Link>
       </section>
-      <Section title="Email" id="email-section">
-        <p className="break-words">{me.email}</p>
-      </Section>
+      <SettingsGroup title="Account" id="account">
+        <SettingsRow icon={Mail} title="Email" description={me.email} />
+      </SettingsGroup>
       <SignInSecurity me={me} />
+      <SharedSettings />
       <YourData />
       <SignOut />
       <DeleteAccount />
@@ -190,58 +203,66 @@ function RightsOnlySettings({ me }: { me: Me }) {
   );
 }
 
-function ProfileName({ me }: { me: Me }) {
-  const client = useQueryClient();
-  const [name, setName] = useState(me.displayName ?? '');
-  const [saved, setSaved] = useState(false);
-  const save = useMutation({
-    mutationFn: () => request('PATCH', '/me', { body: { displayName: name.trim() || null } }),
-    onSuccess: () => {
-      setSaved(true);
-      void client.invalidateQueries({ queryKey: meKey });
-    },
-  });
-  const changed = name.trim() !== (me.displayName ?? '');
+function AccountGroup({ me }: { me: Me }) {
+  const [sheet, setSheet] = useState<'name' | 'email' | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   return (
-    <Section title="Your name" id="name">
-      <form
-        className="flex flex-col gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate();
-        }}
-      >
-        <label htmlFor="display-name" className="text-sm text-ink-soft">Optional. Only used to greet you.</label>
-        <input
-          id="display-name"
-          className="field"
-          maxLength={60}
-          autoComplete="given-name"
-          value={name}
-          onChange={(e) => { setName(e.target.value); setSaved(false); }}
-        />
-        {changed && <button type="submit" className="btn btn-primary btn-small" disabled={save.isPending}>Save name</button>}
-        <div aria-live="polite">
-          {saved && !changed && <p className="flex items-center gap-1.5 text-sm"><Check aria-hidden="true" className="size-4" />Name saved</p>}
-          {save.error && <p role="alert" className="font-medium text-madder">{errorMessage(save.error)}</p>}
-        </div>
-      </form>
-    </Section>
+    <>
+      <SettingsGroup title="Account" id="account">
+        <SettingsRow icon={User} title="Name" value={me.displayName || 'Not set'} description="Only used to greet you" onClick={() => { setNotice(null); setSheet('name'); }} />
+        <SettingsRow icon={Mail} title="Email" description={me.email} onClick={() => { setNotice(null); setSheet('email'); }} />
+      </SettingsGroup>
+      <div aria-live="polite" className="-mt-3 empty:hidden">{notice && <p role="status" className="mx-1 text-sm">{notice}</p>}</div>
+      <NameSheet me={me} open={sheet === 'name'} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); setNotice('Name saved'); }} />
+      <EmailSheet me={me} open={sheet === 'email'} onClose={() => setSheet(null)} onDone={() => { setSheet(null); setNotice('Email updated. Use it next time you sign in.'); }} />
+    </>
   );
 }
 
-function EmailChange({ me }: { me: Me }) {
+function NameSheet({ me, open, onClose, onSaved }: { me: Me; open: boolean; onClose: () => void; onSaved: () => void }) {
+  // The sheet renders its contents only while open, so the form starts from the saved name each time.
+  return (
+    <Sheet open={open} onClose={onClose} title="Your name">
+      <NameForm me={me} onSaved={onSaved} />
+    </Sheet>
+  );
+}
+
+function NameForm({ me, onSaved }: { me: Me; onSaved: () => void }) {
   const client = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(me.displayName ?? '');
+  const save = useMutation({
+    mutationFn: () => request('PATCH', '/me', { body: { displayName: name.trim() || null } }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: meKey });
+      onSaved();
+    },
+  });
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <label htmlFor="display-name" className="text-ink-soft">Optional. Only used to greet you.</label>
+      <input id="display-name" className="field" maxLength={60} autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} />
+      {save.error && <p role="alert" className="font-medium text-madder">{errorMessage(save.error)}</p>}
+      <button type="submit" className="btn btn-primary" disabled={save.isPending}>{save.isPending ? 'Saving' : 'Save name'}</button>
+    </form>
+  );
+}
+
+function EmailSheet({ me, open, onClose, onDone }: { me: Me; open: boolean; onClose: () => void; onDone: () => void }) {
+  const client = useQueryClient();
   const [address, setAddress] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [currentCode, setCurrentCode] = useState('');
   const [code, setCode] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
-  const close = () => {
-    setOpen(false);
+  const reset = () => {
     setAddress('');
     setSentTo(null);
     setCurrentCode('');
@@ -249,6 +270,10 @@ function EmailChange({ me }: { me: Me }) {
     setFieldError(null);
     send.reset();
     verify.reset();
+  };
+  const close = () => {
+    reset();
+    onClose();
   };
   const send = useMutation({
     mutationFn: (newEmail: string) => request('POST', '/me/email/request', { body: { newEmail } }),
@@ -258,8 +283,8 @@ function EmailChange({ me }: { me: Me }) {
     mutationFn: () => request('POST', '/me/email/verify', { body: { newEmail: sentTo, currentCode, code } }),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: meKey });
-      setDone(true);
-      close();
+      reset();
+      onDone();
     },
     onError: () => {
       setCurrentCode('');
@@ -274,10 +299,6 @@ function EmailChange({ me }: { me: Me }) {
       : null;
 
   return (
-    <Section title="Email" id="email-section">
-      <p className="break-words">{me.email}</p>
-      {done && <p role="status" className="text-sm">Email updated. Use it next time you sign in.</p>}
-      <button type="button" className="btn btn-quiet btn-small self-start" onClick={() => { setDone(false); setOpen(true); }}>Change email</button>
       <Sheet open={open} onClose={close} title="Change your email">
         {!sentTo ? (
           <form
@@ -339,20 +360,10 @@ function EmailChange({ me }: { me: Me }) {
           </form>
         )}
       </Sheet>
-    </Section>
   );
 }
 
 const methodsKey = ['sign-in-methods'] as const;
-
-function SubSection({ title, id, children }: { title: string; id: string; children: ReactNode }) {
-  return (
-    <section aria-labelledby={id} className="flex flex-col gap-3">
-      <h3 id={id} className="text-lg">{title}</h3>
-      {children}
-    </section>
-  );
-}
 
 const CONNECT_OUTCOMES: Record<string, { text: string; error: boolean }> = {
   connected: { text: 'Google connected. You can now sign in with it too.', error: false },
@@ -373,6 +384,10 @@ function SignInSecurity({ me }: { me: Me }) {
   const [notice, setNotice] = useState<string | null>(outcome && !outcome.error ? outcome.text : null);
   const [problemText, setProblemText] = useState<string | null>(outcome?.error ? outcome.text : null);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [confirmConnect, setConfirmConnect] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
+  const sessions = useSessions();
   const [reauthFor, setReauthFor] = useState<Pending | null>(null);
   useEffect(() => {
     if (new URLSearchParams(location.search).has('google')) navigate({ pathname: location.pathname, hash: '#security' }, { replace: true });
@@ -413,36 +428,56 @@ function SignInSecurity({ me }: { me: Me }) {
   const m = methods.data;
   const googleOn = !!meta.data?.googleEnabled;
   const connectError = connect.error && !needsReauth(connect.error) ? errorMessage(connect.error) : null;
+  const others = sessions.data?.filter((x) => !x.current).length ?? 0;
+  const devicesSummary = !sessions.data ? undefined : others === 0 ? 'Only this device' : `This device and ${others} other${others === 1 ? '' : 's'}`;
+  const done = (text: string) => { setPasswordOpen(false); setNotice(text); refresh(); };
   return (
-    <Section title="Sign-in and security" id="security">
-      <SubSection title="How you can sign in" id="methods">
-        {methods.isPending && <PageSkeleton />}
-        {methods.isError && <ErrorState error={methods.error} onRetry={() => void methods.refetch()} />}
-        {m && (
-          <ul className="flex list-disc flex-col gap-1 pl-5">
-            <li>{m.password ? 'Password: set' : 'Password: not set'}</li>
-            {(m.google || googleOn) && <li>{m.google ? 'Google: connected' : 'Google: not connected'}</li>}
-            <li>Email codes: always available</li>
-          </ul>
+    <section className="flex flex-col gap-2">
+      <SettingsGroup title="Sign-in and security" id="security">
+        {methods.isPending && <li className="p-4"><PageSkeleton /></li>}
+        {methods.isError && <li className="p-4"><ErrorState error={methods.error} onRetry={() => void methods.refetch()} /></li>}
+        {m && <SettingsRow icon={KeyRound} title="Password" value={m.password ? 'Set' : 'Not set'} onClick={() => { setNotice(null); setPasswordOpen(true); }} />}
+        {m && (m.google || googleOn) && (
+          <SettingsRow
+            icon={Link2}
+            title="Google"
+            value={m.google ? 'Connected' : connect.isPending ? 'Opening Google' : 'Not connected'}
+            disabled={connect.isPending}
+            onClick={() => {
+              setProblemText(null);
+              setNotice(null);
+              if (m.google) {
+                unlink.reset();
+                setConfirmUnlink(true);
+              } else setConfirmConnect(true);
+            }}
+          />
         )}
-        <div aria-live="polite">
-          {notice && <p role="status" className="text-sm">{notice}</p>}
-          {(problemText ?? connectError) && <p role="alert" className="text-sm font-medium text-madder">{problemText ?? connectError}</p>}
-        </div>
-        {m && (
-          <div className="flex flex-col items-start gap-2">
-            {m.password ? <ChangePassword onDone={(text) => { setNotice(text); refresh(); }} /> : <AddPassword email={me.email} onDone={(text) => { setNotice(text); refresh(); }} />}
-            {!m.google && googleOn && (
-              <>
-                <button type="button" className="btn btn-quiet btn-small" disabled={connect.isPending} onClick={() => { setProblemText(null); setNotice(null); connect.mutate(); }}>
-                  {connect.isPending ? 'Opening Google' : 'Connect Google'}
-                </button>
-                <p className="text-sm text-ink-soft">We'll ask you to confirm it's you first. If you connect Google, Google learns that you use this service.</p>
-              </>
-            )}
-            {m.google && <button type="button" className="btn btn-quiet btn-small" onClick={() => { unlink.reset(); setConfirmUnlink(true); }}>Disconnect Google</button>}
-          </div>
-        )}
+        {m && <SettingsRow icon={MailCheck} title="Email codes" value="Always on" />}
+        <SettingsRow icon={Smartphone} title="Signed-in devices" description={devicesSummary} onClick={() => setDevicesOpen(true)} />
+      </SettingsGroup>
+      <div aria-live="polite" className="mx-1 empty:hidden">
+        {notice && <p role="status" className="text-sm">{notice}</p>}
+        {(problemText ?? connectError) && <p role="alert" className="text-sm font-medium text-madder">{problemText ?? connectError}</p>}
+      </div>
+      {m && (m.password
+        ? <ChangePassword open={passwordOpen} onClose={() => setPasswordOpen(false)} onDone={done} />
+        : <AddPassword email={me.email} open={passwordOpen} onClose={() => setPasswordOpen(false)} onDone={done} />)}
+      <ConfirmSheet
+        open={confirmConnect}
+        onClose={() => setConfirmConnect(false)}
+        onConfirm={() => { setConfirmConnect(false); connect.mutate(); }}
+        busy={connect.isPending}
+        error={null}
+        title="Connect Google?"
+        confirmLabel="Connect Google"
+        cancelLabel="Not now"
+      >
+        We'll ask you to confirm it's you first. If you connect Google, Google learns that you use this service.
+      </ConfirmSheet>
+      <Sheet open={devicesOpen} onClose={() => setDevicesOpen(false)} title="Signed-in devices">
+        <Sessions />
+      </Sheet>
         <ConfirmSheet
           open={confirmUnlink}
           onClose={() => setConfirmUnlink(false)}
@@ -463,9 +498,7 @@ function SignInSecurity({ me }: { me: Me }) {
           onClose={() => setReauthFor(null)}
           onDone={afterReauth}
         />
-      </SubSection>
-      <Sessions />
-    </Section>
+    </section>
   );
 }
 
@@ -560,8 +593,7 @@ function ConfirmItsYou({ open, email, hasPassword, purpose, onClose, onDone }: {
   );
 }
 
-function ChangePassword({ onDone }: { onDone: (text: string) => void }) {
-  const [open, setOpen] = useState(false);
+function ChangePassword({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: (text: string) => void }) {
   const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -571,7 +603,7 @@ function ChangePassword({ onDone }: { onDone: (text: string) => void }) {
     gcTime: 0,
     mutationFn: () => request('POST', '/me/password', { body: { currentPassword: current, password } }),
     onSuccess: () => {
-      close();
+      reset();
       onDone('Password changed. Other devices were signed out.');
     },
     onError: (e) => {
@@ -579,18 +611,20 @@ function ChangePassword({ onDone }: { onDone: (text: string) => void }) {
       setFieldError(passwordFieldError(e));
     },
   });
-  const close = () => {
-    setOpen(false);
+  const reset = () => {
     setCurrent('');
     setPassword('');
     setFieldError(null);
     change.reset();
   };
+  const close = () => {
+    reset();
+    onClose();
+  };
   const wrongCurrent = change.error instanceof ApiError && change.error.code === 'invalid_credentials';
   const error = fieldError ?? (wrongCurrent ? "Your current password isn't right. Try again, or sign out and use \"Forgot your password?\"." : change.error ? errorMessage(change.error) : null);
   return (
     <>
-      <button type="button" className="btn btn-quiet btn-small" onClick={() => setOpen(true)}>Change password</button>
       <Sheet open={open} onClose={close} title="Change your password">
         <form
           className="flex flex-col gap-4"
@@ -618,8 +652,7 @@ function ChangePassword({ onDone }: { onDone: (text: string) => void }) {
   );
 }
 
-function AddPassword({ email, onDone }: { email: string; onDone: (text: string) => void }) {
-  const [open, setOpen] = useState(false);
+function AddPassword({ email, open, onClose, onDone }: { email: string; open: boolean; onClose: () => void; onDone: (text: string) => void }) {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -633,7 +666,7 @@ function AddPassword({ email, onDone }: { email: string; onDone: (text: string) 
     gcTime: 0,
     mutationFn: () => request('POST', '/me/password/set', { body: { code, password } }),
     onSuccess: () => {
-      close();
+      reset();
       onDone('Password added. Other devices were signed out.');
     },
     onError: (e) => {
@@ -642,8 +675,7 @@ function AddPassword({ email, onDone }: { email: string; onDone: (text: string) 
       if (!problem) setCode('');
     },
   });
-  const close = () => {
-    setOpen(false);
+  const reset = () => {
     setSent(false);
     setCode('');
     setPassword('');
@@ -651,10 +683,13 @@ function AddPassword({ email, onDone }: { email: string; onDone: (text: string) 
     ask.reset();
     save.reset();
   };
+  const close = () => {
+    reset();
+    onClose();
+  };
   const error = fieldError ?? (save.error ? errorMessage(save.error) : null);
   return (
     <>
-      <button type="button" className="btn btn-quiet btn-small" onClick={() => setOpen(true)}>Add a password</button>
       <Sheet open={open} onClose={close} title="Add a password">
         {!sent ? (
           <div className="flex flex-col gap-3">
@@ -692,15 +727,18 @@ function AddPassword({ email, onDone }: { email: string; onDone: (text: string) 
   );
 }
 
-function Sessions() {
-  const client = useQueryClient();
-  const sessions = useQuery({
+const useSessions = () =>
+  useQuery({
     queryKey: sessionsKey,
     queryFn: async (): Promise<SessionInfo[]> => {
       const data = await request('GET', '/auth/sessions', { schema: sessionList });
       return Array.isArray(data) ? data : data.items;
     },
   });
+
+function Sessions() {
+  const client = useQueryClient();
+  const sessions = useSessions();
   const [pending, setPending] = useState<SessionInfo | null>(null);
   const revoke = useMutation({
     mutationFn: (id: string) => request('DELETE', `/auth/sessions/${encodeURIComponent(id)}`),
@@ -710,7 +748,7 @@ function Sessions() {
     },
   });
   return (
-    <SubSection title="Signed-in devices" id="sessions">
+    <div className="flex flex-col gap-2">
       {sessions.isPending && <PageSkeleton />}
       {sessions.isError && <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />}
       {sessions.data && (
@@ -743,7 +781,7 @@ function Sessions() {
       >
         {pending?.deviceLabel} will need to sign in again.
       </ConfirmSheet>
-    </SubSection>
+    </div>
   );
 }
 
@@ -768,17 +806,20 @@ function YourData() {
     }
   };
   return (
-    <Section title="Your data" id="data">
-      <p className="text-sm text-ink-soft">A copy of everything we hold about you, as a JSON file. It isn't encrypted once it's on your phone, so keep it somewhere safe.</p>
-      <button type="button" className="btn btn-quiet btn-small self-start" disabled={state === 'working'} onClick={() => void download()}>
-        <Download aria-hidden="true" className="size-4" />
-        {state === 'working' ? 'Preparing' : 'Download my data'}
-      </button>
-      <div aria-live="polite">
-        {state === 'done' && <p className="text-sm">Download started.</p>}
-        {error && <p role="alert" className="font-medium text-madder">{error}</p>}
-      </div>
-    </Section>
+    <section className="flex flex-col gap-2">
+      <SettingsGroup title="Your data and privacy" id="data">
+        <SettingsRow
+          icon={Download}
+          title="Download my data"
+          description={state === 'working' ? 'Preparing' : state === 'done' ? 'Download started.' : "A copy of everything we hold, as a file. It isn't encrypted once it's on your phone."}
+          disabled={state === 'working'}
+          onClick={() => void download()}
+        />
+        {legalRows()}
+      </SettingsGroup>
+      <p aria-live="polite" className="sr-only">{state === 'working' ? 'Preparing' : state === 'done' ? 'Download started.' : ''}</p>
+      {error && <p role="alert" className="mx-1 font-medium text-madder">{error}</p>}
+    </section>
   );
 }
 
@@ -795,9 +836,12 @@ function SignOut() {
     },
   });
   return (
-    <Section title="Sign out" id="signout">
-      <div className="flex flex-col gap-2">
-        <button type="button" className="btn btn-secondary" disabled={logout.isPending} onClick={() => logout.mutate('/auth/logout')}>Sign out</button>
+    <section aria-label="Sign out" className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
+        <button type="button" className="btn btn-secondary" disabled={logout.isPending} onClick={() => logout.mutate('/auth/logout')}>
+          <LogOut aria-hidden="true" className="size-5" />
+          Sign out
+        </button>
         <button type="button" className="btn btn-ghost" onClick={() => setConfirmAll(true)}>Sign out on all devices</button>
       </div>
       {logout.error && !confirmAll && <p role="alert" className="font-medium text-madder">{errorMessage(logout.error)}</p>}
@@ -813,7 +857,7 @@ function SignOut() {
       >
         Every device, including this one, will need to sign in again. Your data stays saved.
       </ConfirmSheet>
-    </Section>
+    </section>
   );
 }
 
@@ -849,9 +893,10 @@ function DeleteAccount() {
   }, [open]);
 
   return (
-    <Section title="Delete your account" id="delete">
-      <p className="text-sm text-ink-soft">Removes your account, check-ins and journal, and withdraws your consent.</p>
-      <button type="button" className="btn btn-quiet btn-small self-start" onClick={() => setOpen(true)}>Delete my account</button>
+    <>
+      <SettingsGroup id="delete" title="Delete your account" heading="hidden" tone="danger">
+        <SettingsRow icon={Trash2} title="Delete my account" description="Removes your account, check-ins and journal, and withdraws your consent. Can't be undone." onClick={() => setOpen(true)} />
+      </SettingsGroup>
       <Sheet open={open} onClose={() => setOpen(false)} title="Delete your account?">
         {!codeSent ? (
           <div className="flex flex-col gap-3">
@@ -892,6 +937,6 @@ function DeleteAccount() {
           </form>
         )}
       </Sheet>
-    </Section>
+    </>
   );
 }

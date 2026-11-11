@@ -26,6 +26,8 @@ export function Sheet({ open, onClose, title, children }: {
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
+        // React passes this up to a sheet this one sits inside; Esc closes only the top one.
+        e.stopPropagation();
         onClose();
       }}
       onClick={(e) => {

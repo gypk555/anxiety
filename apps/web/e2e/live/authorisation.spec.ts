@@ -99,7 +99,7 @@ test('the next person on the same tab sees nothing of the last person', async ({
   await expectGuestHome(page);
 
   // No page load in between: anything left in memory would show.
-  await page.getByRole('link', { name: 'Sign in to see saved results' }).click();
+  await page.getByRole('main').getByRole('link', { name: 'Sign in', exact: true }).click();
   const email = `second-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
   await page.getByLabel('Email address').fill(email);
   await page.getByRole('button', { name: 'Email me a code instead' }).click();
@@ -107,7 +107,7 @@ test('the next person on the same tab sees nothing of the last person', async ({
   await page.getByRole('checkbox', { name: 'I am 18 or older.' }).check();
   await page.getByRole('checkbox', { name: /I agree to AnxioCare storing/ }).check();
   await page.getByRole('button', { name: 'Agree and continue' }).click();
-  await expect(page.getByRole('heading', { name: 'No check-ins saved yet' })).toBeVisible();
+  await expect(page.getByText('Your first check-in')).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Trends' }).click();
   await expect(page.getByText('Nothing to show yet.')).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Journal' }).click();

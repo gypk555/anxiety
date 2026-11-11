@@ -4,17 +4,20 @@ import { CODE_LABEL, lastMail, acceptConsent, api, differentCode, enterCode, exp
 test('rename: greeted by the new name, kept after a reload, and it can be removed', async ({ page, context }) => {
   await signUp(page, 'rename');
   await page.goto('/settings');
-  await page.getByLabel('Optional. Only used to greet you.').fill('Asha');
+  await page.getByRole('button', { name: 'Name', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.').fill('Asha');
   await page.getByRole('button', { name: 'Save name' }).click();
   await expect(page.getByText('Name saved')).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText(', Asha.');
 
   await page.goto('/settings');
-  await expect(page.getByLabel('Optional. Only used to greet you.')).toHaveValue('Asha');
+  await expect(page.getByRole('button', { name: 'Name', exact: true })).toHaveAccessibleDescription('Asha Only used to greet you');
+  await page.getByRole('button', { name: 'Name', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.')).toHaveValue('Asha');
   expect((await (await api(context).get('/me')).json()) as object).toMatchObject({ displayName: 'Asha' });
 
-  await page.getByLabel('Optional. Only used to greet you.').fill('');
+  await page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.').fill('');
   await page.getByRole('button', { name: 'Save name' }).click();
   await expect(page.getByText('Name saved')).toBeVisible();
   expect((await (await api(context).get('/me')).json()) as object).toMatchObject({ displayName: null });
@@ -27,8 +30,8 @@ test('email change needs a code from each inbox; the account and its data move w
   const newEmail = uniqueEmail('newmail');
 
   await page.goto('/settings');
-  await expect(page.getByText(oldEmail)).toBeVisible();
-  await page.getByRole('button', { name: 'Change email' }).click();
+  await expect(page.getByRole('button', { name: 'Email', exact: true })).toHaveAccessibleDescription(oldEmail);
+  await page.getByRole('button', { name: 'Email', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'Change your email' });
   await expect(sheet.getByText("We'll email one code to your current address and one to the new address. You'll need both.")).toBeVisible();
   await sheet.getByLabel('New email address').fill(newEmail);
@@ -65,7 +68,7 @@ test('email change needs a code from each inbox; the account and its data move w
   await confirm.click();
   await expect(page.getByText('Email updated. Use it next time you sign in.')).toBeVisible();
   await expect(sheet).toBeHidden();
-  await expect(page.getByRole('main').getByText(newEmail)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Email', exact: true })).toHaveAccessibleDescription(newEmail);
   await expect.poll(() => mailCount(oldEmail, 'email_changed_notice')).toBe(1);
 
   await signOut(page);
@@ -96,10 +99,13 @@ test('sessions: a second device is listed, and revoking it signs that device out
   await secondPage.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tools' }).click();
 
   await page.goto('/settings');
-  const devices = page.getByRole('region', { name: 'Signed-in devices' }).getByRole('listitem');
+  await expect(page.getByRole('button', { name: 'Signed-in devices' })).toHaveAccessibleDescription('This device and 1 other');
+  await page.getByRole('button', { name: 'Signed-in devices' }).click();
+  const devices = page.getByRole('dialog', { name: 'Signed-in devices' }).getByRole('listitem');
   await expect(devices).toHaveCount(2);
-  await expect(page.getByText('This device')).toHaveCount(1);
-  await expect(page.getByText(/^Last used /)).toHaveCount(1);
+  const sheetOf = page.getByRole('dialog', { name: 'Signed-in devices' });
+  await expect(sheetOf.getByText('This device', { exact: true })).toHaveCount(1);
+  await expect(sheetOf.getByText(/^Last used /)).toHaveCount(1);
 
   const revoke = page.getByRole('button', { name: /^Sign out .+ on / });
   await expect(revoke).toHaveCount(1);
@@ -119,7 +125,7 @@ test('sessions: a second device is listed, and revoking it signs that device out
 
   // The device that did the revoking is unaffected.
   await page.reload();
-  await expect(page.getByText('This device')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Signed-in devices' })).toHaveAccessibleDescription('Only this device');
 });
 
 test('sign out on all devices ends every session, keeps the data', async ({ page, context, newContext }) => {
@@ -147,7 +153,8 @@ test('sign out on all devices ends every session, keeps the data', async ({ page
 test('the download contains the data', async ({ page, context }) => {
   const email = await signUp(page, 'export');
   await page.goto('/settings');
-  await page.getByLabel('Optional. Only used to greet you.').fill('Asha');
+  await page.getByRole('button', { name: 'Name', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.').fill('Asha');
   await page.getByRole('button', { name: 'Save name' }).click();
   await expect(page.getByText('Name saved')).toBeVisible();
   const assessment = await seedAssessment(context, [2, 2, 2, 1, 1, 1, 1], 2);
@@ -158,7 +165,7 @@ test('the download contains the data', async ({ page, context }) => {
   const download = await downloading;
   expect(download.suggestedFilename()).toMatch(/^account-data-\d{4}-\d{2}-\d{2}\.json$/);
   expect(download.suggestedFilename()).not.toMatch(/anxi|care|health/i);
-  await expect(page.getByText('Download started.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download my data' })).toHaveAccessibleDescription('Download started.');
 
   const data = JSON.parse(await readFile(await download.path(), 'utf8')) as {
     account: { email: string; displayName: string };
@@ -210,5 +217,5 @@ test('deleting the account needs a code, signs out, and signing in again is a fr
   expect(await api(context).userId()).not.toBe(oldId);
   expect(await api(context).items('/assessments')).toEqual([]);
   expect(await api(context).items('/journal')).toEqual([]);
-  await expect(page.getByRole('heading', { name: 'No check-ins saved yet' })).toBeVisible();
+  await expect(page.getByText('Your first check-in')).toBeVisible();
 });

@@ -181,8 +181,8 @@ test('trends: list, chart, table, delete; Home shows the next check-in date', as
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home' }).click();
   await expectAccountHome(page);
   await expect(page.getByText('Moderate, 12 out of 21')).toBeVisible();
-  await expect(page.getByText(`Your last check-in, ${await dateInPage(page, middle.takenAt)}`)).toBeVisible();
-  await expect(page.getByText(`Next check-in: ${await dateInPage(page, middle.takenAt, 14)}`)).toBeVisible();
+  await expect(page.getByText(`Last check-in · ${await dateInPage(page, middle.takenAt)}`)).toBeVisible();
+  await expect(page.getByText(`Next ${await dateInPage(page, middle.takenAt, 14)}`)).toBeVisible();
 });
 
 test('deleting from the result screen leaves trends empty, and the deleted result is not found', async ({ page, context, guard }) => {

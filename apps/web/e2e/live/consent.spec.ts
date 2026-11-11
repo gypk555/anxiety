@@ -151,7 +151,7 @@ test('never consented: agreeing from Settings goes back to Settings, as a normal
   await page.getByRole('link', { name: 'Review and agree' }).click();
   await acceptConsent(page);
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
-  await expect(page.getByLabel('Optional. Only used to greet you.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Name', exact: true })).toBeVisible();
   await page.goto('/');
   await expectAccountHome(page);
 });

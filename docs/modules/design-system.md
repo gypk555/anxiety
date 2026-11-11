@@ -61,6 +61,13 @@ Also: `--haldi-deep`, `--on-haldi`, `--thread-faint`, `--scrim`.
 | `.plan-number` | A safety plan step's number, in a ring of running stitch |
 | `.report`, `.report-header`, `.report-section`, `.report-footer` | The doctor report: a plain sheet on screen, and A4 with a page per section in print |
 | `.night` | Forces dark tokens within its subtree |
+| `.mood-step`, `.level-bars` | The daily mood scale: five equal steps in one row, each a word under a rising-bars mark |
+| `.settings-group`, `.settings-row`, `.settings-group-danger` | Settings lists: rows on one patch with no dividers; the danger group gets a faint dashed outline |
+| `.segmented` | A three-way radio choice in one track (Appearance) |
+| `.profile-initial` | The account's initial in haldi, ringed with running stitch |
+| `.choice-row` | A compact row choice with icon and chevron (check-in choices, Breathe first) |
+| `.tool-tile` | Home's four "For right now" tiles; Breathe adds `.night` |
+| `.progress-track` | A thin progress bar for resume rows |
 
 **Components** in [apps/web/src/ui/](../../apps/web/src/ui/):
 

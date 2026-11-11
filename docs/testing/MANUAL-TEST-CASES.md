@@ -630,7 +630,7 @@ Nothing in the automated suite installs the app.
 **Steps:**
 
 1. Open **Settings**.
-2. Under **Keep it on your phone**, tap **Add to home screen**.
+2. Under **On this phone**, tap the **Add to home screen** row.
 3. Accept the prompt.
 4. Open from the home screen.
 
@@ -648,7 +648,7 @@ Nothing in the automated suite installs the app.
 
 **Steps:**
 
-1. Open **Settings**, read the text under **Keep it on your phone**.
+1. Open **Settings**, read the **Add to home screen** row under **On this phone**.
 2. Follow it: Share, then Add to Home Screen.
 3. Open from the home screen.
 
@@ -1543,8 +1543,8 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 
 **Steps:**
 
-1. With the first, on **Settings**, **Sign-in and security**, tap **Change password**. Try a wrong current password, then the right one.
-2. On the second, tap **Add a password**, and follow it.
+1. With the first, on **Settings**, **Sign-in and security**, tap the **Password** row (**Set**). Try a wrong current password, then the right one.
+2. On the second, tap the **Password** row (**Not set**), and follow **Add a password**.
 3. Check the other device on each.
 
 **Expected result:** A wrong current password changes nothing. Each success keeps this device, signs out the other, and mails **Your password was changed**.
@@ -1582,9 +1582,9 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 **Steps:**
 
 1. Sign out. Tap **Continue with Google**, with that account.
-2. Sign in with your password. In **Settings**, tap **Connect Google**. You signed in moments ago, so it goes straight to Google: choose that Google account. (After 10 minutes it would first ask you to confirm it's you.)
+2. Sign in with your password. In **Settings**, tap the **Google** row, then **Connect Google**. You signed in moments ago, so it goes straight to Google: choose that Google account. (After 10 minutes it would first ask you to confirm it's you.)
 3. Read the mail. Sign out, then **Continue with Google** again.
-4. Wait over 10 minutes. In **Settings**, tap **Disconnect Google**. Confirm it's you, this time with an emailed code, then confirm.
+4. Wait over 10 minutes. In **Settings**, tap the **Google** row (**Connected**), then **Disconnect**. Confirm it's you, this time with an emailed code, then confirm.
 5. Connect Google again, then sign out and reset the password with **Forgot your password?**.
 
 **Expected result:** Step 1 is refused with a message to sign in another way and connect Google in Settings; nothing is linked. Step 2 returns to Settings, which says Google is connected, and **Google sign-in was added to your account** arrives. Step 3 signs in to the same account, with its data. Step 4 asks to confirm before disconnecting, needs no password, and mails a notice. Step 5 removes Google, and a mail says Google was disconnected because the password was reset.
@@ -3020,12 +3020,13 @@ Signed in unless stated.
 
 **Steps:**
 
-1. Check the greeting at different hours, and with and without a name.
-2. Read **Your last check-in, <date>**.
-3. Tap **See this result**. Back. Tap **Check in again**.
+1. Check the date line and greeting at different hours, and with and without a name.
+2. Read the mood card at the top, then **Your check-ins**: **Last check-in · <date>**, the band and score, and the **Next <date>** badge.
+3. Tap **See result**. Back. Tap **Check in now**.
 4. Tap each of **Breathe**, **Ground**, **Sounds**, **Write** under **For right now**.
+5. Under **Your space**, tap **Safety plan**, **Mood log** and **Report for your doctor**.
 
-**Expected result:** Greeting matches the phone's time. **Next check-in: <date>** is 14 days on. Links go to the right places.
+**Expected result:** Only the mood card has the stitched border. Greeting matches the phone's time. **Next <date>** is 14 days on. Breathe stands out on the dark tile. Links go to the right places.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -3039,9 +3040,10 @@ Signed in unless stated.
 
 **Steps:**
 
-1. Read the card.
+1. Read the top card.
+2. Tap **Anxiety check (GAD-7)**. Back. Tap **Reflection**.
 
-**Expected result:** **It's been two weeks or more. Check in again whenever you're ready.** appears, with no nagging, no streak talk. **Check in again** becomes the primary button.
+**Expected result:** **Time for a check-in** leads the page, under **It's been two weeks since <date>**, with both choices and **Last time: <band>, <score> out of 21. See result**. No nagging, no streak talk. Today's mood shows as one quiet line below it. GAD-7 opens the intro; Reflection opens its first question.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -3055,9 +3057,9 @@ Signed in unless stated.
 
 **Steps:**
 
-1. Read Home. Tap **Start the check-in**.
+1. Read Home. Tap **Anxiety check (GAD-7)**.
 
-**Expected result:** **No check-ins saved yet** and the button works.
+**Expected result:** **Time for a check-in** under **Your first check-in**, with no "Last time" line, and the choice works.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -3093,12 +3095,12 @@ Guest and account states.
 
 **Steps:**
 
-1. Type a name under **Your name**. Tap **Save name**.
-2. See **Name saved**. Check Home. Reload.
-3. Clear it. Tap **Save name**.
+1. Tap the **Name** row. In **Your name**, type a name and tap **Save name**.
+2. See **Name saved** and the row's new value. Check Home and the profile card. Reload.
+3. Open it again, clear it, **Save name**.
 4. Try 61 characters, Hindi and emoji.
 
-**Expected result:** **Save name** appears only when changed. Home greets by name, and greets without one after clearing. The field stops at 60. Scripts round-trip.
+**Expected result:** The sheet starts with the saved name each time. Home greets by name, and greets without one after clearing; the row then says **Not set**. The field stops at 60. Scripts round-trip.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -3112,7 +3114,7 @@ Guest and account states.
 
 **Steps:**
 
-1. Under **Email** tap **Change email**.
+1. Tap the **Email** row.
 2. Enter the new address, tap **Send codes**.
 3. Find each code. Fill **Code sent to your current address** and **Code sent to your new address**.
 4. Tap **Confirm new email**.
@@ -3134,7 +3136,7 @@ Guest and account states.
 
 **Steps:**
 
-1. **Change email**, enter an address you control, **Send codes**.
+1. Tap the **Email** row, enter an address you control, **Send codes**.
 2. Fill the new address's code, and any six digits for the current one.
 3. Tap **Confirm new email**.
 4. Check the owner's inbox.
@@ -3173,7 +3175,7 @@ Guest and account states.
 
 **Steps:**
 
-1. Under **Signed-in devices**, read both rows.
+1. Read the **Signed-in devices** row (**This device and 1 other**). Tap it and read both devices in the sheet.
 2. Tap the other row's **Sign out**. Read **Sign out this device?**. Tap **Keep signed in**.
 3. Tap again, then **Sign out device**.
 4. Use the other device.
@@ -3457,7 +3459,7 @@ People in India often share a phone. A browser tab, a downloads folder and a mai
 
 **Steps:**
 
-1. B tries **Change email** to their own address.
+1. B tries the **Email** row, changing to their own address.
 2. B tries **Delete my account**.
 3. B opens **Download my data**.
 
@@ -5313,11 +5315,14 @@ Automation proves the plan opens offline after one load, that nothing readable i
 
 **Steps:**
 
-1. Log today on Home. Change it.
-2. Log yesterday on **Your mood log**. Try a future date in the picker.
-3. Check the time zone: log just after midnight.
+1. On Home, tap one word in **How are you today?**. Tap a second word quickly while it saves.
+2. Tap **Add a note**, write one, **Save note**. Tap **Change**, pick another word.
+3. Turn on airplane mode, tap **Change** and a word; read the message; turn it off and tap again.
+4. Log yesterday on **Your mood log**. Try a future date in the picker.
+5. Check the time zone: log just after midnight.
+6. At 320px wide (small phone or zoom), check **Very good** fits its step.
 
-**Expected result:** One entry per day, on the phone's own date. Future dates can't be chosen. No streaks or reminders anywhere.
+**Expected result:** One tap saves: **Saved for today** and **You're feeling <word>**, with no Save button. The quick second tap does nothing. The note and the new word are kept together. Offline, the word stays pressed with an error, and the next tap saves. One entry per day, on the phone's own date. Future dates can't be chosen. No streaks or reminders anywhere. Every step's word is readable.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 

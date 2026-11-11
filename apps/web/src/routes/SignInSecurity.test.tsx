@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { queryClient } from '@/lib/queries';
@@ -29,22 +29,53 @@ const open = async (methods: { password: boolean; google: boolean }, table: Para
 };
 
 describe('Sign-in and security', () => {
-  it('lists the ways this account can sign in', async () => {
+  it('lists the ways this account can sign in, each row saying how it is now', async () => {
     await open({ password: true, google: true });
-    expect(await screen.findByText('Password: set')).toBeInTheDocument();
-    expect(screen.getByText('Google: connected')).toBeInTheDocument();
-    expect(screen.getByText(/Email codes: always available/)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Password' })).toHaveAccessibleDescription('Set');
+    expect(screen.getByRole('button', { name: 'Google' })).toHaveAccessibleDescription('Connected');
+    expect(screen.getByText('Always on')).toBeInTheDocument();
   });
 
-  it('with Google off and not connected, does not mention it', async () => {
+  it('with Google off and not connected, has no Google row', async () => {
     await open({ password: true, google: false }, {}, false);
-    await screen.findByText('Password: set');
-    expect(screen.queryByText(/^Google:/)).not.toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Password' });
+    expect(screen.queryByRole('button', { name: 'Google' })).not.toBeInTheDocument();
+  });
+
+  it('shows how many devices are signed in, and lists them in a sheet', async () => {
+    await open({ password: true, google: false }, {
+      'GET /auth/sessions': { body: { items: [
+        { id: '22222222-2222-4222-8222-222222222222', deviceLabel: 'Safari on iPhone', current: true, createdAt: '2026-11-01T04:00:00.000Z', lastSeenAt: '2026-11-12T04:00:00.000Z' },
+        { id: '33333333-3333-4333-8333-333333333333', deviceLabel: 'Chrome on Mac', current: false, createdAt: '2026-11-01T04:00:00.000Z', lastSeenAt: '2026-11-10T04:00:00.000Z' },
+      ] } },
+    });
+    const row = await screen.findByRole('button', { name: 'Signed-in devices' });
+    await waitFor(() => expect(row).toHaveAccessibleDescription('This device and 1 other'));
+    await userEvent.click(row);
+    const sheet = await screen.findByRole('dialog', { name: 'Signed-in devices' });
+    expect(within(sheet).getByText('Chrome on Mac')).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Sign out Chrome on Mac' })).toBeInTheDocument();
+  });
+
+  it('Esc on "Sign out this device?" goes back to the device list, not past it', async () => {
+    await open({ password: true, google: false }, {
+      'GET /auth/sessions': { body: { items: [
+        { id: '22222222-2222-4222-8222-222222222222', deviceLabel: 'Safari on iPhone', current: true, createdAt: '2026-11-01T04:00:00.000Z', lastSeenAt: '2026-11-12T04:00:00.000Z' },
+        { id: '33333333-3333-4333-8333-333333333333', deviceLabel: 'Chrome on Mac', current: false, createdAt: '2026-11-01T04:00:00.000Z', lastSeenAt: '2026-11-10T04:00:00.000Z' },
+      ] } },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Signed-in devices' }));
+    const list = await screen.findByRole('dialog', { name: 'Signed-in devices' });
+    await userEvent.click(within(list).getByRole('button', { name: 'Sign out Chrome on Mac' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Sign out this device?' });
+    fireEvent(confirm, new Event('cancel', { cancelable: true }));
+    await waitFor(() => expect(confirm).not.toHaveAttribute('open'));
+    expect(list).toHaveAttribute('open');
   });
 
   it('changes a password with the current one, with the right attributes, and says what happened', async () => {
     const { user, calls } = await open({ password: true, google: false }, { 'POST /me/password': { status: 204 } });
-    await user.click(await screen.findByRole('button', { name: 'Change password' }));
+    await user.click(await screen.findByRole('button', { name: 'Password' }));
     const dialog = await screen.findByRole('dialog');
     const current = within(dialog).getByLabelText('Current password');
     const next = within(dialog).getByLabelText('New password');
@@ -60,7 +91,7 @@ describe('Sign-in and security', () => {
 
   it('a wrong current password stays signed in and says so', async () => {
     const { user } = await open({ password: true, google: false }, { 'POST /me/password': problem(400, 'invalid_credentials') });
-    await user.click(await screen.findByRole('button', { name: 'Change password' }));
+    await user.click(await screen.findByRole('button', { name: 'Password' }));
     const dialog = await screen.findByRole('dialog');
     await user.type(within(dialog).getByLabelText('Current password'), 'wrong password here');
     await user.type(within(dialog).getByLabelText('New password'), NEW_PASSWORD);
@@ -71,7 +102,7 @@ describe('Sign-in and security', () => {
 
   it('checks the new password in plain words before sending', async () => {
     const { user, calls } = await open({ password: true, google: false });
-    await user.click(await screen.findByRole('button', { name: 'Change password' }));
+    await user.click(await screen.findByRole('button', { name: 'Password' }));
     const dialog = await screen.findByRole('dialog');
     await user.type(within(dialog).getByLabelText('Current password'), PASSWORD);
     await user.type(within(dialog).getByLabelText('New password'), 'short');
@@ -82,7 +113,7 @@ describe('Sign-in and security', () => {
 
   it('an account with no password adds one through an emailed code', async () => {
     const { user, calls } = await open({ password: false, google: true }, { 'POST /me/password/set/request': { status: 202 }, 'POST /me/password/set': { status: 204 } });
-    await user.click(await screen.findByRole('button', { name: 'Add a password' }));
+    await user.click(await screen.findByRole('button', { name: 'Password' }));
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Email me a code' }));
     const code = await within(dialog).findByLabelText('6-digit code');
@@ -102,7 +133,7 @@ describe('Sign-in and security', () => {
       'POST /me/reauth/code/request': { status: 202 },
       'POST /me/reauth/code': { status: 204 },
     });
-    await user.click(await screen.findByRole('button', { name: 'Disconnect Google' }));
+    await user.click(await screen.findByRole('button', { name: 'Google' }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Disconnect' }));
     const confirm = await screen.findByRole('dialog', { name: "Confirm it's you" });
     expect(within(confirm).queryByLabelText('Your password')).not.toBeInTheDocument();
@@ -124,7 +155,8 @@ describe('Sign-in and security', () => {
         'POST /me/identities/google/connect': () => (++connects === 1 ? problem(403, 'reauth_required') : { body: { url: 'https://accounts.example/authorize?x=1' } }),
         'POST /me/reauth/password': { status: 204 },
       });
-      await user.click(await screen.findByRole('button', { name: 'Connect Google' }));
+      await user.click(await screen.findByRole('button', { name: 'Google' }));
+      await user.click(within(await screen.findByRole('dialog', { name: 'Connect Google?' })).getByRole('button', { name: 'Connect Google' }));
       const confirm = await screen.findByRole('dialog', { name: "Confirm it's you" });
       const field = within(confirm).getByLabelText('Your password');
       expect(field).toHaveAttribute('autocomplete', 'current-password');
@@ -143,7 +175,8 @@ describe('Sign-in and security', () => {
       'POST /me/identities/google/connect': problem(403, 'reauth_required'),
       'POST /me/reauth/password': problem(400, 'invalid_credentials'),
     });
-    await user.click(await screen.findByRole('button', { name: 'Connect Google' }));
+    await user.click(await screen.findByRole('button', { name: 'Google' }));
+      await user.click(within(await screen.findByRole('dialog', { name: 'Connect Google?' })).getByRole('button', { name: 'Connect Google' }));
     const confirm = await screen.findByRole('dialog', { name: "Confirm it's you" });
     await user.type(within(confirm).getByLabelText('Your password'), 'not the password');
     await user.click(within(confirm).getByRole('button', { name: 'Confirm' }));
@@ -169,7 +202,7 @@ describe('Sign-in and security', () => {
 
   it('with a password, disconnecting Google asks first', async () => {
     const { user, calls } = await open({ password: true, google: true }, { 'DELETE /me/identities/google': { status: 204 } });
-    await user.click(await screen.findByRole('button', { name: 'Disconnect Google' }));
+    await user.click(await screen.findByRole('button', { name: 'Google' }));
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
     await waitFor(() => expect(calls.some((c) => c.key === 'DELETE /me/identities/google')).toBe(true));

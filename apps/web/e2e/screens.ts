@@ -202,14 +202,14 @@ export const SCREENS: Screen[] = [
     name: 'settings-change-password',
     path: '/settings',
     api: signedIn,
-    act: (p) => p.getByRole('button', { name: 'Change password' }).click(),
+    act: (p) => p.getByRole('button', { name: 'Password', exact: true }).click(),
   },
   {
     name: 'settings-add-password',
     path: '/settings',
     api: { signedIn: true, methods: { password: false, google: false } },
     act: async (p) => {
-      await p.getByRole('button', { name: 'Add a password' }).click();
+      await p.getByRole('button', { name: 'Password', exact: true }).click();
       await p.getByRole('button', { name: 'Email me a code' }).click();
       await p.getByLabel('New password').waitFor();
     },

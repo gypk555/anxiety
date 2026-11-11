@@ -2,8 +2,8 @@ import { answerDifficulty, answerItems, expect, expectAccountHome, resultHeading
 
 test('back and forward walk through the check-in, keeping answers', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Start the check-in' }).click();
-  await page.getByRole('link', { name: /Anxiety check \(GAD-7\)/ }).click();
+  // Home offers the GAD-7 directly, one tap.
+  await page.getByRole('main').getByRole('link', { name: /Anxiety check \(GAD-7\)/ }).click();
   await page.getByRole('button', { name: 'Begin' }).click();
   await expect(page).toHaveURL(/\/check-in\/1$/);
   await answerItems(page, [1, 2, 3]);

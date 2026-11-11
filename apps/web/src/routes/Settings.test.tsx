@@ -40,8 +40,9 @@ describe('rights while consent is outstanding', () => {
   it('holds back only what the server refuses until consent: changing the name and email', async () => {
     open(STALE);
     await screen.findByRole('button', { name: 'Download my data' });
-    expect(screen.queryByLabelText(/Only used to greet you/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Change email' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Name' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Email' })).not.toBeInTheDocument();
+    expect(screen.getByText(STALE.email)).toBeInTheDocument();
   });
 
   it('a re-prompt says the data is kept; a new account says it goes after 24 hours', async () => {
@@ -60,7 +61,53 @@ describe('rights while consent is outstanding', () => {
     renderRoutes(routes, '/settings', queryClient);
     await screen.findByRole('button', { name: 'Download my data' });
     expect(screen.queryByRole('link', { name: 'Review and agree' })).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Only used to greet you/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Name' })).toHaveAccessibleDescription('Asha Only used to greet you');
+    expect(screen.getByRole('button', { name: 'Email' })).toHaveAccessibleDescription(ME.email);
+  });
+
+  it('the last control on the page is deleting the account, after signing out', async () => {
+    mockFetch({ 'GET /me': { body: ME }, 'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META } });
+    renderRoutes(routes, '/settings', queryClient);
+    await screen.findByRole('button', { name: 'Download my data' });
+    const controls = [...document.querySelectorAll<HTMLElement>('a[href], button')].filter((b) => !b.closest('dialog'));
+    expect(controls.at(-1)).toHaveAccessibleName('Delete my account');
+    expect(controls.at(-2)).toHaveAccessibleName('Sign out on all devices');
+  });
+
+  it('says out loud when the download starts', async () => {
+    mockFetch({ 'GET /me': { body: ME }, 'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META }, 'GET /me/export': { body: { me: 1 } } });
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} }));
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    renderRoutes(routes, '/settings', queryClient);
+    await userEvent.click(await screen.findByRole('button', { name: 'Download my data' }));
+    const said = await screen.findByText('Download started.', { selector: '[aria-live] *, [aria-live]' });
+    expect(said).toBeInTheDocument();
+  });
+
+  it('the delete group can be found by its heading', async () => {
+    mockFetch({ 'GET /me': { body: ME }, 'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META } });
+    renderRoutes(routes, '/settings', queryClient);
+    expect(await screen.findByRole('region', { name: 'Delete your account' })).toContainElement(screen.getByRole('button', { name: 'Delete my account' }));
+  });
+
+  it('changes the name in a sheet, and the row shows the new one', async () => {
+    let name: string | null = 'Asha';
+    const { calls } = mockFetch({
+      'GET /me': () => ({ body: { ...ME, displayName: name } }),
+      'PATCH /me': (body) => { name = (body as { displayName: string | null }).displayName; return { body: { ...ME, displayName: name } }; },
+      'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META },
+    });
+    renderRoutes(routes, '/settings', queryClient);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Name' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Your name' });
+    const field = within(sheet).getByLabelText(/Only used to greet you/);
+    await user.clear(field);
+    await user.type(field, 'Meera');
+    await user.click(within(sheet).getByRole('button', { name: 'Save name' }));
+    expect(calls.find((c) => c.key === 'PATCH /me')?.body).toEqual({ displayName: 'Meera' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Name' })).toHaveAccessibleDescription('Meera Only used to greet you'));
+    expect(await screen.findByText('Name saved')).toBeInTheDocument();
   });
 });
 
@@ -120,7 +167,7 @@ describe('sending a new code from a sheet', () => {
     fake();
     const u = user();
     const fetchMock = open();
-    await u.click(await screen.findByRole('button', { name: 'Change email' }));
+    await u.click(await screen.findByRole('button', { name: 'Email' }));
     const sheet = within(screen.getByRole('dialog', { name: 'Change your email', hidden: true }));
     await u.type(sheet.getByLabelText('New email address'), 'new@example.com');
     await u.click(sheet.getByRole('button', { name: 'Send codes', hidden: true }));
@@ -139,6 +186,11 @@ describe('theme options', () => {
     renderRoutes(routes, '/settings', queryClient);
     return screen.findAllByRole('radio');
   };
+
+  it('are short enough to sit on one line: Phone, Light, Dark', async () => {
+    const radios = await open();
+    expect(radios.map((r) => r.textContent)).toEqual(['Phone', 'Light', 'Dark']);
+  });
 
   it('are one Tab stop, on the chosen option', async () => {
     const radios = await open();

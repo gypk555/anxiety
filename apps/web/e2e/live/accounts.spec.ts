@@ -269,8 +269,8 @@ test.describe('Settings: sign-in and security', () => {
     await expectAccountHome(otherPage);
 
     await page.goto('/settings');
-    await expect(page.getByText('Password: set')).toBeVisible();
-    await page.getByRole('button', { name: 'Change password' }).click();
+    await expect(page.getByRole('button', { name: 'Password', exact: true })).toHaveAccessibleDescription('Set');
+    await page.getByRole('button', { name: 'Password', exact: true }).click();
     const sheet = page.getByRole('dialog', { name: 'Change your password' });
     await expect(sheet.getByLabel('Current password')).toHaveAttribute('autocomplete', 'current-password');
     await expect(sheet.getByLabel('New password')).toHaveAttribute('autocomplete', 'new-password');
@@ -297,15 +297,15 @@ test.describe('Settings: sign-in and security', () => {
     const urls = watchUrls(page);
     const email = await signUp(page, 'setpw');
     await page.goto('/settings');
-    await expect(page.getByText('Password: not set')).toBeVisible();
-    await page.getByRole('button', { name: 'Add a password' }).click();
+    await expect(page.getByRole('button', { name: 'Password', exact: true })).toHaveAccessibleDescription('Not set');
+    await page.getByRole('button', { name: 'Password', exact: true }).click();
     const sheet = page.getByRole('dialog', { name: 'Add a password' });
     await sheet.getByRole('button', { name: 'Email me a code' }).click();
     await sheet.getByLabel(CODE_LABEL).fill(await waitForCode(email, 'password_set'));
     await sheet.getByLabel('New password').fill(PASSWORD);
     await sheet.getByRole('button', { name: 'Save password' }).click();
     await expect(page.getByText('Password added. Other devices were signed out.')).toBeVisible();
-    await expect(page.getByText('Password: set')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Password', exact: true })).toHaveAccessibleDescription('Set');
     await expectNoPasswordKept(page, urls, PASSWORD);
 
     await signOut(page);
@@ -318,7 +318,7 @@ test.describe('Settings: sign-in and security', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Before we save anything' })).toBeVisible();
     await page.goto('/settings');
     await expect(page.getByRole('heading', { level: 2, name: 'Sign-in and security' })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 3, name: 'Signed-in devices' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Signed-in devices', exact: true })).toBeVisible();
   });
 });
 
@@ -377,13 +377,14 @@ test.describe('Google, through the fake provider', () => {
     const id = await api(context).userId();
     const google = uniqueGmail('connect');
     await page.goto('/settings');
-    await expect(page.getByText('Google: not connected')).toBeVisible();
-    await page.getByRole('button', { name: 'Connect Google' }).click();
+    await expect(page.getByRole('button', { name: 'Google', exact: true })).toHaveAccessibleDescription('Not connected');
+    await page.getByRole('button', { name: 'Google', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Connect Google?' }).getByRole('button', { name: 'Connect Google' }).click();
     // Just signed in with a password, so no second check is needed yet.
     await continueAtProvider(page, google);
     await expect(page).toHaveURL(/\/settings#security$/);
     await expect(page.getByRole('status').filter({ hasText: 'Google connected' })).toBeVisible();
-    await expect(page.getByText('Google: connected')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Google', exact: true })).toHaveAccessibleDescription('Connected');
     await expect.poll(() => mailCount(email, 'google_linked_notice')).toBe(1);
 
     await signOut(page);
@@ -398,9 +399,10 @@ test.describe('Google, through the fake provider', () => {
     const email = await createAccount(page, 'google-reset');
     const google = uniqueGmail('reset');
     await page.goto('/settings');
-    await page.getByRole('button', { name: 'Connect Google' }).click();
+    await page.getByRole('button', { name: 'Google', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Connect Google?' }).getByRole('button', { name: 'Connect Google' }).click();
     await continueAtProvider(page, google);
-    await expect(page.getByText('Google: connected')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Google', exact: true })).toHaveAccessibleDescription('Connected');
     await signOut(page);
 
     await page.goto('/sign-in');
@@ -425,15 +427,15 @@ test.describe('Google, through the fake provider', () => {
     await continueAtProvider(page, email);
     await acceptConsent(page);
     await page.goto('/settings');
-    await expect(page.getByText('Google: connected')).toBeVisible();
-    await expect(page.getByText('Password: not set')).toBeVisible();
-    await page.getByRole('button', { name: 'Disconnect Google' }).click();
+    await expect(page.getByRole('button', { name: 'Google', exact: true })).toHaveAccessibleDescription('Connected');
+    await expect(page.getByRole('button', { name: 'Password', exact: true })).toHaveAccessibleDescription('Not set');
+    await page.getByRole('button', { name: 'Google', exact: true }).click();
     await page.getByRole('dialog', { name: 'Disconnect Google?' }).getByRole('button', { name: 'Disconnect' }).click();
     const confirm = page.getByRole('dialog', { name: "Confirm it's you" });
     await confirm.getByRole('button', { name: 'Email me a code' }).click();
     await confirm.getByLabel(CODE_LABEL).fill(await waitForCode(email, 'reauth'));
     await confirm.getByRole('button', { name: 'Confirm' }).click();
-    await expect(page.getByText('Google: not connected')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Google', exact: true })).toHaveAccessibleDescription('Not connected');
     await expect.poll(() => mailCount(email, 'google_unlinked_notice')).toBe(1);
   });
 
@@ -640,10 +642,10 @@ test.describe('screens', () => {
   test('Settings with a password sheet open passes axe and fits 320px', async ({ page }) => {
     await createAccount(page, 'axe');
     await page.goto('/settings');
-    await expect(page.getByText('Password: set')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Password', exact: true })).toHaveAccessibleDescription('Set');
     await expectAccessible(page, 'settings');
     await expectNoOverflowAt320(page, 'settings');
-    await page.getByRole('button', { name: 'Change password' }).click();
+    await page.getByRole('button', { name: 'Password', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Change your password' })).toBeVisible();
     await expectAccessible(page, 'change password');
   });

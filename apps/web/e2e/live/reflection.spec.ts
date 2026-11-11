@@ -59,9 +59,12 @@ async function seedProgress(page: Page, ids: string[]) {
 }
 
 test('the start of a check-in offers both, with Get help and Quick exit still there', async ({ page }) => {
+  // Home offers both, each one tap away.
   await page.goto('/');
-  await page.getByRole('link', { name: 'Start the check-in' }).click();
-  await expect(page).toHaveURL(/\/check-in$/);
+  await expect(page.getByRole('main').getByRole('link', { name: /Anxiety check \(GAD-7\)/ })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('button', { name: /^Reflection/ })).toBeVisible();
+  // So does the chooser, which the account's check-ins and Trends link to.
+  await page.goto('/check-in');
   await expect(page.getByRole('heading', { level: 1, name: 'What would you like to do?' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Anxiety check \(GAD-7\)/ })).toContainText('7 questions, the same each time.');
   await expect(page.getByRole('button', { name: /^Reflection/ })).toContainText('No score.');

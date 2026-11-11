@@ -41,7 +41,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page).toHaveURL(/\/consent/);
     await check(page, 'consent');
     await acceptConsent(page);
-    await expect(page.getByRole('heading', { name: 'No check-ins saved yet' })).toBeVisible();
+    await expect(page.getByText('Your first check-in')).toBeVisible();
     await check(page, 'empty home');
     await page.goto('/trends');
     await check(page, 'empty trends');
@@ -86,7 +86,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByRole('heading', { level: 1, name: "There's nothing at this address" })).toBeVisible();
     await check(page, 'result not found');
     await page.goto('/settings');
-    await expect(page.getByText(email)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Email', exact: true })).toHaveAccessibleDescription(email);
     await check(page, 'settings');
 
     await page.getByRole('button', { name: 'Delete my account' }).click();
