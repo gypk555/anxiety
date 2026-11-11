@@ -14,6 +14,7 @@ Show a person how their saved scores change over time, in a form that works for 
 - No check-ins: an explanation and a "Start the check-in" button. One check-in: a dot, and a note that the line starts with the next one.
 - Under the chart, "Make a report for your doctor" opens the [doctor report](doctor-report.md).
 - Below a stitched rule, a separate section, "Your daily mood log, not a test score", has its own 30-day chart and table, with a link to `/mood`. It never shares an axis with the GAD-7. See [mood log](mood-log.md).
+- Below that, once there is one, "Reflections": each saved reflection by date with a "Reflection" label, opening to its answers at `/reflections/:id`, and "Themes that came up most in the last 30 days", a count labelled "A count, not a score". No reflection chart, and never on the GAD-7 axis. See [reflections](reflections.md).
 
 Home also shows the latest result and next check-in date: `Next check-in: {date}`, or a nudge once it's been two weeks or more.
 

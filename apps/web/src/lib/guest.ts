@@ -1,5 +1,7 @@
 import { GAD7_ITEMS, assessmentCreateBody, gad7Answer } from '@anxiocare/shared';
 import { z } from 'zod';
+import { clearReflectionData } from './reflection-store';
+import { newRequestId, readSession, removeSession, writeSession } from './session-store';
 
 /**
  * Guest check-in state. sessionStorage only: gone when the tab closes, and never
@@ -23,42 +25,10 @@ const guestResultSchema = z.object({
 });
 export type GuestResult = z.infer<typeof guestResultSchema>;
 
-function read<T>(key: string, schema: z.ZodType<T>): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = schema.safeParse(JSON.parse(raw));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
-}
-
-function write(key: string, value: unknown): void {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* Storage blocked: the check-in still works until the page is reloaded. */
-  }
-}
-
-function remove(key: string): void {
-  try {
-    sessionStorage.removeItem(key);
-  } catch {
-    /* nothing stored */
-  }
-}
-
-export function newRequestId(): string {
-  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  // Older WebViews: same format from the same CSPRNG.
-  const b = crypto.getRandomValues(new Uint8Array(16));
-  b[6] = (b[6]! & 0x0f) | 0x40;
-  b[8] = (b[8]! & 0x3f) | 0x80;
-  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
+const read = readSession;
+const write = writeSession;
+const remove = removeSession;
+export { newRequestId };
 
 export const loadCheckin = () => read(CHECKIN_KEY, checkinSchema);
 export const saveCheckin = (progress: CheckinProgress) => write(CHECKIN_KEY, progress);
@@ -103,6 +73,7 @@ export const clearGuestResult = () => remove(RESULT_KEY);
 export function clearGuestData(): void {
   clearCheckin();
   clearGuestResult();
+  clearReflectionData();
 }
 
 /** Body for saving a guest result. The server accepts results up to 24 hours old. */

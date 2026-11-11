@@ -8,6 +8,16 @@ import {
   type CheckinProgress,
   type GuestResult,
 } from './guest';
+import {
+  loadRecentReflections,
+  loadReflection,
+  loadReflectionResult,
+  saveRecentReflections,
+  saveReflection,
+  saveReflectionResult,
+  type ReflectionProgress,
+  type ReflectionResult,
+} from './reflection-store';
 
 /**
  * What someone was in the middle of when their session ended underneath them. Memory only, by design:
@@ -19,6 +29,10 @@ interface Held {
   drafts: [string, Draft][];
   result: GuestResult | null;
   checkin: CheckinProgress | null;
+  reflection: ReflectionProgress | null;
+  reflectionResult: ReflectionResult | null;
+  /** Question ids of the tab's last reflections, so the next one still asks different ones. */
+  recentReflections: string[][];
 }
 
 let held: Held | null = null;
@@ -30,7 +44,15 @@ export const discardHeld = () => {
 
 /** Moves the person's work out of every place the app reads from. */
 export function holdWork(userId: string): void {
-  held = { userId, drafts: allDrafts(), result: loadGuestResult(), checkin: loadCheckin() };
+  held = {
+    userId,
+    drafts: allDrafts(),
+    result: loadGuestResult(),
+    checkin: loadCheckin(),
+    reflection: loadReflection(),
+    reflectionResult: loadReflectionResult(),
+    recentReflections: loadRecentReflections(),
+  };
   clearDrafts();
   clearGuestData();
 }
@@ -45,4 +67,7 @@ export function settleHeld(userId: string): void {
   }
   if (work.result && !loadGuestResult()) saveGuestResult(work.result);
   if (work.checkin && !loadCheckin()) saveCheckin(work.checkin);
+  if (work.reflection && !loadReflection()) saveReflection(work.reflection);
+  if (work.reflectionResult && !loadReflectionResult()) saveReflectionResult(work.reflectionResult);
+  if (work.recentReflections.length && !loadRecentReflections().length) saveRecentReflections(work.recentReflections);
 }

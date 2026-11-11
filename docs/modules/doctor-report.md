@@ -18,6 +18,8 @@ A clear summary to take to a doctor, made from the person's own data, which they
   | Mood notes | Off |
   | Safety plan | Off |
   | Journal entries | Off |
+  | Reflections | Off |
+  | Reflection notes | Off |
 
   A line explains that private writing is left out unless it's added.
 - "Put my name at the top" is off by default. When on, it shows a name field filled from the display name.
@@ -27,6 +29,7 @@ A clear summary to take to a doctor, made from the person's own data, which they
   - a footer: "Self-reported. A screening, not a diagnosis.", the GAD-7 attribution, and "Made on <date>"
 - The GAD-7 table has Date, Score ("10 of 21"), Range, and Day-to-day difficulty.
 - The weekly mood table has Week starting (Monday), Days logged, and an average from 1 to 5 with the nearest word. The report says the mood log is not a test score and not part of the GAD-7.
+- Reflections: each one's date, then a table of its five questions and answers in words. Its note appears only with "Reflection notes" on as well. The section says reflections are not scored and not part of the GAD-7. See [reflections](reflections.md).
 - "Save as PDF or print" calls `window.print()`.
 
 ## How it works

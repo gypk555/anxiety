@@ -44,7 +44,7 @@ test('sign-in and consent, with the keyboard alone', async ({ page, browserName 
 });
 
 test('check-in with arrow keys and Space: focus lands on each question in turn, then the result', async ({ page, browserName }) => {
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await tabTo(page, browserName, page.getByRole('button', { name: 'Begin' }));
   await page.keyboard.press('Enter');

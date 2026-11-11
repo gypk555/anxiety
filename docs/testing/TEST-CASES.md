@@ -19,22 +19,22 @@ This lists what exists. It does not say tests passed: for results, see `docs/tes
 
 | Level | Runner | Unique tests | Test runs |
 | --- | --- | --- | --- |
-| Unit | Vitest | 94 | 94 |
+| Unit | Vitest | 119 | 119 |
 | API unit | Vitest | 39 | 39 |
-| API integration | Vitest | 562 | 562 |
-| Web unit and component | Vitest | 244 | 244 |
-| E2E mocked | Playwright | 163 | 326 |
-| E2E live | Playwright | 162 | 324 |
+| API integration | Vitest | 587 | 587 |
+| Web unit and component | Vitest | 274 | 274 |
+| E2E mocked | Playwright | 183 | 366 |
+| E2E live | Playwright | 172 | 344 |
 | E2E HTTPS | Playwright | 7 | 14 |
-| **Total** | | **1271** | **1603** |
+| **Total** | | **1381** | **1743** |
 
-Vitest: 939. Playwright: 332 unique tests, 664 runs across projects: `iphone` 163, `pixel` 163, `live-iphone` 162, `live-pixel` 162, `https-iphone` 7, `https-pixel` 7.
+Vitest: 1019. Playwright: 362 unique tests, 724 runs across projects: `iphone` 183, `pixel` 183, `live-iphone` 172, `live-pixel` 172, `https-iphone` 7, `https-pixel` 7.
 
 Level definitions, and what each does and doesn't prove, are in `docs/testing/TEST-STRATEGY.md`.
 
 ## Traceability matrix
 
-191 requirements: 145 covered, 30 partial, 16 with no automated test.
+207 requirements: 160 covered, 31 partial, 16 with no automated test.
 
 **Covered** means a test exercises the requirement on the stack it runs on (localhost, emulated devices). It does not mean proved in production. **Partial** means part of it is untested: the note says which. **None** means no automated test. A row with many tests shows the first few, and the rest are in the catalogue under that file.
 
@@ -79,7 +79,7 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | ACC-16 | Google: button hidden when off; disconnect needs a recent re-authentication, not a password | Covered | E2E-live-accounts-2683, E2E-live-accounts-4315; API-google-f7fc; WEB-SignInSecurity-3027 |  | MT-AUTH-20 |
 | ACC-17 | Production boot refuses endpoint overrides and half-set Google config | Covered | API-config-7f90, API-config-758b, API-config-8dd2, API-config-d54b |  |  |
 | ACC-18 | Erasure removes identities and login failures; export states methods, not subjects | Covered | API-google-25b1, API-google-8af8; API-erasure-e58f |  |  |
-| ACC-19 | Migration 002 applies on top of 001 unchanged; runtime role has only the needed grants | Covered | API-database-5fd5, API-database-1264, API-database-aa04, API-database-f07c, API-database-f102, API-database-f0ea, API-database-919a |  |  |
+| ACC-19 | Migration 002 applies on top of 001 unchanged; runtime role has only the needed grants | Covered | API-database-5fd5, API-database-1264, API-database-aa04 and 6 more in database.test.ts |  |  |
 | ACC-20 | db:setup idempotent, never overwrites secrets; db:verify fails on a broken database; doctor prints no secrets | Covered | API-tooling-3c86, API-tooling-3b04, API-tooling-42ee, API-tooling-5ffc, API-tooling-3e71, API-tooling-2ba3 | Embedded Postgres only. Never met real Supabase. | MT-AUTH-22 |
 | ACC-21 | Guest result still offered for saving after every route in | Covered | E2E-live-accounts-69d9, E2E-live-accounts-4a61, E2E-live-accounts-181b and 7 more in accounts.spec.ts |  |  |
 | ACC-23 | Google creates a new account only for gmail.com, googlemail.com or an hd claim | Covered | API-security-regressions-e372, API-security-regressions-7aa2; WEB-SignIn-5708, WEB-SignIn-af79 |  |  |
@@ -291,7 +291,7 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | ST-SP-01 | Seven Stanley-Brown sections in order, all optional, examples as hints only, helplines prefilled | Covered | SHR-tracking-0880; WEB-SafetyPlan-265b, WEB-SafetyPlan-eaa3 | Copy needs clinician review: docs/CLINICAL-SAFETY.md. |  |
 | ST-SP-02 | Signed-in plan on the server, sealed like the journal, one per account | Covered | API-tracking-7f3f, API-tracking-4362, API-tracking-0c40; API-encryption-a81c |  |  |
 | ST-SP-03 | Offline copy: non-extractable WebCrypto key and ciphertext in IndexedDB, nothing readable in any browser storage | Covered | WEB-vault-5dff, WEB-vault-bc42; E2E-live-safety-plan-d861, E2E-live-safety-plan-de53 |  | MT-SP-01, MT-SP-02, MT-SP-07 |
-| ST-SP-04 | Cleared on sign-out, account deletion and another account signing in | Covered | WEB-session-vault-df84, WEB-session-vault-68fd, WEB-session-vault-5562, WEB-session-vault-326f; WEB-vault-c550; E2E-live-safety-plan-d861, E2E-live-safety-plan-7b2e |  | MT-SP-04, MT-SP-05 |
+| ST-SP-04 | Cleared on sign-out, account deletion and another account signing in | Covered | WEB-session-vault-df84, WEB-session-vault-68fd, WEB-session-vault-5562, WEB-session-vault-326f, WEB-session-vault-3f51, WEB-session-vault-24f1; WEB-vault-c550; E2E-live-safety-plan-d861, E2E-live-safety-plan-7b2e |  | MT-SP-04, MT-SP-05 |
 | ST-SP-05 | Guests keep a device-only plan after a notice, can delete it, and can move it to an account after sign-in | Covered | WEB-SafetyPlan-605a, WEB-SafetyPlan-4977, WEB-SafetyPlan-5706; E2E-live-safety-plan-f236 |  | MT-SP-06 |
 | ST-SP-06 | One-tap tel: links for people and professionals; print view | Covered | WEB-SafetyPlan-225e; E2E-audit-59c4 | A real dial needs a real phone. | MT-SP-03, MT-SP-08, MT-SP-09 |
 | ST-SP-07 | Bounds: 10 items of 200, contacts 80 and 20 from [0-9 +()-] | Covered | SHR-tracking-d59d; API-tracking-edfa |  |  |
@@ -303,6 +303,27 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | ST-RP-02 | Built in the browser, printed by the browser, A4 black on white, a page per section | Covered | WEB-Report-0d9f; E2E-audit-c66b; E2E-live-report-3863 | A real A4 PDF from a phone is a manual check. | MT-SP-10, MT-SP-11 |
 | ST-API-01 | Moods and safety-plan endpoints: auth, consent, cross-user 404, bounds, per-user limit | Covered | API-tracking-f351, API-tracking-6b29, API-tracking-6aaf, API-tracking-28e3, API-tracking-d943 |  |  |
 | ST-UX-01 | Every new screen: axe, 320px, landscape, no CSP violations | Covered | E2E-audit-7186, E2E-audit-5a8e, E2E-audit-a1b5 and 25 more in audit.spec.ts; E2E-live-a11y-f985, E2E-live-a11y-e671; E2E-live-landscape-5329 |  |  |
+
+### Reflections (2026-11-11 spec)
+
+| Req | Requirement | Status | Automated tests | Not covered, or note | Manual |
+| --- | --- | --- | --- | --- | --- |
+| RF-01 | Start screen: "What would you like to do?", GAD-7 or Reflection, for guests and accounts, Get help and Quick exit visible | Covered | WEB-Reflection-b454; E2E-live-reflection-0996 |  | MT-RF-01 |
+| RF-02 | The GAD-7 wording and order unchanged; the GAD-7 path unchanged | Covered | SHR-questions-a174; WEB-Reflection-46ce; E2E-live-reflection-a265 |  | MT-RF-01 |
+| RF-03 | One catalogue with GAD-7 and 100 reflections told apart by type; migration equals the shared file | Covered | SHR-questions-3e47, SHR-questions-88de; API-reflections-1523 |  |  |
+| RF-04 | Released questions immutable (wording, type, theme, position): trigger refuses changes and deletion; snapshot pins them; runtime role reads only | Covered | API-reflections-9c06, API-reflections-7cc2, API-reflections-5fed; SHR-released-questions-ce7b |  |  |
+| RF-05 | db:verify and the boot check refuse a live table that differs | Covered | API-reflections-d3be, API-reflections-1617; API-tooling-5177, API-tooling-77ef |  |  |
+| RF-06 | GAD-7 answers stay 7 numbers, position i is GAD7-(i+1); no data migration | Covered | API-reflections-cd8b |  |  |
+| RF-07 | Bank style and exclusions: 20 per theme, at most 90 characters, banned words, no GAD-7 paraphrase, polarity | Partial | SHR-questions-148c, SHR-questions-e0da, SHR-questions-a7df | Word lists, not an expert review. Every question needs clinician review. | MT-RF-06 |
+| RF-08 | Picker: 5 distinct, one per theme, crypto random, not from the last 3, active only | Covered | SHR-questions-6301, SHR-questions-00ee, SHR-questions-6288, SHR-questions-8e09, SHR-questions-a251; WEB-Reflection-1a37, WEB-Reflection-8ef1; E2E-live-reflection-ef4e |  | MT-RF-02 |
+| RF-09 | Result: no score, plain summary read by polarity, matched suggestions, "not a test or a diagnosis" | Covered | SHR-questions-07e3, SHR-questions-7697, SHR-questions-1a2e, SHR-questions-3420, SHR-questions-0c83, SHR-questions-7d01; WEB-Reflection-5d5a; E2E-live-reflection-ea57 |  | MT-RF-02 |
+| RF-10 | A brings_help answer of 2 or more brings Get help forward, calmly | Covered | SHR-questions-c065; WEB-Reflection-dee2; E2E-live-reflection-2080 | Wording needs clinician review. | MT-RF-03 |
+| RF-11 | Accounts save automatically; guests save after signing in; held across a session ending | Covered | WEB-Reflection-8ef1, WEB-Reflection-72e5; WEB-reflection-store-77c9; E2E-live-reflection-cebb |  | MT-RF-04, MT-RF-05 |
+| RF-12 | API: auth, consent, cross-user 404, idempotency, refusals that echo nothing, per-user limit | Covered | API-reflections-0a48, API-reflections-dcc5, API-reflections-79ff, API-reflections-6466, API-reflections-a7a1, API-reflections-d69f, API-reflections-0ce0 |  |  |
+| RF-13 | Encrypted at rest with AAD, ids and notes not visible, same size, swap fails | Covered | API-reflections-088a, API-reflections-79f6, API-reflections-151d; API-encryption-a81c |  |  |
+| RF-14 | History, Trends theme count (not a score) and the doctor report section, off by default | Covered | WEB-Trends-c798; WEB-Report-911a; E2E-live-reflection-52b0 |  | MT-RF-04 |
+| RF-15 | Export with question text resolved, and erasure; consent bumped with the notice | Covered | API-erasure-6e73, API-erasure-c58a; SHR-gad7-fd97; WEB-Legal-9807 | Notice text needs legal review. |  |
+| RF-16 | Every reflection screen: axe, 320px, landscape, no CSP violations | Covered | E2E-audit-f006, E2E-audit-bb1a, E2E-audit-fe43 and 17 more in audit.spec.ts; E2E-live-reflection-8904, E2E-live-reflection-de57; E2E-live-landscape-5329 |  |  |
 
 ## Requirements with no automated coverage
 
@@ -331,7 +352,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 
 ## Catalogue
 
-1271 tests. Playwright rows list the projects each runs in. Duplicate names come from `it.each` tables whose titles don't vary.
+1381 tests. Playwright rows list the projects each runs in. Duplicate names come from `it.each` tables whose titles don't vary.
 
 ### `apps/api/test/accounts.test.ts` (102)
 
@@ -539,7 +560,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-data-7c13 | `data.test.ts` | pagination > cursors are opaque, and tampered ones are a clean 400 | API integration | Product: lists |
 | API-data-b0b1 | `data.test.ts` | pagination > bounds limit | API integration | Product: lists |
 
-### `apps/api/test/database.test.ts` (27)
+### `apps/api/test/database.test.ts` (29)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -551,6 +572,8 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-database-f102 | `database.test.ts` | the runtime role on the new tables > oauth_state_uses has exactly the grants it needs | API integration | Security: database |
 | API-database-f0ea | `database.test.ts` | the runtime role on the new tables > mood_entries has exactly the grants it needs | API integration | Security: database |
 | API-database-919a | `database.test.ts` | the runtime role on the new tables > safety_plans has exactly the grants it needs | API integration | Security: database |
+| API-database-8749 | `database.test.ts` | the runtime role on the new tables > questions has exactly the grants it needs | API integration | Security: database |
+| API-database-019a | `database.test.ts` | the runtime role on the new tables > reflections has exactly the grants it needs | API integration | Security: database |
 | API-database-0938 | `database.test.ts` | the runtime role on the new tables > cannot truncate, alter or drop them | API integration | Security: database |
 | API-database-dbf3 | `database.test.ts` | the runtime role on the new tables > other roles are walled off by RLS, and policies name only the runtime role | API integration | Security: database |
 | API-database-bc7a | `database.test.ts` | the runtime role on the new tables > mood entries and safety plans are walled off by RLS, cascade with the user, and allow one row per day and one plan | API integration | Security: database |
@@ -895,6 +918,32 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-purge-62de | `purge.test.ts` | file mail transport > echoes codes to the console in development only, without the address | API integration | Security: mail |
 | API-purge-ad2a | `purge.test.ts` | file mail transport > appends one JSON object per line, readable only by the owner | API integration | Security: mail |
 
+### `apps/api/test/reflections.test.ts` (21)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| API-reflections-1523 | `reflections.test.ts` | the question catalogue in the database > migration 005 seeds exactly the shared catalogue, GAD-7 and reflections alike | API integration | Product: reflections |
+| API-reflections-cd8b | `reflections.test.ts` | the question catalogue in the database > GAD-7 answers are stored as before: 7 numbers, position i being GAD7-(i+1), with no ids or text | API integration | Product: reflections |
+| API-reflections-9c06 | `reflections.test.ts` | the question catalogue in the database > refuses to change wording, type, theme, position, answer set or id, and refuses deletion, even for the owner | API integration | Product: reflections |
+| API-reflections-4afd | `reflections.test.ts` | the question catalogue in the database > can retire a question with active = false, and bring it back | API integration | Product: reflections |
+| API-reflections-7cc2 | `reflections.test.ts` | the question catalogue in the database > the runtime role can read it and nothing more | API integration | Product: reflections |
+| API-reflections-5fed | `reflections.test.ts` | the question catalogue in the database > both tables have RLS on, with policies only for the runtime role | API integration | Product: reflections |
+| API-reflections-d3be | `reflections.test.ts` | the question catalogue in the database > the boot check passes on the seeded table, and refuses a table that differs from the shared file | API integration | Product: reflections |
+| API-reflections-1617 | `reflections.test.ts` | the server at boot > refuses to start when the live catalogue differs from the shared file, naming only the id | API integration | Product: reflections |
+| API-reflections-d69f | `reflections.test.ts` | reflections > saves one, replays it by clientRequestId, lists it newest first, and deletes it | API integration | Product: reflections |
+| API-reflections-aaa6 | `reflections.test.ts` | reflections > pages with a cursor, in the same shape as assessments | API integration | Product: reflections |
+| API-reflections-2ed8 | `reflections.test.ts` | reflections > accepts a reflection made before sign-in, up to a day old, never in the future | API integration | Product: reflections |
+| API-reflections-0ce0 | `reflections.test.ts` | reflections > refuses unknown, inactive and GAD-7 ids, wrong counts, repeats and out-of-range answers, echoing nothing | API integration | Product: reflections |
+| API-reflections-55e3 | `reflections.test.ts` | reflections > a question retired after it was answered still reads back | API integration | Product: reflections |
+| API-reflections-0a48 | `reflections.test.ts` | reflections: access > GET /reflections/:id returns your own one, and 404 for anyone else's, a malformed id or none | API integration | Security: authorisation |
+| API-reflections-dcc5 | `reflections.test.ts` | reflections: access > needs a session: 401 on all four | API integration | Security: authorisation |
+| API-reflections-79ff | `reflections.test.ts` | reflections: access > needs current consent: 403 consent_required on all four | API integration | Security: authorisation |
+| API-reflections-6466 | `reflections.test.ts` | reflections: access > keeps people apart: nobody lists or deletes another person's, and the same clientRequestId is separate for each | API integration | Security: authorisation |
+| API-reflections-a7a1 | `reflections.test.ts` | reflections: access > counts against the per-account rate limit, as every signed-in route does | API integration | Security: authorisation |
+| API-reflections-088a | `reflections.test.ts` | reflections: at rest > a raw select shows no question ids, answers or notes, and every row is the same size | API integration | Security: encryption |
+| API-reflections-79f6 | `reflections.test.ts` | reflections: at rest > swapping ciphertext between two reflections of one person fails, opaquely | API integration | Security: encryption |
+| API-reflections-151d | `reflections.test.ts` | reflections: at rest > a reflection moved to another person's account can't be read | API integration | Security: encryption |
+
 ### `apps/api/test/security-regressions.test.ts` (26)
 
 | ID | File | Test name | Level | Requirement area |
@@ -963,7 +1012,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-tls-e5bd | `tls.test.ts` | database TLS verify-full > refuses a server certificate not signed by the pinned CA | API integration | Security: database |
 | API-tls-c242 | `tls.test.ts` | database TLS verify-full > refuses a hostname the certificate does not cover | API integration | Security: database |
 
-### `apps/api/test/tooling.test.ts` (41)
+### `apps/api/test/tooling.test.ts` (43)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -988,6 +1037,8 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-tooling-a930 | `tooling.test.ts` | npm run db:verify > fails on a policy for another role | API integration | Operations: database and environment tooling |
 | API-tooling-7bf6 | `tooling.test.ts` | npm run db:verify > fails on a runtime policy removed from a table | API integration | Operations: database and environment tooling |
 | API-tooling-8c79 | `tooling.test.ts` | npm run db:verify > fails on a changed migration checksum | API integration | Operations: database and environment tooling |
+| API-tooling-5177 | `tooling.test.ts` | npm run db:verify > fails on a question added by hand | API integration | Operations: database and environment tooling |
+| API-tooling-77ef | `tooling.test.ts` | npm run db:verify > fails on a question reworded with the guard switched off | API integration | Operations: database and environment tooling |
 | API-tooling-b54f | `tooling.test.ts` | npm run db:verify > fails on a pending migration | API integration | Operations: database and environment tooling |
 | API-tooling-e6a3 | `tooling.test.ts` | npm run db:verify > fails on anon granted the schema | API integration | Operations: database and environment tooling |
 | API-tooling-0dea | `tooling.test.ts` | npm run db:verify > fails on authenticated granted a table | API integration | Operations: database and environment tooling |
@@ -1039,12 +1090,16 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-user-rate-limit-4835 | `user-rate-limit.test.ts` | per-user rate limit on signed-in routes > covers writes too, and every device of the account shares the budget | API integration | Security: per-user caps |
 | API-user-rate-limit-7fd1 | `user-rate-limit.test.ts` | per-user rate limit on signed-in routes > can be configured within safe bounds, and refuses nonsense | API integration | Security: per-user caps |
 
-### `apps/web/e2e/audit.spec.ts` (157)
+### `apps/web/e2e/audit.spec.ts` (177)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | E2E-audit-d4c1 | `audit.spec.ts` | home-first-run light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-7077 | `audit.spec.ts` | home-first-run dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-f006 | `audit.spec.ts` | checkin-choice light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-bb1a | `audit.spec.ts` | checkin-choice dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-fe43 | `audit.spec.ts` | checkin-choice-account light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-8459 | `audit.spec.ts` | checkin-choice-account dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-fb9d | `audit.spec.ts` | checkin-intro light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-ea78 | `audit.spec.ts` | checkin-intro dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-f5be | `audit.spec.ts` | checkin-q1 light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
@@ -1067,6 +1122,22 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | E2E-audit-73cc | `audit.spec.ts` | result-save-offer dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-cd84 | `audit.spec.ts` | result-saved light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-156e | `audit.spec.ts` | result-saved dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-2caf | `audit.spec.ts` | reflection-q1 light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-55f5 | `audit.spec.ts` | reflection-q1 dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-3047 | `audit.spec.ts` | reflection-q3-long light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-e2fe | `audit.spec.ts` | reflection-q3-long dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-7d0d | `audit.spec.ts` | reflection-note light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-0111 | `audit.spec.ts` | reflection-note dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-16e6 | `audit.spec.ts` | reflection-result-quiet light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-55c3 | `audit.spec.ts` | reflection-result-quiet dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-efbd | `audit.spec.ts` | reflection-result light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-ed9d | `audit.spec.ts` | reflection-result dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-5d99 | `audit.spec.ts` | reflection-result-help light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-d9c5 | `audit.spec.ts` | reflection-result-help dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-1cb5 | `audit.spec.ts` | reflection-save-offer light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-e788 | `audit.spec.ts` | reflection-save-offer dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-da9c | `audit.spec.ts` | reflection-saved light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-de2c | `audit.spec.ts` | reflection-saved dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-7a13 | `audit.spec.ts` | tools light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-9acb | `audit.spec.ts` | tools dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-6b9b | `audit.spec.ts` | breathe-setup light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
@@ -1296,7 +1367,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | E2E-live-authorisation-a9e8 | `authorisation.spec.ts` | a data route returns to itself after signing in | E2E live (live-iphone, live-pixel) | Security: authorisation |
 | E2E-live-authorisation-aa23 | `authorisation.spec.ts` | the next person on the same tab sees nothing of the last person | E2E live (live-iphone, live-pixel) | Security: authorisation |
 
-### `apps/web/e2e/live/compression.spec.ts` (6)
+### `apps/web/e2e/live/compression.spec.ts` (7)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -1306,6 +1377,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | E2E-live-compression-9cd7 | `compression.spec.ts` | the service worker precaches the real files, never the compressed copies | E2E live (live-iphone, live-pixel) | UX: compression and JS budget |
 | E2E-live-compression-f46b | `compression.spec.ts` | API answers holding personal data are never compressed, signed in or not | E2E live (live-iphone, live-pixel) | UX: compression and JS budget |
 | E2E-live-compression-672f | `compression.spec.ts` | the common-password list stays out of the first bundle, and is there on the screens that use it | E2E live (live-iphone, live-pixel) | UX: compression and JS budget |
+| E2E-live-compression-2bf2 | `compression.spec.ts` | the question bank stays out of the first bundle, and is there once a reflection starts | E2E live (live-iphone, live-pixel) | UX: compression and JS budget |
 
 ### `apps/web/e2e/live/consent.spec.ts` (9)
 
@@ -1411,6 +1483,20 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | E2E-live-quick-exit-031f | `quick-exit.spec.ts` | reachable by keyboard, and not held back by an unsaved draft | E2E live (live-iphone, live-pixel) | Clinical safety: quick exit |
 | E2E-live-quick-exit-7a90 | `quick-exit.spec.ts` | not blocked by an open sheet, which makes the header unreachable | E2E live (live-iphone, live-pixel) | Clinical safety: quick exit |
 | E2E-live-quick-exit-5bc0 | `quick-exit.spec.ts` | offline, the app still leaves the screen at once | E2E live (live-iphone, live-pixel) | Clinical safety: quick exit |
+
+### `apps/web/e2e/live/reflection.spec.ts` (9)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| E2E-live-reflection-0996 | `reflection.spec.ts` | the start of a check-in offers both, with Get help and Quick exit still there | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-a265 | `reflection.spec.ts` | the GAD-7 path is as it was: the same seven questions in order, scored | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-ea57 | `reflection.spec.ts` | a guest chooses Reflection, answers five questions one per theme, and sees an unscored result | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-2080 | `reflection.spec.ts` | an answer of "Quite a bit" to a question that brings help brings Get help forward | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-ef4e | `reflection.spec.ts` | a second reflection uses different questions from the first | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-52b0 | `reflection.spec.ts` | signed in: saves automatically, appears in history with a Reflection label, opens to its answers, and goes in the report | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-cebb | `reflection.spec.ts` | a guest reflection can be saved after signing in, through Home | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-8904 | `reflection.spec.ts` | axe and 320px on every reflection screen, light | E2E live (live-iphone, live-pixel) | Product: reflections |
+| E2E-live-reflection-de57 | `reflection.spec.ts` | axe and 320px on every reflection screen, dark | E2E live (live-iphone, live-pixel) | Product: reflections |
 
 ### `apps/web/e2e/live/report.spec.ts` (1)
 
@@ -1564,7 +1650,21 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-quick-exit-879e | `quick-exit.test.ts` | Escape three times > does not fire while typing in a field, and other keys break the run | Web unit and component | Clinical safety: quick exit |
 | WEB-quick-exit-5198 | `quick-exit.test.ts` | Escape three times > counts presses on buttons, sheets and other non-text controls | Web unit and component | Clinical safety: quick exit |
 
-### `apps/web/src/lib/session-vault.test.ts` (4)
+### `apps/web/src/lib/reflection-store.test.ts` (9)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| WEB-reflection-store-0263 | `reflection-store.test.ts` | a reflection in this tab > asks as many questions as the shared contract says | Web unit and component | Product: reflections |
+| WEB-reflection-store-c201 | `reflection-store.test.ts` | a reflection in this tab > starts with its five questions, resumes from sessionStorage, and writes nothing to localStorage | Web unit and component | Product: reflections |
+| WEB-reflection-store-b8c0 | `reflection-store.test.ts` | a reflection in this tab > keeps the note in memory only: sessionStorage, which a browser restores with a reopened tab, never holds it | Web unit and component | Product: reflections |
+| WEB-reflection-store-90d4 | `reflection-store.test.ts` | a reflection in this tab > ignores corrupt or tampered storage instead of crashing | Web unit and component | Product: reflections |
+| WEB-reflection-store-207a | `reflection-store.test.ts` | a reflection in this tab > completes only when all five are answered, holding ids and numbers, and the note only if there is one | Web unit and component | Product: reflections |
+| WEB-reflection-store-6dcc | `reflection-store.test.ts` | a reflection in this tab > remembers the questions of the last three reflections only | Web unit and component | Product: reflections |
+| WEB-reflection-store-92c2 | `reflection-store.test.ts` | a reflection in this tab > is cleared with the rest of the guest data, on sign-out and by quick exit | Web unit and component | Product: reflections |
+| WEB-reflection-store-77c9 | `reflection-store.test.ts` | a reflection in this tab > is held for its owner when a session ends underneath them, and only they get it back | Web unit and component | Product: reflections |
+| WEB-reflection-store-5fe5 | `reflection-store.test.ts` | a reflection in this tab > keeps the tab's recent questions across a session end for the same account, and only for it | Web unit and component | Product: reflections |
+
+### `apps/web/src/lib/session-vault.test.ts` (6)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -1572,6 +1672,8 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-session-vault-68fd | `session-vault.test.ts` | the device copy follows the session > another account signing in on this device never sees the first one's copy | Web unit and component | Security: client storage |
 | WEB-session-vault-5562 | `session-vault.test.ts` | the device copy follows the session > the same person signing in again keeps their copy | Web unit and component | Security: client storage |
 | WEB-session-vault-326f | `session-vault.test.ts` | the device copy follows the session > a session that ends underneath the person removes it too | Web unit and component | Security: client storage |
+| WEB-session-vault-3f51 | `session-vault.test.ts` | the device copy follows the session > a cold load that finds no session (it expired, or was ended from another device) removes it, and keeps a guest plan | Web unit and component | Security: client storage |
+| WEB-session-vault-24f1 | `session-vault.test.ts` | the device copy follows the session > an in-app sign-in by another account removes the first one's copy at once, without waiting for /me | Web unit and component | Security: client storage |
 
 ### `apps/web/src/lib/sound.test.ts` (11)
 
@@ -1642,13 +1744,14 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Consent-195e | `Consent.test.tsx` | re-prompt > accepting posts the current version and carries on to the destination | Web unit and component | Privacy: consent |
 | WEB-Consent-b755 | `Consent.test.tsx` | when who you are cannot be loaded > shows an error with a retry, rather than guess which words are true | Web unit and component | Privacy: consent |
 
-### `apps/web/src/routes/Home.test.tsx` (3)
+### `apps/web/src/routes/Home.test.tsx` (4)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | WEB-Home-413b | `Home.test.tsx` | Home > sends someone whose consent is out of date to the prompt, not to a screen that looks signed out | Web unit and component | Privacy: consent |
 | WEB-Home-c291 | `Home.test.tsx` | Home > sends someone who has never consented to the prompt | Web unit and component | Privacy: consent |
 | WEB-Home-ad33 | `Home.test.tsx` | Home > a guest stays on the first-run screen | Web unit and component | Privacy: consent |
+| WEB-Home-4268 | `Home.test.tsx` | Home > a reflection left in the tab can be picked up again from Home | Web unit and component | Privacy: consent |
 
 ### `apps/web/src/routes/JournalForm.test.tsx` (6)
 
@@ -1661,7 +1764,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-JournalForm-72d8 | `JournalForm.test.tsx` | thought record form > walks all five steps and saves the shared body shape | Web unit and component | Product: journal |
 | WEB-JournalForm-93e1 | `JournalForm.test.tsx` | thought record form > keeps the draft and says so when saving fails | Web unit and component | Product: journal |
 
-### `apps/web/src/routes/Legal.test.tsx` (11)
+### `apps/web/src/routes/Legal.test.tsx` (12)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -1675,6 +1778,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Legal-c6fd | `Legal.test.tsx` | Privacy notice on sign-in > says plainly what Google learns, and that this applies only to people who choose it | Web unit and component | Privacy: notice and claims |
 | WEB-Legal-3021 | `Legal.test.tsx` | Privacy notice on sign-in > says how passwords are kept, and no longer claims there is no password | Web unit and component | Privacy: notice and claims |
 | WEB-Legal-672a | `Legal.test.tsx` | privacy notice for the mood log and safety plan > covers other people's phone numbers, the device copy and when it is removed | Web unit and component | Privacy: notice and claims |
+| WEB-Legal-9807 | `Legal.test.tsx` | privacy notice for the mood log and safety plan > covers reflections: what is kept, that answers are stored as question numbers, and that guests keep them in the tab | Web unit and component | Privacy: notice and claims |
 | WEB-Legal-6dd1 | `Legal.test.tsx` | privacy notice for the mood log and safety plan > Help explains quick exit, including what it cannot do | Web unit and component | Privacy: notice and claims |
 
 ### `apps/web/src/routes/MoodLog.test.tsx` (5)
@@ -1687,12 +1791,32 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-MoodLog-67f3 | `MoodLog.test.tsx` | mood log page > can log a day that was missed, but never a future day or more than 366 days back | Web unit and component | Product: mood log |
 | WEB-MoodLog-61af | `MoodLog.test.tsx` | mood log page > an empty log invites, and never scolds | Web unit and component | Product: mood log |
 
-### `apps/web/src/routes/Report.test.tsx` (5)
+### `apps/web/src/routes/Reflection.test.tsx` (14)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| WEB-Reflection-b454 | `Reflection.test.tsx` | the start of a check-in > asks what you would like to do, and offers the two choices with what each one is | Web unit and component | Product: reflections |
+| WEB-Reflection-46ce | `Reflection.test.tsx` | the start of a check-in > the GAD-7 choice leads to the same check-in as before | Web unit and component | Product: reflections |
+| WEB-Reflection-5d5a | `Reflection.test.tsx` | a reflection, as a guest > asks one question per screen, one from each theme, then the note, then shows a result with no score | Web unit and component | Product: reflections |
+| WEB-Reflection-e4ad | `Reflection.test.tsx` | a reflection, as a guest > says something neutral when nothing stands out, and Get help stays where it is | Web unit and component | Product: reflections |
+| WEB-Reflection-dee2 | `Reflection.test.tsx` | a reflection, as a guest > a brings_help question answered "Quite a bit" or more brings Get help forward, calmly | Web unit and component | Product: reflections |
+| WEB-Reflection-1a37 | `Reflection.test.tsx` | a reflection, as a guest > a second reflection asks different questions from the first | Web unit and component | Product: reflections |
+| WEB-Reflection-f051 | `Reflection.test.tsx` | a reflection, as a guest > resumes where you left off, and refuses to skip ahead by URL | Web unit and component | Product: reflections |
+| WEB-Reflection-a929 | `Reflection.test.tsx` | a reflection, as a guest > keeps the note to 280 characters | Web unit and component | Product: reflections |
+| WEB-Reflection-8ef1 | `Reflection.test.tsx` | a reflection, signed in > leaves out the questions of the last three saved reflections, saves automatically, and lands on the saved one | Web unit and component | Product: reflections |
+| WEB-Reflection-ea0f | `Reflection.test.tsx` | a reflection, signed in > if saving fails, keeps it in the tab and offers to save it | Web unit and component | Product: reflections |
+| WEB-Reflection-72e5 | `Reflection.test.tsx` | a reflection, signed in > after signing in, saving a guest reflection posts its original clientRequestId and takenAt | Web unit and component | Product: reflections |
+| WEB-Reflection-8b12 | `Reflection.test.tsx` | a reflection, signed in > a saved reflection that is not there is a 404 page | Web unit and component | Product: reflections |
+| WEB-Reflection-5d15 | `Reflection.test.tsx` | a reflection, signed in > deleting a saved reflection goes to Trends without asking for the deleted one again | Web unit and component | Product: reflections |
+| WEB-Reflection-8cfa | `Reflection.test.tsx` | a reflection, signed in > opening a saved reflection asks for that one only, never pages through the list | Web unit and component | Product: reflections |
+
+### `apps/web/src/routes/Report.test.tsx` (6)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | WEB-Report-e5fd | `Report.test.tsx` | doctor report > previews GAD-7 scores, a chart and weekly mood averages by default, and leaves private writing out | Web unit and component | Product: doctor report |
 | WEB-Report-0ba9 | `Report.test.tsx` | doctor report > turning sections on and off changes what the report holds | Web unit and component | Product: doctor report |
+| WEB-Report-911a | `Report.test.tsx` | doctor report > a Reflections section lists each date, question and answer, and the note only with its own option on | Web unit and component | Product: doctor report |
 | WEB-Report-69b7 | `Report.test.tsx` | doctor report > the period limits what is included | Web unit and component | Product: doctor report |
 | WEB-Report-0d9f | `Report.test.tsx` | doctor report > prints through the browser, with no server PDF | Web unit and component | Product: doctor report |
 | WEB-Report-37b7 | `Report.test.tsx` | doctor report > weekly averages group days into weeks starting Monday | Web unit and component | Product: doctor report |
@@ -1792,11 +1916,13 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Sounds-3a0e | `Sounds.test.tsx` | Sounds screen > says so when the phone takes the audio away, and a tap plays it again | Web unit and component | Product: tools |
 | WEB-Sounds-ea61 | `Sounds.test.tsx` | Sounds screen > tells people what ends a sound | Web unit and component | Product: tools |
 
-### `apps/web/src/routes/Trends.test.tsx` (1)
+### `apps/web/src/routes/Trends.test.tsx` (3)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | WEB-Trends-b9c5 | `Trends.test.tsx` | Trends > shows the mood log as its own chart, never on the check-in axis | Web unit and component | Product: mood log |
+| WEB-Trends-c798 | `Trends.test.tsx` | Trends > lists reflections by date with a Reflection label, opening each one, with themes counted but never charted or scored | Web unit and component | Product: mood log |
+| WEB-Trends-9294 | `Trends.test.tsx` | Trends > counts themes over the whole 30 days, fetching past the first page, and opens a listed one without another request | Web unit and component | Product: mood log |
 
 ### `apps/web/src/shell/guards.test.tsx` (15)
 
@@ -1870,7 +1996,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-TrendChart-cf49 | `TrendChart.test.tsx` | TrendChart > states change neutrally | Web unit and component | Product: trends |
 | WEB-TrendChart-96e0 | `TrendChart.test.tsx` | TrendChart > copes with a single check-in and none | Web unit and component | Product: trends |
 
-### `packages/shared/src/gad7.test.ts` (25)
+### `packages/shared/src/gad7.test.ts` (26)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -1897,6 +2023,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | SHR-gad7-9c17 | `gad7.test.ts` | helplines > every helpline has a dialable number | Unit | Clinical safety: helplines |
 | SHR-gad7-83b2 | `gad7.test.ts` | helplines > leads with a 24-hour national service | Unit | Clinical safety: helplines |
 | SHR-gad7-33c0 | `gad7.test.ts` | helplines > does not claim a phone check until someone has phoned | Unit | Clinical safety: helplines |
+| SHR-gad7-fd97 | `gad7.test.ts` | consent changes > this version adds reflections to the notice, and says so to people asked again | Unit | Privacy: consent |
 | SHR-gad7-0aba | `gad7.test.ts` | consent changes > the summary shown at a re-prompt is written for the current version | Unit | Privacy: consent |
 | SHR-gad7-2e56 | `gad7.test.ts` | consent changes > the API says what was last accepted, which may be nothing | Unit | Privacy: consent |
 
@@ -1962,6 +2089,40 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | SHR-passwords-90af | `passwords.test.ts` | safeNext, shared by the client and the server > refuses "/forgot-password/reset" | Unit | Security: open redirect |
 | SHR-passwords-1c2b | `passwords.test.ts` | safeNext, shared by the client and the server > refuses "/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" | Unit | Security: open redirect |
 | SHR-passwords-dc0e | `passwords.test.ts` | safeNext, shared by the client and the server > uses the given fallback | Unit | Security: open redirect |
+
+### `packages/shared/src/questions.test.ts` (22)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| SHR-questions-0f5e | `questions.test.ts` | the question catalogue > names the two types for people | Unit | Product: reflections |
+| SHR-questions-a174 | `questions.test.ts` | the question catalogue > holds the GAD-7 byte for byte as it was, in its order, as GAD7-1 to GAD7-7 | Unit | Product: reflections |
+| SHR-questions-3e47 | `questions.test.ts` | the question catalogue > has exactly 100 reflections, 20 for each of the five themes, with REF-001 to REF-100 | Unit | Product: reflections |
+| SHR-questions-88de | `questions.test.ts` | the question catalogue > has unique ids and unique wording across the whole catalogue | Unit | Product: reflections |
+| SHR-questions-148c | `questions.test.ts` | the question catalogue > keeps every reflection short, plain, about today or lately, and on the amount scale | Unit | Product: reflections |
+| SHR-questions-e0da | `questions.test.ts` | the question catalogue > never touches what needs a clinical pathway, never labels, and never assumes drinking or dating | Unit | Product: reflections |
+| SHR-questions-a7df | `questions.test.ts` | the question catalogue > records which way each theme reads: strain for worry, body and situations, support for coping and connection | Unit | Product: reflections |
+| SHR-questions-c065 | `questions.test.ts` | the question catalogue > brings Get help forward on about eight strain questions, and never on a support one | Unit | Product: reflections |
+| SHR-questions-6301 | `questions.test.ts` | picking a reflection > picks five different questions, one from each theme, in theme order | Unit | Product: reflections |
+| SHR-questions-00ee | `questions.test.ts` | picking a reflection > uses the random source it is given, and by default a secure one that varies | Unit | Product: reflections |
+| SHR-questions-6288 | `questions.test.ts` | picking a reflection > leaves out every question from the recent reflections | Unit | Product: reflections |
+| SHR-questions-8e09 | `questions.test.ts` | picking a reflection > three recent reflections never leave a theme empty; if every question of a theme was recent, it still asks one | Unit | Product: reflections |
+| SHR-questions-a251 | `questions.test.ts` | picking a reflection > only uses active questions | Unit | Product: reflections |
+| SHR-questions-c185 | `questions.test.ts` | the reflection contract > takes five distinct question ids with answers 0 to 3, and an optional note of up to 280 characters | Unit | Product: reflections |
+| SHR-questions-155c | `questions.test.ts` | the reflection contract > never echoes what was sent in its messages | Unit | Product: reflections |
+| SHR-questions-92e2 | `questions.test.ts` | the reflection contract > answers with ids and numbers, never question text | Unit | Product: reflections |
+| SHR-questions-07e3 | `questions.test.ts` | the reflection summary > names the strain themes answered 2 or more, and the support that helped | Unit | Product: reflections |
+| SHR-questions-7697 | `questions.test.ts` | the reflection summary > reads support the right way round: a high answer there is good, a low one is not strain | Unit | Product: reflections |
+| SHR-questions-1a2e | `questions.test.ts` | the reflection summary > says something neutral when nothing stands out | Unit | Product: reflections |
+| SHR-questions-3420 | `questions.test.ts` | the reflection summary > lists three themes in plain words | Unit | Product: reflections |
+| SHR-questions-0c83 | `questions.test.ts` | the reflection summary > brings Get help forward when a brings_help question is answered 2 or more, and only then | Unit | Product: reflections |
+| SHR-questions-7d01 | `questions.test.ts` | the reflection summary > ignores ids it does not know, rather than guessing | Unit | Product: reflections |
+
+### `packages/shared/src/released-questions.test.ts` (2)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| SHR-released-questions-ce7b | `released-questions.test.ts` | released questions > keep their type, theme, position and wording, and none has gone | Unit | Product: reflections |
+| SHR-released-questions-558a | `released-questions.test.ts` | released questions > every question in the catalogue is in the snapshot | Unit | Product: reflections |
 
 ### `packages/shared/src/tracking.test.ts` (11)
 

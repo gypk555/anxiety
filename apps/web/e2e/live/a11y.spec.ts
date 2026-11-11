@@ -12,11 +12,11 @@ for (const theme of ['light', 'dark'] as const) {
   test(`axe and 320px, guest screens, ${theme}`, async ({ page }) => {
     test.setTimeout(120_000);
     await page.emulateMedia({ colorScheme: theme });
-    for (const path of ['/', '/help', '/check-in', '/tools', '/tools/breathe', '/tools/ground', '/tools/sounds', '/safety-plan', '/safety-plan/edit', '/settings', '/sign-in', '/privacy', '/terms', '/about', '/no-such-page']) {
+    for (const path of ['/', '/help', '/check-in', '/check-in/gad7', '/tools', '/tools/breathe', '/tools/ground', '/tools/sounds', '/safety-plan', '/safety-plan/edit', '/settings', '/sign-in', '/privacy', '/terms', '/about', '/no-such-page']) {
       await page.goto(path);
       await check(page, path);
     }
-    await page.goto('/check-in');
+    await page.goto('/check-in/gad7');
     await page.getByRole('button', { name: 'Begin' }).click();
     await check(page, 'question 1');
     await answerItems(page, [3, 3, 3, 3, 3, 3, 3]);

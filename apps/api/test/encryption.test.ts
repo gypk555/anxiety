@@ -4,7 +4,7 @@ import { loadConfig } from '../src/config.ts';
 import { DecryptError, KeyRing, open, openJson, openText, seal, sealText } from '../src/crypto.ts';
 import { rotateKeys } from '../src/rotate.ts';
 import { toMe, type UserRow } from '../src/users.ts';
-import { API, assessmentPayload, baseEnv, createHarness, journalPayload, key, moodPayload, safetyPlanPayload, signInConsented, type Harness } from './helpers.ts';
+import { API, assessmentPayload, baseEnv, createHarness, journalPayload, key, moodPayload, reflectionPayload, safetyPlanPayload, signInConsented, type Harness } from './helpers.ts';
 
 let h: Harness;
 beforeAll(async () => {
@@ -39,6 +39,7 @@ describe('encryption at rest', () => {
     await client.post(`${API}/journal`, journalPayload({ feelings: ['SecretFeeling'] }));
     await client.request({ method: 'PUT', url: `${API}/moods/${new Date().toISOString().slice(0, 10)}`, payload: moodPayload() });
     await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload() });
+    await client.post(`${API}/reflections`, reflectionPayload({ note: 'SECRET-REFLECTION-NOTE' }));
 
     const dump = await dumpAll();
     for (const secret of [
@@ -61,6 +62,8 @@ describe('encryption at rest', () => {
       '9876543210',
       'SecretDoctor',
       '2345 6789',
+      'SECRET-REFLECTION-NOTE',
+      '"note"',
     ]) {
       expect(dump).not.toContain(secret);
     }
@@ -80,6 +83,15 @@ describe('encryption at rest', () => {
       'otp_codes.attempts',
       'otp_codes.purpose',
       'otp_failures.purpose',
+      // The question catalogue: the app's own wording, the same for everyone. Nothing personal.
+      'questions.active',
+      'questions.answer_set',
+      'questions.brings_help',
+      'questions.id',
+      'questions.position',
+      'questions.text',
+      'questions.theme',
+      'questions.type',
       'schema_migrations.checksum',
       'schema_migrations.name',
       'user_identities.provider',

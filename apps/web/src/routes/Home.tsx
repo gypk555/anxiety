@@ -5,6 +5,7 @@ import { Link, Navigate } from 'react-router';
 import { formatDate, greeting, nextCheckInDate } from '@/lib/dates';
 import { hasDirtyDraft, NEW_DRAFT } from '@/lib/drafts';
 import { loadCheckin, loadGuestResult, nextUnanswered } from '@/lib/guest';
+import { loadReflection, loadReflectionResult, nextUnansweredReflection, STEPS } from '@/lib/reflection-store';
 import { withNext } from '@/lib/next-path';
 import { assessmentsKey, fetchAssessments, useMe } from '@/lib/queries';
 import { PageTitle } from '@/ui/PageTitle';
@@ -24,8 +25,23 @@ export function Home() {
 function ResumeNotes() {
   const progress = loadCheckin();
   const result = loadGuestResult();
+  const reflection = loadReflection();
+  const reflectionResult = loadReflectionResult();
+  const reflectionNext = reflection ? nextUnansweredReflection(reflection) : 0;
   return (
     <>
+      {reflectionResult && (
+        <Link to="/reflection/result" className="patch block no-underline">
+          <span className="block font-semibold">Your reflection is still here</span>
+          <span className="block text-sm text-ink-soft">See it again, or save it. It goes away when you close this tab.</span>
+        </Link>
+      )}
+      {!reflectionResult && reflection && reflectionNext > 0 && (
+        <Link to={`/reflection/${reflectionNext < STEPS ? reflectionNext + 1 : 'note'}`} className="patch block no-underline">
+          <span className="block font-semibold">Continue your reflection</span>
+          <span className="block text-sm text-ink-soft">You've answered {reflectionNext} of {STEPS} questions.</span>
+        </Link>
+      )}
       {result && (
         <Link to="/result" className="patch block no-underline">
           <span className="block font-semibold">Your check-in result is still here</span>

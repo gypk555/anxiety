@@ -10,8 +10,12 @@ import { Shell, type RouteHandle } from '@/shell/Shell';
 // Help and Home ship in the first bundle, so a failed chunk can never strand someone away from Help.
 const page = (load: () => Promise<{ default: ComponentType }>): LazyExoticComponent<ComponentType> => lazy(load);
 
+const CheckInChoice = page(() => import('@/routes/CheckIn').then((m) => ({ default: m.CheckInChoice })));
 const CheckInIntro = page(() => import('@/routes/CheckIn').then((m) => ({ default: m.CheckInIntro })));
 const CheckInStep = page(() => import('@/routes/CheckIn').then((m) => ({ default: m.CheckInStep })));
+const ReflectionStep = page(() => import('@/routes/Reflection').then((m) => ({ default: m.ReflectionStep })));
+const GuestReflectionPage = page(() => import('@/routes/Reflection').then((m) => ({ default: m.GuestReflectionPage })));
+const SavedReflectionPage = page(() => import('@/routes/Reflection').then((m) => ({ default: m.SavedReflectionPage })));
 const GuestResultPage = page(() => import('@/routes/Result').then((m) => ({ default: m.GuestResultPage })));
 const SavedResultPage = page(() => import('@/routes/Result').then((m) => ({ default: m.SavedResultPage })));
 const Tools = page(() => import('@/routes/Tools'));
@@ -54,9 +58,12 @@ export const routes = [
         children: [
           { path: '/', element: <Home /> },
           { path: '/help', element: <Help />, handle: reading },
-          { path: '/check-in', element: <CheckInIntro />, handle: focus },
+          { path: '/check-in', element: <CheckInChoice />, handle: focus },
+          { path: '/check-in/gad7', element: <CheckInIntro />, handle: focus },
           { path: '/check-in/:step', element: <CheckInStep />, handle: focus },
           { path: '/result', element: <GuestResultPage /> },
+          { path: '/reflection/result', element: <GuestReflectionPage /> },
+          { path: '/reflection/:step', element: <ReflectionStep />, handle: focus },
           { path: '/tools', element: <Tools /> },
           { path: '/tools/breathe', element: <Breathe />, handle: { focus: true, night: true } satisfies RouteHandle },
           { path: '/tools/ground', element: <Ground />, handle: focus },
@@ -79,6 +86,7 @@ export const routes = [
             element: <RequireAccount />,
             children: [
               { path: '/result/:id', element: <SavedResultPage /> },
+              { path: '/reflections/:id', element: <SavedReflectionPage /> },
               { path: '/trends', element: <Trends /> },
               { path: '/mood', element: <MoodLog /> },
               { path: '/report', element: <Report />, handle: reading },

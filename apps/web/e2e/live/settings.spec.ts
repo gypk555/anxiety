@@ -86,6 +86,8 @@ test('sessions: a second device is listed, and revoking it signs that device out
   guard.expectHttpError(/^\/api\/v1\/assessments$/, 401);
   // Trends also asks for the mood log, so the revoked device hears 401 there too.
   guard.expectHttpError(/^\/api\/v1\/moods$/, 401);
+  // And for reflections.
+  guard.expectHttpError(/^\/api\/v1\/reflections$/, 401);
   const email = await signUp(page, 'sessions');
 
   const second = await newContext();

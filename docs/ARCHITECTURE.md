@@ -126,6 +126,8 @@ flowchart TD
 
 The client cannot send a score: the schema rejects unknown keys. A retry with the same `clientRequestId` returns the original row. Details: [check-in and scoring](modules/check-in-and-scoring.md).
 
+A [Reflection](modules/reflections.md) is chosen at the same start screen and saved the same way, through `POST /reflections`: five question ids from the shared catalogue and their answers, checked against `app.questions` and sealed. It is never scored. The catalogue ships in the web bundle, so no request fetches questions, and the server refuses to start if `app.questions` differs from the shared file.
+
 ## Data flow: erasure
 
 ```mermaid
@@ -150,7 +152,7 @@ sequenceDiagram
 
 After this:
 
-- `users`, `sessions`, `consents`, `assessments`, `journal_entries`, `mood_entries` and `safety_plans` rows are gone, including the wrapped data key.
+- `users`, `sessions`, `consents`, `assessments`, `reflections`, `journal_entries`, `mood_entries` and `safety_plans` rows are gone, including the wrapped data key.
 - On the device that confirmed the deletion, the encrypted copy of the safety plan is removed too. A copy on another device goes when that device signs out, or next sees the session end. It can't be opened without that device's own key in any case.
 - Only `audit_log` rows remain. They hold an HMAC of the old user ID, an action and a day, and age out after a year.
 - Encrypted database backups keep a copy until they age out, `BACKUP_RETENTION_DAYS` later. Until then, a backup plus the master key can still decrypt it. The app states this to the person.

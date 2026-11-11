@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Reflections
+
+From [the reflections spec](docs/superpowers/specs/2026-11-11-reflections-design.md).
+
+- **The start of a check-in asks what you'd like to do:** the **Anxiety check (GAD-7)**, unchanged, now at `/check-in/gad7`, or a **Reflection**.
+- **Reflection:** 5 questions from a bank of 100, one from each of 5 themes, different each time, never scored. An optional note of up to 280 characters. The result is a plain summary, the answers and matched suggestions. Get help comes forward when one of 8 questions is answered "Quite a bit" or more. Accounts save automatically; guests can save after signing in. See [reflections](docs/modules/reflections.md).
+- **One question catalogue,** `packages/shared/src/questions.ts`, holding the GAD-7 (wording and order unchanged) and the 100 reflections by id. Migration `005_questions.sql` seeds `app.questions` with exactly that data; wording is immutable by trigger; `db:verify` and the server's boot check refuse a mismatch.
+- API: `GET`, `POST /reflections` and `DELETE /reflections/:id`. Reflections are in the export with question wording resolved, and erasure removes them.
+- Trends lists reflections by date, with themes counted (not scored). The doctor report has a Reflections section, off by default.
+- `CONSENT_VERSION` is now `2026-11-12`, adding reflections to the privacy notice.
+- GAD-7 answers are stored as before. Their position-to-id mapping is documented in `docs/DATABASE.md`.
+
+### Safety and tracking
+
 From [the safety and tracking spec](docs/superpowers/specs/2026-11-11-safety-and-tracking-design.md).
 
 ### Added

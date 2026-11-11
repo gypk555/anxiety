@@ -69,7 +69,7 @@ test('a guest result survives a refresh, and is gone once the tab is closed', as
 });
 
 test('a guest can resume a check-in after a refresh', async ({ page }) => {
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await page.getByRole('button', { name: 'Begin' }).click();
   await answerItems(page, [1, 2]);
   await expect(page).toHaveURL(/\/check-in\/3$/);

@@ -28,7 +28,7 @@ test('Get help is on every guest route, without an account', async ({ page, cont
 });
 
 test('Get help is there mid check-in, and coming back loses no answers', async ({ page }) => {
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await page.getByRole('button', { name: 'Begin' }).click();
   await answerItems(page, [1, 2, 3]);
   await expect(page).toHaveURL(/\/check-in\/4$/);
@@ -93,7 +93,7 @@ test('Help works offline mid check-in, when already signed in', async ({ page, c
   guard.expectOfflineErrors();
   await signUp(page, 'offlinehelp');
   await serviceWorkerActive(page);
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await page.getByRole('button', { name: 'Begin' }).click();
   await answerItems(page, [1]);
   await expect(page).toHaveURL(/\/check-in\/2$/);

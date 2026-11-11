@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { auditActor, emailBlindIndex } from '../src/crypto.ts';
 import { emailQuotaKey, loginQuotaKey } from '../src/otp.ts';
-import { API, assessmentPayload, Client, createHarness, journalPayload, moodPayload, requestCode, safetyPlanPayload, signIn, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
+import { API, assessmentPayload, Client, createHarness, journalPayload, moodPayload, reflectionPayload, requestCode, safetyPlanPayload, signIn, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -35,6 +35,8 @@ describe('export', () => {
     await client.post(`${API}/journal`, journalPayload());
     await client.request({ method: 'PUT', url: `${API}/moods/${today()}`, payload: moodPayload() });
     await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload() });
+    const reflection = reflectionPayload({ answers: [{ q: 'REF-001', a: 3 }, { q: 'REF-023', a: 0 }, { q: 'REF-041', a: 1 }, { q: 'REF-061', a: 2 }, { q: 'REF-081', a: 3 }], note: 'SECRET-REFLECTION-NOTE' });
+    await client.post(`${API}/reflections`, reflection);
 
     const r = await client.get(`${API}/me/export`);
     expect(r.statusCode).toBe(200);
@@ -51,6 +53,21 @@ describe('export', () => {
     expect(body.sessions[0].deviceLabel).toBe('Safari on iPhone');
     expect(body.moods).toEqual([expect.objectContaining({ day: today(), rating: 2, note: 'SECRET-MOOD-NOTE about the day' })]);
     expect(body.safetyPlan).toMatchObject({ helpContacts: [{ name: 'SecretContactName', phone: '+91 98765 43210' }], reasonsToLive: ['SECRET-REASON my daughter'] });
+    // Readable on its own: each question's wording and each answer's words, not only ids and numbers.
+    expect(body.reflections).toEqual([
+      {
+        id: expect.any(String),
+        takenAt: expect.any(String),
+        answers: [
+          { questionId: 'REF-001', question: 'How much did you replay a conversation in your head today?', answer: 3, answerLabel: 'A lot' },
+          { questionId: 'REF-023', question: "How much did you feel tired even after a night's sleep lately?", answer: 0, answerLabel: 'Not at all' },
+          { questionId: 'REF-041', question: 'How much did work or study pressure weigh on you today?', answer: 1, answerLabel: 'A little' },
+          { questionId: 'REF-061', question: 'How much did taking a few slow breaths help you today?', answer: 2, answerLabel: 'Quite a bit' },
+          { questionId: 'REF-081', question: 'How much did talking to someone help you today?', answer: 3, answerLabel: 'A lot' },
+        ],
+        note: 'SECRET-REFLECTION-NOTE',
+      },
+    ]);
     expect(r.body).not.toMatch(/token|wrapped|hash|_ct/i);
   });
 
@@ -63,6 +80,7 @@ describe('export', () => {
     expect(r.json().journal).toEqual([]);
     expect(r.json().moods).toEqual([]);
     expect(r.json().safetyPlan).toBeNull();
+    expect(r.json().reflections).toEqual([]);
   });
 
   it('requires a session and is audited', async () => {
@@ -118,6 +136,7 @@ describe('account deletion', () => {
     const entry = (await client.post(`${API}/journal`, journalPayload())).json();
     await client.request({ method: 'PUT', url: `${API}/moods/${today()}`, payload: moodPayload() });
     await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload() });
+    const reflection = (await client.post(`${API}/reflections`, reflectionPayload())).json();
     await signIn(h, email); // a second session
     await requestCode(h, new Client(h), email); // and a live login code
     await client.post(`${API}/me/email/request`, { newEmail: uniqueEmail('never') });
@@ -132,8 +151,8 @@ describe('account deletion', () => {
     expect(client.cookie).toBeNull();
 
     const emailHash = emailBlindIndex(h.config.keys, email).toString('hex');
-    expect(await rowsContaining([id, assessment.id, entry.id, emailHash])).toEqual([]);
-    for (const table of ['users', 'sessions', 'consents', 'assessments', 'journal_entries', 'mood_entries', 'safety_plans']) {
+    expect(await rowsContaining([id, assessment.id, entry.id, reflection.id, emailHash])).toEqual([]);
+    for (const table of ['users', 'sessions', 'consents', 'assessments', 'journal_entries', 'mood_entries', 'safety_plans', 'reflections']) {
       const column = table === 'users' ? 'id' : 'user_id';
       const [row] = await h.admin.unsafe(`SELECT count(*)::int AS n FROM app.${table} WHERE ${column} = '${id}'::uuid`);
       expect([table, row!.n]).toEqual([table, 0]);

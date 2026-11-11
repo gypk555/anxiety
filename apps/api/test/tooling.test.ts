@@ -166,7 +166,7 @@ describe('npm run db:setup', () => {
     expect(readFileSync(p.secretsFile).equals(before), 'the secrets file is byte for byte the same').toBe(true);
     expect(await db`SELECT count(*)::int AS n FROM app.users`).toEqual([{ n: 1 }]);
     const applied = await db`SELECT count(*)::int AS n FROM app.schema_migrations`;
-    expect(applied[0]!.n).toBe(4);
+    expect(applied[0]!.n).toBe(5);
     await db.end();
   });
 
@@ -270,7 +270,7 @@ describe('npm run db:verify', () => {
   it('passes a good database, and reports each check', async () => {
     const r = await verify(good);
     expect(r.code, r.output).toBe(0);
-    for (const check of ['TLS', 'Postgres version', 'Schema app', 'public', 'RLS', 'Policies', 'Runtime role', 'Migrations', 'anon']) {
+    for (const check of ['TLS', 'Postgres version', 'Schema app', 'public', 'RLS', 'Policies', 'Runtime role', 'Migrations', 'Question catalogue', 'anon']) {
       expect(r.output).toMatch(new RegExp(`PASS.*${check}`));
     }
     expect(r.output).not.toContain(ADMIN_PASSWORD);
@@ -307,6 +307,12 @@ describe('npm run db:verify', () => {
   });
   broken('a runtime policy removed from a table', /FAIL.*Policies.*journal_entries/, (db) => db`DROP POLICY runtime_all ON app.journal_entries`);
   broken('a changed migration checksum', /FAIL.*Migrations.*001_init/, (db) => db`UPDATE app.schema_migrations SET checksum = 'tampered' WHERE name = '001_init.sql'`);
+  broken('a question added by hand', /FAIL.*Question catalogue.*REF-999/, (db) => db`INSERT INTO app.questions (id, type, theme, text, answer_set) VALUES ('REF-999', 'reflection', 'worry', 'An extra question today?', 'reflection_amount')`);
+  broken('a question reworded with the guard switched off', /FAIL.*Question catalogue.*REF-010/, async (db) => {
+    await db`ALTER TABLE app.questions DISABLE TRIGGER USER`;
+    await db`UPDATE app.questions SET text = 'Reworded' WHERE id = 'REF-010'`;
+    await db`ALTER TABLE app.questions ENABLE TRIGGER USER`;
+  });
   broken('a pending migration', /FAIL.*Migrations.*002_accounts/, (db) => db`DELETE FROM app.schema_migrations WHERE name = '002_accounts.sql'`);
   broken('anon granted the schema', /FAIL.*anon/, (db) => db`GRANT USAGE ON SCHEMA app TO anon`);
   broken('authenticated granted a table', /FAIL.*authenticated/, (db) => db`GRANT SELECT ON app.users TO authenticated`);

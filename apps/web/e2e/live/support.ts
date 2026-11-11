@@ -332,7 +332,7 @@ export async function answerDifficulty(page: Page, difficulty: number) {
 
 /** A whole check-in from the intro. The difficulty item appears only when a symptom was reported. */
 export async function takeCheckin(page: Page, answers: readonly number[], difficulty: number | null) {
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await page.getByRole('button', { name: /^(Begin|Start again)$/ }).click();
   await answerItems(page, answers);
   if (difficulty !== null) await answerDifficulty(page, difficulty);
@@ -412,6 +412,19 @@ export async function seedMood(context: BrowserContext, day: string, rating: num
   const response = await api(context).send('PUT', `/moods/${day}`, { rating, note });
   expect(response.status()).toBe(200);
   return response.json();
+}
+
+export interface SavedReflection {
+  id: string;
+  takenAt: string;
+  answers: { q: string; a: number }[];
+  note?: string;
+}
+
+export async function seedReflection(context: BrowserContext, answers: [string, number][], note?: string) {
+  const response = await api(context).send('POST', '/reflections', { clientRequestId: randomUUID(), answers: answers.map(([q, a]) => ({ q, a })), ...(note ? { note } : {}) });
+  expect(response.status()).toBe(201);
+  return (await response.json()) as SavedReflection;
 }
 
 export async function seedPlan(context: BrowserContext, plan: Partial<SafetyPlan>) {

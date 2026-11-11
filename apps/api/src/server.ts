@@ -2,6 +2,7 @@ import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
 import { assertRuntimeRole, createSql, RuntimeRoleError } from './db.ts';
 import { createMailer } from './mail.ts';
+import { assertQuestionCatalogue, CatalogueError } from './questions.ts';
 import { schedulePurge } from './purge.ts';
 
 function loadOrExit() {
@@ -33,6 +34,14 @@ try {
   await assertRuntimeRole(sql);
 } catch (err) {
   app.log.fatal({ err }, err instanceof RuntimeRoleError ? err.message : 'database_check_failed');
+  process.exit(1);
+}
+
+// Saved answers are read through the shared catalogue, so a database that disagrees with it must not serve.
+try {
+  await assertQuestionCatalogue(sql);
+} catch (err) {
+  app.log.fatal(err instanceof CatalogueError ? err.message : 'question_catalogue_check_failed');
   process.exit(1);
 }
 

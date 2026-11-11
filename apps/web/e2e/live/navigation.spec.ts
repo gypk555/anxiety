@@ -3,6 +3,7 @@ import { answerDifficulty, answerItems, expect, expectAccountHome, resultHeading
 test('back and forward walk through the check-in, keeping answers', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: 'Start the check-in' }).click();
+  await page.getByRole('link', { name: /Anxiety check \(GAD-7\)/ }).click();
   await page.getByRole('button', { name: 'Begin' }).click();
   await expect(page).toHaveURL(/\/check-in\/1$/);
   await answerItems(page, [1, 2, 3]);
@@ -40,7 +41,7 @@ test('back and forward walk through the check-in, keeping answers', async ({ pag
 });
 
 test('skipping ahead by URL lands on the first unanswered question', async ({ page }) => {
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await page.getByRole('button', { name: 'Begin' }).click();
   await answerItems(page, [1]);
   await page.goto('/check-in/6');

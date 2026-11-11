@@ -78,6 +78,9 @@ function level(file) {
 }
 
 const DESCRIBE_AREAS = [
+  [/^reflections\.test.*at rest/, 'Security: encryption'],
+  [/^reflections\.test.*access/, 'Security: authorisation'],
+  [/^(questions|released-questions|reflections|reflection-store|Reflection)\.test|^reflection\.spec/, 'Product: reflections'],
   [/^user-rate-limit\.test/, 'Security: per-user caps'],
   [/^brevo\.test/, 'Security: mail'],
   [/^tracking\.test.*safety plan/, 'Product: safety plan'],
@@ -441,6 +444,25 @@ const REQUIREMENTS = [
     R('ST-RP-02', 'Built in the browser, printed by the browser, A4 black on white, a page per section', 'Covered', [T('Report.test', /no server PDF/), T('audit.spec', /print view of the doctor report/), T('live/report.spec', /own stylesheet/)], 'A real A4 PDF from a phone is a manual check.', ['MT-SP-10', 'MT-SP-11']),
     R('ST-API-01', 'Moods and safety-plan endpoints: auth, consent, cross-user 404, bounds, per-user limit', 'Covered', [T('api/test/tracking.test', /^access > /), T('api/test/tracking.test', /validates the range/)], ''),
     R('ST-UX-01', 'Every new screen: axe, 320px, landscape, no CSP violations', 'Covered', [T('audit.spec', /^(safety-plan|mood-log|report|trends-mood)/), T('live/a11y.spec', /mood log, safety plan and report/), T('live/landscape.spec', /fit a small phone on its side/)], ''),
+  ]},
+  // docs/superpowers/specs/2026-11-11-reflections-design.md
+  { section: 'Reflections (2026-11-11 spec)', rows: [
+    R('RF-01', 'Start screen: "What would you like to do?", GAD-7 or Reflection, for guests and accounts, Get help and Quick exit visible', 'Covered', [T('Reflection.test', /asks what you would like to do/), T('live/reflection.spec', /offers both/)], '', ['MT-RF-01']),
+    R('RF-02', 'The GAD-7 wording and order unchanged; the GAD-7 path unchanged', 'Covered', [T('questions.test', /byte for byte/), T('Reflection.test', /leads to the same check-in/), T('live/reflection.spec', /GAD-7 path is as it was/)], '', ['MT-RF-01']),
+    R('RF-03', 'One catalogue with GAD-7 and 100 reflections told apart by type; migration equals the shared file', 'Covered', [T('questions.test', /exactly 100 reflections/), T('questions.test', /unique ids/), T('reflections.test', /seeds exactly the shared catalogue/)], ''),
+    R('RF-04', 'Released questions immutable (wording, type, theme, position): trigger refuses changes and deletion; snapshot pins them; runtime role reads only', 'Covered', [T('reflections.test', /refuses to change wording/), T('released-questions.test', /keep their type, theme/), T('reflections.test', /read it and nothing more/), T('reflections.test', /RLS on/)], ''),
+    R('RF-05', 'db:verify and the boot check refuse a live table that differs', 'Covered', [T('reflections.test', /boot check passes/), T('reflections.test', /refuses to start/), T('tooling.test', /fails on a question/)], ''),
+    R('RF-06', 'GAD-7 answers stay 7 numbers, position i is GAD7-(i+1); no data migration', 'Covered', [T('reflections.test', /GAD-7 answers are stored as before/)], ''),
+    R('RF-07', 'Bank style and exclusions: 20 per theme, at most 90 characters, banned words, no GAD-7 paraphrase, polarity', 'Partial', [T('questions.test', /short, plain/), T('questions.test', /clinical pathway/), T('questions.test', /which way each theme reads/)], 'Word lists, not an expert review. Every question needs clinician review.', ['MT-RF-06']),
+    R('RF-08', 'Picker: 5 distinct, one per theme, crypto random, not from the last 3, active only', 'Covered', [T('questions.test', /^picking a reflection > /), T('Reflection.test', /second reflection asks different/), T('Reflection.test', /last three saved reflections/), T('live/reflection.spec', /second reflection uses different/)], '', ['MT-RF-02']),
+    R('RF-09', 'Result: no score, plain summary read by polarity, matched suggestions, "not a test or a diagnosis"', 'Covered', [T('questions.test', /^the reflection summary > /), T('Reflection.test', /result with no score/), T('live/reflection.spec', /unscored result/)], '', ['MT-RF-02']),
+    R('RF-10', 'A brings_help answer of 2 or more brings Get help forward, calmly', 'Covered', [T('questions.test', /about eight strain questions/), T('Reflection.test', /brings Get help forward/), T('live/reflection.spec', /brings Get help forward/)], 'Wording needs clinician review.', ['MT-RF-03']),
+    R('RF-11', 'Accounts save automatically; guests save after signing in; held across a session ending', 'Covered', [T('Reflection.test', /saves automatically/), T('Reflection.test', /after signing in/), T('reflection-store.test', /held for its owner/), T('live/reflection.spec', /saved after signing in/)], '', ['MT-RF-04', 'MT-RF-05']),
+    R('RF-12', 'API: auth, consent, cross-user 404, idempotency, refusals that echo nothing, per-user limit', 'Covered', [T('reflections.test', /^reflections: access > /), T('reflections.test', /replays it by clientRequestId/), T('reflections.test', /refuses unknown, inactive and GAD-7 ids/)], ''),
+    R('RF-13', 'Encrypted at rest with AAD, ids and notes not visible, same size, swap fails', 'Covered', [T('reflections.test', /^reflections: at rest > /), T('encryption.test', /raw SELECT of every table/)], ''),
+    R('RF-14', 'History, Trends theme count (not a score) and the doctor report section, off by default', 'Covered', [T('Trends.test', /lists reflections by date/), T('Report.test', /Reflections section/), T('live/reflection.spec', /appears in history/)], '', ['MT-RF-04']),
+    R('RF-15', 'Export with question text resolved, and erasure; consent bumped with the notice', 'Covered', [T('erasure.test', /downloads all decrypted data/), T('erasure.test', /hard-deletes every row/), T('gad7.test', /adds reflections to the notice/), T('Legal.test', /covers reflections/)], 'Notice text needs legal review.'),
+    R('RF-16', 'Every reflection screen: axe, 320px, landscape, no CSP violations', 'Covered', [T('audit.spec', /^(checkin-choice|reflection-)/), T('live/reflection.spec', /axe and 320px/), T('live/landscape.spec', /fit a small phone on its side/)], ''),
   ]},
 ];
 

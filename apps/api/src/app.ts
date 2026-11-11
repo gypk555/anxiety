@@ -24,6 +24,7 @@ import { googleRoutes } from './routes/google.ts';
 import { healthRoutes } from './routes/health.ts';
 import { journalRoutes } from './routes/journal.ts';
 import { moodRoutes } from './routes/moods.ts';
+import { reflectionRoutes } from './routes/reflections.ts';
 import { safetyPlanRoutes } from './routes/safety-plan.ts';
 import { meRoutes } from './routes/me.ts';
 import { isApiPath, registerStatic } from './static.ts';
@@ -207,6 +208,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       journalRoutes(api, ctx, hooks);
       moodRoutes(api, ctx, hooks);
       safetyPlanRoutes(api, ctx, hooks);
+      reflectionRoutes(api, ctx, hooks);
       api.get('/meta', async () => ({
         operatorName: config.operatorName,
         grievanceEmail: config.grievanceEmail,

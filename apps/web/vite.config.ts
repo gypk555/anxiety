@@ -85,6 +85,8 @@ export default defineConfig({
         manualChunks(id) {
           // The password list stays out: only the screens that set a password load it.
           if (/[\\/]packages[\\/]shared[\\/]src[\\/](common-)?passwords\.ts$/.test(id)) return undefined;
+          // So does the question bank: only the check-in, a reflection, Trends and the report read it, and they're lazy.
+          if (/[\\/]packages[\\/]shared[\\/]src[\\/](questions|reflections)\.ts$/.test(id)) return undefined;
           if (/[\\/]node_modules[\\/]zod[\\/]|[\\/]src[\\/]lib[\\/]zod-config\.ts$|[\\/]packages[\\/]shared[\\/]src[\\/]/.test(id)) return 'contract';
           return undefined;
         },

@@ -78,6 +78,11 @@ describe('helplines', () => {
 });
 
 describe('consent changes', () => {
+  it('this version adds reflections to the notice, and says so to people asked again', () => {
+    expect(CONSENT_VERSION).toBe('2026-11-12');
+    expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/Reflection/);
+    expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/note you add is kept only while the app is open/);
+  });
   it('the summary shown at a re-prompt is written for the current version', () => {
     expect(CONSENT_CHANGES.version, 'Bumped CONSENT_VERSION? Rewrite CONSENT_CHANGES: docs/OPERATIONS.md#consent-version-bump').toBe(CONSENT_VERSION);
     expect(CONSENT_CHANGES.summary.length).toBeGreaterThan(0);

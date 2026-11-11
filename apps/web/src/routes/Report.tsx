@@ -4,12 +4,15 @@ import {
   GAD7_ATTRIBUTION,
   GAD7_MAX_SCORE,
   moodLabel,
+  REFLECTION_OPTIONS,
+  reflectionQuestion,
   SAFETY_PLAN_SECTIONS,
   severityFor,
   type Assessment,
   type JournalEntry,
   type MoodEntry,
   type PlanContact,
+  type Reflection,
   type SafetyPlan,
 } from '@anxiocare/shared';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +21,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { formatDate } from '@/lib/dates';
 import { dayAsDate, fetchMoods, moodsKey, todayLocal, weeklyAverages } from '@/lib/mood';
 import { assessmentsKey, fetchAssessments, fetchJournal, journalKey, useMe } from '@/lib/queries';
+import { fetchReflections, reflectionsKey } from '@/lib/reflection';
 import { fetchPlan, planKey } from '@/lib/safety-plan';
 import { PageTitle } from '@/ui/PageTitle';
 import { ErrorState, PageSkeleton } from '@/ui/States';
@@ -44,6 +48,8 @@ const SECTIONS = [
   { id: 'moodNotes', label: 'Mood notes', on: false },
   { id: 'plan', label: 'Safety plan', on: false },
   { id: 'journal', label: 'Journal entries', on: false },
+  { id: 'reflections', label: 'Reflections', on: false },
+  { id: 'reflectionNotes', label: 'Reflection notes', on: false },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
 
@@ -86,6 +92,7 @@ export default function Report() {
   const moods = useQuery({ queryKey: [...moodsKey, moodFrom, today], queryFn: () => fetchMoods(moodFrom, today), enabled: on.moodWeeks || on.moodNotes });
   const journal = useQuery({ queryKey: [...journalKey, 'report'], queryFn: () => allPages(fetchJournal), enabled: on.journal });
   const plan = useQuery({ queryKey: planKey, queryFn: fetchPlan, enabled: on.plan });
+  const reflections = useQuery({ queryKey: [...reflectionsKey, 'report'], queryFn: () => allPages(fetchReflections), enabled: on.reflections });
 
   const cutoff = cutoffFor(period, now);
   const cutoffDay = cutoff ? todayLocal(cutoff) : null;
@@ -93,6 +100,7 @@ export default function Report() {
   const scores = (assessments.data ?? []).filter((a) => inPeriod(a.takenAt)).sort((a, b) => a.takenAt.localeCompare(b.takenAt));
   const moodDays = (moods.data ?? []).filter((m) => !cutoffDay || m.day >= cutoffDay);
   const entries = (journal.data ?? []).filter((j) => inPeriod(j.createdAt)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const reflected = (reflections.data ?? []).filter((r) => inPeriod(r.takenAt)).sort((a, b) => a.takenAt.localeCompare(b.takenAt));
   const periodLabel = cutoff ? `${formatDate(cutoff)} to ${formatDate(now)}` : `Everything saved, to ${formatDate(now)}`;
 
   return (
@@ -122,7 +130,7 @@ export default function Report() {
               {s.label}
             </label>
           ))}
-          <p className="text-sm text-ink-soft">Mood notes, your safety plan and journal entries are private writing, so they're left out unless you add them.</p>
+          <p className="text-sm text-ink-soft">Mood notes, your safety plan, journal entries and reflections are private, so they're left out unless you add them. Reflection notes appear only with reflections on.</p>
         </fieldset>
         <fieldset className="flex flex-col gap-2">
           <legend className="font-display text-xl font-semibold">Your name</legend>
@@ -182,6 +190,13 @@ export default function Report() {
           {on.journal && (
             <ReportSection title="Journal entries">
               <Loaded query={journal}>{entries.length === 0 ? <p>No entries in this period.</p> : <JournalEntries entries={entries} />}</Loaded>
+            </ReportSection>
+          )}
+
+          {on.reflections && (
+            <ReportSection title="Reflections">
+              <p className="text-sm">The person's own answers to short questions, from Not at all to A lot. Not scored, and not part of the GAD-7.</p>
+              <Loaded query={reflections}>{reflected.length === 0 ? <p>No reflections in this period.</p> : <ReflectionList reflections={reflected} notes={on.reflectionNotes} />}</Loaded>
             </ReportSection>
           )}
 
@@ -329,6 +344,38 @@ function JournalEntries({ entries }: { entries: JournalEntry[] }) {
           <p><span className="font-semibold">Thought: </span><span className="[overflow-wrap:anywhere]">{e.thought}</span></p>
           {e.feelings.length > 0 && <p><span className="font-semibold">Feelings: </span>{e.feelings.join(', ')}, {e.intensityBefore} of 10</p>}
           {e.balancedThought && <p><span className="font-semibold">A more balanced view: </span><span className="[overflow-wrap:anywhere]">{e.balancedThought}</span></p>}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ReflectionList({ reflections, notes }: { reflections: Reflection[]; notes: boolean }) {
+  return (
+    <div className="flex flex-col gap-4 text-lg">
+      {reflections.map((r) => (
+        <article key={r.id} className="report-entry flex flex-col gap-2">
+          <h3 className="text-xl">{formatDate(r.takenAt)}</h3>
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={`Reflection answers, ${formatDate(r.takenAt)}`}>
+            <table className="report-table w-full border-collapse">
+              <caption className="sr-only">Reflection on {formatDate(r.takenAt)}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className={th}>Question</th>
+                  <th scope="col" className={th}>Answer</th>
+                </tr>
+              </thead>
+              <tbody>
+                {r.answers.map((a) => (
+                  <tr key={a.q}>
+                    <td className={td}>{reflectionQuestion(a.q)?.text ?? 'A question from an earlier version of the app'}</td>
+                    <td className={`${td} whitespace-nowrap`}>{REFLECTION_OPTIONS[a.a]?.label}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {notes && r.note && <p><span className="font-semibold">Note: </span><span className="[overflow-wrap:anywhere]">{r.note}</span></p>}
         </article>
       ))}
     </div>

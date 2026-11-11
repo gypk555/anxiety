@@ -22,6 +22,7 @@ const MOODS = [
 ];
 const JOURNAL = [{ id: '33333333-3333-4333-8333-333333333331', situation: 'SecretSituation', thought: 'SecretThought', feelings: ['Worried'], intensityBefore: 7, evidenceFor: '', evidenceAgainst: '', balancedThought: '', intensityAfter: null, createdAt: iso(3), updatedAt: iso(3) }];
 const PLAN = { ...emptySafetyPlan(), reasonsToLive: ['SecretReason'], updatedAt: at };
+const REFLECTIONS = [{ id: '66666666-6666-4666-8666-666666666661', takenAt: iso(4), answers: [{ q: 'REF-001', a: 3 }, { q: 'REF-021', a: 2 }, { q: 'REF-041', a: 0 }, { q: 'REF-061', a: 1 }, { q: 'REF-081', a: 0 }], note: 'SecretReflectionNote' }];
 
 function setup() {
   const fetchMock = mockFetch({
@@ -30,6 +31,7 @@ function setup() {
     [`GET /moods?from=${addDays(today, -399)}&to=${today}`]: { body: { items: MOODS } },
     'GET /journal': { body: { items: JOURNAL, nextCursor: null } },
     'GET /safety-plan': { body: PLAN },
+    'GET /reflections': { body: { items: REFLECTIONS, nextCursor: null } },
   });
   renderRoutes([{ path: '/report', element: <Report /> }], '/report');
   return fetchMock;
@@ -50,6 +52,9 @@ describe('doctor report', () => {
     expect(preview()).not.toHaveTextContent('SecretSituation');
     expect(preview()).not.toHaveTextContent('SecretReason');
     expect(preview()).not.toHaveTextContent(ME.displayName!);
+    expect(preview()).not.toHaveTextContent('replay a conversation');
+    expect(screen.getByRole('checkbox', { name: 'Reflections' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Reflection notes' })).not.toBeChecked();
     expect(preview()).toHaveTextContent('Self-reported. A screening, not a diagnosis');
     expect(preview()).toHaveTextContent(GAD7_ATTRIBUTION);
     expect(preview()).toHaveTextContent(/Made on/);
@@ -69,6 +74,21 @@ describe('doctor report', () => {
     expect(within(preview()).queryByRole('table', { name: 'GAD-7 check-ins' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('checkbox', { name: 'Put my name at the top' }));
     expect(within(preview()).getByText(`For ${ME.displayName}`)).toBeInTheDocument();
+  });
+
+  it('a Reflections section lists each date, question and answer, and the note only with its own option on', async () => {
+    const user = userEvent.setup();
+    setup();
+    await screen.findByRole('table', { name: 'GAD-7 check-ins' });
+    await user.click(screen.getByRole('checkbox', { name: 'Reflections' }));
+    const table = await within(preview()).findByRole('table', { name: /^Reflection on / });
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Question', 'Answer']);
+    expect(within(table).getByText('How much did you replay a conversation in your head today?')).toBeInTheDocument();
+    expect(within(table).getAllByText('A lot')).toHaveLength(1);
+    expect(preview()).toHaveTextContent('Not scored, and not part of the GAD-7');
+    expect(preview()).not.toHaveTextContent('SecretReflectionNote');
+    await user.click(screen.getByRole('checkbox', { name: 'Reflection notes' }));
+    expect(await within(preview()).findByText('SecretReflectionNote')).toBeInTheDocument();
   });
 
   it('the period limits what is included', async () => {

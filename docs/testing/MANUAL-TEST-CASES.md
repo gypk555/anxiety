@@ -5323,6 +5323,110 @@ Automation proves the plan opens offline after one load, that nothing readable i
 
 **Notes:** ____________
 
+## Reflections on real phones (MT-RF)
+
+### MT-RF-01: Choosing at the start of a check-in
+
+**Priority:** P1 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Tap **Start the check-in** on Home.
+2. Read both choices. Choose **Anxiety check (GAD-7)** and answer it to the end. Go back to Home.
+3. Start again and choose **Reflection**.
+
+**Expected result:** "What would you like to do?" with two large choices, each saying what it is. Get help and Quick exit stay at the top. The GAD-7 is the same seven questions and the same result as before. The Reflection starts straight away, one question per screen.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-RF-02: A reflection reads kindly, with no score
+
+**Priority:** P1 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Answer a Reflection honestly. Add a short note.
+2. Read the result. Do another reflection straight away.
+
+**Expected result:** No number, no range, no severity word and no chart. A short summary in plain words, your answers, and suggestions that match what came up. "This is a reflection, not a test or a diagnosis." The second reflection asks five different questions.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-RF-03: A heavy answer brings Get help forward, calmly
+
+**Priority:** P0 | **Device:** Low-end Android, Chrome; Recent iPhone, Safari
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Do reflections until one asks about feeling hopeless, everything being too much, or not coping (see the 8 marked in [CLINICAL-SAFETY.md](../CLINICAL-SAFETY.md#reflection-questions)). Answer **A lot**.
+2. Tap the call button on the result.
+
+**Expected result:** "Support is here if you want it" comes first, calm, not alarming. The call button rings the first helpline. All helplines and the safety plan are one tap away.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-RF-04: Saving, history and the report
+
+**Priority:** P1 | **Device:** Recent iPhone, Safari; a desktop browser
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. As a guest, do a Reflection. Sign in. Save it from Home's "Your reflection is still here".
+2. Signed in, do another. Open Trends and each reflection there. Delete one.
+3. Open the report, turn on **Reflections** and **Reflection notes**, and save it as PDF.
+
+**Expected result:** Both are saved and appear in Trends with a "Reflection" label and date, never on the score chart. Each opens to its questions and answers. The report lists them, with notes only when that option is on.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-RF-05: Offline reflection
+
+**Priority:** P2 | **Device:** Android Chrome, installed app
+
+**Preconditions:** The app has been opened once online.
+
+**Steps:**
+
+1. Turn on airplane mode. Do a Reflection, as a guest and signed in.
+
+**Expected result:** It starts and finishes with no connection. Signed in, the result says it couldn't be saved yet, and **Save reflection** works once back online.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-RF-06: A clinician reads the bank
+
+**Priority:** P0 | **Device:** Paper or screen
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Give a clinician the 100 questions and the result wording in [CLINICAL-SAFETY.md](../CLINICAL-SAFETY.md#reflection-questions), and the app.
+
+**Expected result:** Items 24 to 28 of the clinician sign-off are completed.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
 ## Release sign-off
 
 One page per release. Do not sign for anything you did not see.

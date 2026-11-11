@@ -231,6 +231,160 @@ Other plan copy, from [SafetyPlan.tsx](../apps/web/src/routes/SafetyPlan.tsx):
 
 **Doctor report.** The footer reads: "Self-reported. A screening, not a diagnosis.", then `GAD7_ATTRIBUTION`, then "Made on <date>, with AnxioCare." The mood section reads: "The person's own rating of each day, from 1 (Very low) to 5 (Very good). Not a test score, and not part of the GAD-7." Private writing (mood notes, plan, journal) is off by default.
 
+## Reflection questions
+
+**Not yet reviewed by a clinician. Every one of the 100 questions, and the result wording, needs review before launch, as items 24 to 28 of the sign-off.**
+
+A Reflection is a second, separate thing the person can choose at the start of a check-in, beside the GAD-7. It asks 5 questions from a bank of 100, one from each of 5 themes, chosen on the phone with `crypto.getRandomValues`, leaving out any question from the person's last 3 reflections. It is never scored: no number, no severity word, no chart of totals, and it never shares an axis with the GAD-7. The GAD-7 itself is untouched.
+
+The questions are the app's own, written for this app. Rules applied, and checked by [questions.test.ts](../packages/shared/src/questions.test.ts):
+
+- Plain, warm Indian English, for a reading age of about 12. At most 90 characters. Second person, about the person's own day ("today") or recent weeks ("lately"), worded to fit the answers Not at all, A little, Quite a bit, A lot.
+- Neutral, never leading or judging. No clinical labels and no diagnosis words (a test bans words such as anxious, panic, depressed, disorder, symptom, trauma).
+- Nothing about self-harm, suicide, abuse or substance use: asking about those properly needs a clinical pathway the app doesn't have. A test bans the words.
+- No GAD-7 paraphrases. A test bans the GAD-7's own words (nervous, on edge, restless, relax, irritable, annoyed, awful, control, "different things").
+- No items from the BAI, HADS or any other licensed scale. Body questions avoid those scales' symptom phrasings, such as "dizzy or lightheaded" and "hands trembling".
+- Works across cultures in India: no alcohol-centric or dating-centric assumptions; family can mean joint family (questions about relatives, privacy at home, elders and children at home); prayer is offered alongside meditation and quiet time, never alone.
+- Coping and connection questions are framed positively ("How much did talking to someone help you today?"), recorded as `polarity: 'support'`, so a high answer there reads as good and is never counted as strain.
+
+**Owner and reviewer to decide:** whether the GAD-7-overlap and licensed-scale checks are enough. They are word lists, not an expert comparison.
+
+**The result.** From `summarizeReflection` in [reflections.ts](../packages/shared/src/reflections.ts) and [Reflection.tsx](../apps/web/src/routes/Reflection.tsx):
+
+- Strain themes answered "Quite a bit" or more are named in one line, for example "Worry and how your body felt came up today." Support themes answered "Quite a bit" or more: "Things you did for yourself helped." If nothing stands out: "Nothing stood out strongly today."
+- Always: "This is a reflection, not a test or a diagnosis."
+- Matched suggestions from what the app already has: slow breathing when the body came up; a thought record (accounts) or grounding (guests) when worry did; grounding for things going on around them; the mood log for accounts.
+- Get help: if any question marked `brings_help` is answered "Quite a bit" or more, a calm panel comes first, as the severe GAD-7 result does: "Support is here if you want it. Some of what you said sounds heavy to carry. You don't have to manage it alone." with a one-tap call to the first helpline, all helplines, and the safety plan. The self-harm guidance section follows, as on a severe result. Otherwise the result says the questions don't ask about thoughts of harming yourself, and links to Help.
+- The start screen: "Reflection: 5 questions, different each time, to notice how you're doing. No score. About 2 minutes."
+- Trends counts "Themes that came up most in the last 30 days", labelled "A count, not a score". The doctor report has a Reflections section, off by default, and reflection notes only with their own option on.
+
+The bank, verbatim from `REFLECTION_QUESTIONS` in [packages/shared/src/questions.ts](../packages/shared/src/questions.ts). The 8 marked "Yes" bring Get help forward. Every question needs clinician review.
+
+**Worry and thoughts** (`worry`, strain: a high answer means it weighed on the person)
+
+| Id | Question | Brings Get help forward | Review |
+| --- | --- | --- | --- |
+| REF-001 | How much did you replay a conversation in your head today? |  | Needs clinician review |
+| REF-002 | How much did your thoughts feel like they were racing today? |  | Needs clinician review |
+| REF-003 | How much did you think about what others might think of you lately? |  | Needs clinician review |
+| REF-004 | How much did you find it hard to keep your mind on one thing today? |  | Needs clinician review |
+| REF-005 | How much did thoughts about the future weigh on you lately? |  | Needs clinician review |
+| REF-006 | How much did your head feel too full to think clearly today? |  | Needs clinician review |
+| REF-007 | How much did small choices feel hard for you to make today? |  | Needs clinician review |
+| REF-008 | How much did you blame yourself when things went wrong lately? |  | Needs clinician review |
+| REF-009 | How much did you doubt yourself today? |  | Needs clinician review |
+| REF-010 | How much did you feel hopeless about things lately? | Yes | Needs clinician review |
+| REF-011 | How much did everything feel like too much for you today? | Yes | Needs clinician review |
+| REF-012 | How much did you feel you could not cope with things today? | Yes | Needs clinician review |
+| REF-013 | How much did you put something off because thinking about it felt heavy today? |  | Needs clinician review |
+| REF-014 | How much did you feel you had to check things again and again lately? |  | Needs clinician review |
+| REF-015 | How much did you feel you had to get everything just right today? |  | Needs clinician review |
+| REF-016 | How much did you forget things more than usual lately? |  | Needs clinician review |
+| REF-017 | How much did you feel stuck in your own thoughts today? |  | Needs clinician review |
+| REF-018 | How much did you feel you were not good enough lately? |  | Needs clinician review |
+| REF-019 | How much did you feel guilty for resting or taking time for yourself lately? |  | Needs clinician review |
+| REF-020 | How much did you feel numb or empty inside lately? | Yes | Needs clinician review |
+
+**Body and sleep** (`body`, strain: a high answer means it weighed on the person)
+
+| Id | Question | Brings Get help forward | Review |
+| --- | --- | --- | --- |
+| REF-021 | How much did you find it hard to fall asleep lately? |  | Needs clinician review |
+| REF-022 | How much did you wake in the night and find it hard to sleep again lately? |  | Needs clinician review |
+| REF-023 | How much did you feel tired even after a night's sleep lately? |  | Needs clinician review |
+| REF-024 | How much tightness did you notice in your shoulders, neck or jaw today? |  | Needs clinician review |
+| REF-025 | How much did you notice your heartbeat more than usual today? |  | Needs clinician review |
+| REF-026 | How much did your breathing feel tight or shallow today? |  | Needs clinician review |
+| REF-027 | How much did headaches bother you lately? |  | Needs clinician review |
+| REF-028 | How much did your stomach feel upset or uneasy today? |  | Needs clinician review |
+| REF-029 | How much did you feel less hungry than usual lately? |  | Needs clinician review |
+| REF-030 | How much did you eat more than usual to comfort yourself lately? |  | Needs clinician review |
+| REF-031 | How much did you notice yourself sighing or holding your breath today? |  | Needs clinician review |
+| REF-032 | How much did your sleep times move away from your usual routine lately? |  | Needs clinician review |
+| REF-033 | How much did you catch yourself clenching your teeth or fists today? |  | Needs clinician review |
+| REF-034 | How much did aches and pains bother you lately? |  | Needs clinician review |
+| REF-035 | How much did sitting for long hours leave your body stiff today? |  | Needs clinician review |
+| REF-036 | How much did you feel low on energy today? |  | Needs clinician review |
+| REF-037 | How much did you sleep more than you wanted to lately? |  | Needs clinician review |
+| REF-038 | How much did screens keep you awake later than you wanted lately? |  | Needs clinician review |
+| REF-039 | How much did you feel worn out, as if you had nothing left, lately? | Yes | Needs clinician review |
+| REF-040 | How much did you find it hard to get out of bed and face the day lately? | Yes | Needs clinician review |
+
+**Things going on around you** (`situations`, strain: a high answer means it weighed on the person)
+
+| Id | Question | Brings Get help forward | Review |
+| --- | --- | --- | --- |
+| REF-041 | How much did work or study pressure weigh on you today? |  | Needs clinician review |
+| REF-042 | How much did deadlines or exams play on your mind lately? |  | Needs clinician review |
+| REF-043 | How much did things at home feel tense for you lately? |  | Needs clinician review |
+| REF-044 | How much did expectations from family weigh on you lately? |  | Needs clinician review |
+| REF-045 | How much did money troubles play on your mind lately? |  | Needs clinician review |
+| REF-046 | How much did your own health play on your mind lately? |  | Needs clinician review |
+| REF-047 | How much did the health of someone close to you weigh on you lately? |  | Needs clinician review |
+| REF-048 | How much did the news or social media unsettle you today? |  | Needs clinician review |
+| REF-049 | How much did crowded or busy places feel hard for you lately? |  | Needs clinician review |
+| REF-050 | How much did meeting new people feel hard for you lately? |  | Needs clinician review |
+| REF-051 | How much did speaking up in a group feel hard for you lately? |  | Needs clinician review |
+| REF-052 | How much did travel or your daily commute wear you down lately? |  | Needs clinician review |
+| REF-053 | How much did a disagreement with someone stay on your mind today? |  | Needs clinician review |
+| REF-054 | How much did you feel left out by people around you lately? |  | Needs clinician review |
+| REF-055 | How much did questions from relatives about your future weigh on you lately? |  | Needs clinician review |
+| REF-056 | How much did comparing marks, jobs or salaries weigh on you lately? |  | Needs clinician review |
+| REF-057 | How much did housework or caring for others leave you stretched today? |  | Needs clinician review |
+| REF-058 | How much did a lack of privacy or space of your own bother you lately? |  | Needs clinician review |
+| REF-059 | How much did you feel trapped by your situation lately? | Yes | Needs clinician review |
+| REF-060 | How much did a problem feel too big to manage on your own lately? | Yes | Needs clinician review |
+
+**What you did for yourself** (`coping`, support: a high answer means it helped)
+
+| Id | Question | Brings Get help forward | Review |
+| --- | --- | --- | --- |
+| REF-061 | How much did taking a few slow breaths help you today? |  | Needs clinician review |
+| REF-062 | How much did a walk or moving your body help you today? |  | Needs clinician review |
+| REF-063 | How much did music help you feel steadier today? |  | Needs clinician review |
+| REF-064 | How much did fresh air or sunlight help you today? |  | Needs clinician review |
+| REF-065 | How much were you able to take short breaks when you needed them today? |  | Needs clinician review |
+| REF-066 | How much did prayer, meditation or quiet time help you lately? |  | Needs clinician review |
+| REF-067 | How much did writing down your thoughts help you lately? |  | Needs clinician review |
+| REF-068 | How much did finishing one small task help you feel settled today? |  | Needs clinician review |
+| REF-069 | How much were you able to be kind to yourself today? |  | Needs clinician review |
+| REF-070 | How much did a hobby or something you enjoy lift you today? |  | Needs clinician review |
+| REF-071 | How much did keeping a regular sleep time help you lately? |  | Needs clinician review |
+| REF-072 | How much did a warm drink or a proper meal help you feel steady today? |  | Needs clinician review |
+| REF-073 | How much were you able to notice a thought and let it pass today? |  | Needs clinician review |
+| REF-074 | How much did breaking a big job into small steps help you lately? |  | Needs clinician review |
+| REF-075 | How much did a break from the news or your phone help you lately? |  | Needs clinician review |
+| REF-076 | How much were you able to say no to something that was too much lately? |  | Needs clinician review |
+| REF-077 | How much did a familiar routine help you get through today? |  | Needs clinician review |
+| REF-078 | How much did stepping away from a hard moment help you settle today? |  | Needs clinician review |
+| REF-079 | How much did time with a pet, plants or nature help you lately? |  | Needs clinician review |
+| REF-080 | How much did remembering what you have got through before help you today? |  | Needs clinician review |
+
+**People around you** (`connection`, support: a high answer means it helped)
+
+| Id | Question | Brings Get help forward | Review |
+| --- | --- | --- | --- |
+| REF-081 | How much did talking to someone help you today? |  | Needs clinician review |
+| REF-082 | How much did you feel listened to by someone lately? |  | Needs clinician review |
+| REF-083 | How much did you feel you could be yourself with someone today? |  | Needs clinician review |
+| REF-084 | How much did a message or call from someone lift you lately? |  | Needs clinician review |
+| REF-085 | How much did time with family help you feel supported lately? |  | Needs clinician review |
+| REF-086 | How much did a friend help you feel less alone lately? |  | Needs clinician review |
+| REF-087 | How much did you feel there was someone you could turn to lately? |  | Needs clinician review |
+| REF-088 | How much did helping someone else make you feel good today? |  | Needs clinician review |
+| REF-089 | How much did sharing a meal or chai with someone help you today? |  | Needs clinician review |
+| REF-090 | How much did you feel part of a group or community lately? |  | Needs clinician review |
+| REF-091 | How much did a kind word from someone help you today? |  | Needs clinician review |
+| REF-092 | How much did you feel understood by the people around you lately? |  | Needs clinician review |
+| REF-093 | How much were you able to ask for help when you needed it lately? |  | Needs clinician review |
+| REF-094 | How much did a neighbour, colleague or classmate brighten things for you today? |  | Needs clinician review |
+| REF-095 | How much did you feel close to someone lately? |  | Needs clinician review |
+| REF-096 | How much did a place of worship or a community space help you feel at home lately? |  | Needs clinician review |
+| REF-097 | How much did you feel respected by the people around you lately? |  | Needs clinician review |
+| REF-098 | How much did talking a problem through with someone make it clearer for you today? |  | Needs clinician review |
+| REF-099 | How much did you feel cared for by someone today? |  | Needs clinician review |
+| REF-100 | How much did time with children or elders at home lift you lately? |  | Needs clinician review |
+
 ## Hazard log
 
 Likelihood and severity are unreviewed estimates. **The reviewer should change them.**
@@ -261,6 +415,10 @@ Likelihood and severity are unreviewed estimates. **The reviewer should change t
 | H22 | Safety plan wording or examples read as advice, or distress | Harm | Optional, gentle wording, examples as hints only | Unreviewed | Unknown. Clinician. |
 | H23 | Mood log read as a measure, or used to self-judge | Discouragement | "Not a test score". Own axis. No streaks or "missed" | `MoodChart.test.tsx`, `MoodCard.test.tsx` | Low-Med. Clinician. |
 | H24 | A doctor reads the report as a diagnosis | Wrong care | Footer and attribution on every report. Self-reported | `Report.test.tsx` | Low-Med. Clinician. |
+| H25 | A reflection question distresses, leads or reads as a diagnosis | Distress, wrong self-judgement | Bank rules and word-list tests above. Unscored. "Not a test or a diagnosis" on every result | `questions.test.ts` | **Unknown until reviewed.** Clinician. |
+| H26 | Someone at risk answers a reflection and is not offered help | Delayed care | 8 strain questions bring Get help forward at "Quite a bit". Get help on every screen. The result says the questions don't ask about self-harm | `Reflection.test.tsx`, `reflection.spec.ts` | **Med.** The bank asks no risk questions on purpose. Clinician. |
+| H27 | A reflection is read as a second GAD-7, or its answers summed | Misleading self-judgement | No number, no severity, no chart of totals. Never on the GAD-7 axis. A count of themes only, labelled "not a score" | `Trends.test.tsx`, `Reflection.test.tsx` | Low-Med. Clinician. |
+| H28 | A question is reworded after people answered it | Old answers change meaning | Wording is immutable by DB trigger. Rewording is a new id. Boot check and db:verify refuse a mismatch | `reflections.test.ts` | Low. Owner. |
 
 ## Clinician review sign-off
 
@@ -301,6 +459,11 @@ For each item, mark Accepted, Accepted with changes, or Not accepted, and add co
 | 21 | "About quick exit" on Help | | |
 | 22 | Mood log scale words, and "not a test score" | | |
 | 23 | Doctor report: sections, defaults, footer, mood wording | | |
+| 24 | Reflection bank: all 100 questions, as in [Reflection questions](#reflection-questions) | | |
+| 25 | Reflection: which 8 questions bring Get help forward, and the "Quite a bit" threshold | | |
+| 26 | Reflection result: summary lines, suggestions, the support panel wording | | |
+| 27 | Reflection: the start screen choices and their descriptions | | |
+| 28 | Reflection: themes counted in Trends, and the Reflections section of the doctor report | | |
 
 **Overall**
 

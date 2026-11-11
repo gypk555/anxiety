@@ -38,7 +38,7 @@ describe('migration 002', () => {
     });
     await owner.end();
 
-    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql', '004_mood_and_safety_plan.sql']);
+    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql', '004_mood_and_safety_plan.sql', '005_questions.sql']);
     expect(await migrate(sql), 'and runs once').toEqual([]);
 
     const [user] = await sql<{ password_hash: string | null; email_ct: Buffer }[]>`SELECT password_hash, email_ct FROM app.users WHERE id = ${id}::uuid`;
@@ -73,6 +73,8 @@ describe('the runtime role on the new tables', () => {
     ['oauth_state_uses', ['DELETE', 'INSERT', 'SELECT']],
     ['mood_entries', ['DELETE', 'INSERT', 'SELECT', 'UPDATE']],
     ['safety_plans', ['DELETE', 'INSERT', 'SELECT', 'UPDATE']],
+    ['questions', ['SELECT']],
+    ['reflections', ['DELETE', 'INSERT', 'SELECT']],
   ])('%s has exactly the grants it needs', async (table, expected) => {
     expect(await grants(table)).toEqual(expected);
   });
@@ -124,7 +126,7 @@ describe('schema placement', () => {
     expect(pub).toEqual([]);
     const app = await h.admin`SELECT tablename FROM pg_tables WHERE schemaname = 'app' ORDER BY 1`;
     expect(app.map((t) => t.tablename)).toEqual([
-      'assessments', 'audit_log', 'consents', 'device_tokens', 'journal_entries', 'login_failures', 'mood_entries', 'oauth_state_uses', 'otp_codes', 'otp_failures', 'safety_plans', 'schema_migrations', 'sessions', 'user_identities', 'users',
+      'assessments', 'audit_log', 'consents', 'device_tokens', 'journal_entries', 'login_failures', 'mood_entries', 'oauth_state_uses', 'otp_codes', 'otp_failures', 'questions', 'reflections', 'safety_plans', 'schema_migrations', 'sessions', 'user_identities', 'users',
     ]);
   });
 

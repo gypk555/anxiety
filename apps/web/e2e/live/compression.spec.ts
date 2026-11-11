@@ -112,3 +112,19 @@ test('the common-password list stays out of the first bundle, and is there on th
   await page.getByLabel('Email address').waitFor();
   expect((await Promise.all(loaded)).some((text) => text.includes('iloveindia'))).toBe(true);
 });
+
+test('the question bank stays out of the first bundle, and is there once a reflection starts', async ({ request, page }) => {
+  const marker = 'replay a conversation in your head';
+  const html = await (await request.get('/')).text();
+  const scripts = [...html.matchAll(/(?:src|href)="(\/[^"]+\.js)"/g)].map((m) => m[1]!);
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const script of scripts) expect(await (await request.get(script)).text(), script).not.toContain(marker);
+
+  const loaded: Promise<string>[] = [];
+  page.on('response', (r) => {
+    if (r.url().endsWith('.js')) loaded.push(r.text());
+  });
+  await page.goto('/check-in');
+  await page.getByRole('heading', { level: 1, name: 'What would you like to do?' }).waitFor();
+  expect((await Promise.all(loaded)).some((text) => text.includes(marker))).toBe(true);
+});

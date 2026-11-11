@@ -125,7 +125,7 @@ test('offline at the end of a signed-in check-in: the result stays, and saves on
   await signUp(page, 'offlinecheck');
   await serviceWorkerActive(page);
   const answers = [1, 2, 1, 2, 1, 2, 1];
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await page.getByRole('button', { name: 'Begin' }).click();
   await answerItems(page, answers);
 

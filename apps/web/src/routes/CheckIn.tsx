@@ -8,8 +8,8 @@ import {
   type Assessment,
 } from '@anxiocare/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ClipboardList, Sprout } from 'lucide-react';
+import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { request } from '@/lib/api';
 import {
@@ -27,21 +27,70 @@ import {
   type GuestResult,
 } from '@/lib/guest';
 import { assessmentsKey, useMe } from '@/lib/queries';
+import { beginReflection } from '@/lib/reflection';
+import { loadReflection, nextUnansweredReflection, STEPS } from '@/lib/reflection-store';
 import { PageTitle } from '@/ui/PageTitle';
+import { OptionButton, QuestionFrame, Saving } from '@/ui/Question';
+import { moveByArrow, useAdvance } from '@/ui/question-behaviour';
 import { Stitches } from '@/ui/Stitches';
 
 const ITEM_COUNT = GAD7_ITEMS.length;
-const ADVANCE_MS = 260;
 
-/** Each option stays a Tab stop, because they're buttons. Arrow keys are a shorter way round the same list. */
-function moveByArrow(e: React.KeyboardEvent<HTMLDivElement>) {
-  const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
-  if (!step) return;
-  const options = [...e.currentTarget.querySelectorAll('button')];
-  const index = options.indexOf(document.activeElement as HTMLButtonElement);
-  if (index < 0) return;
-  e.preventDefault();
-  options[(index + step + options.length) % options.length]!.focus();
+/**
+ * The start of a check-in: the person picks the GAD-7 or a Reflection, and goes ahead. Both are open to guests and
+ * accounts alike. Get help and Quick exit stay in the header, as on every screen.
+ */
+export function CheckInChoice() {
+  const navigate = useNavigate();
+  const client = useQueryClient();
+  // Who is signed in decides which saved reflections to leave questions out from.
+  useMe();
+  const [starting, setStarting] = useState(false);
+  const progress = loadReflection();
+  const answered = progress?.answers.filter((a) => a !== null).length ?? 0;
+
+  const reflect = async () => {
+    setStarting(true);
+    await beginReflection(client);
+    navigate('/reflection/1');
+  };
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <PageTitle className="pt-2 text-2xl" title="Check in">What would you like to do?</PageTitle>
+      {progress && answered > 0 && (
+        <Link to={`/reflection/${nextUnansweredReflection(progress) < STEPS ? nextUnansweredReflection(progress) + 1 : 'note'}`} className="patch mt-4 block no-underline">
+          <span className="block font-semibold">Continue your reflection</span>
+          <span className="block text-sm text-ink-soft">You've answered {answered} of {STEPS} questions.</span>
+        </Link>
+      )}
+      <ul className="mt-5 flex flex-col gap-3">
+        <li>
+          <Link to="/check-in/gad7" className="choice">
+            <ClipboardList aria-hidden="true" className="size-6 shrink-0 text-madder" strokeWidth={1.9} />
+            <span className="flex flex-col gap-1">
+              <span className="font-display text-xl font-semibold">Anxiety check (GAD-7)</span>
+              <span className="text-ink-soft">7 questions, the same each time. Gives a score you can track and share with a doctor. About 2 minutes.</span>
+            </span>
+          </Link>
+        </li>
+        <li>
+          <button type="button" className="choice" disabled={starting} onClick={() => void reflect()}>
+            <Sprout aria-hidden="true" className="size-6 shrink-0 text-madder" strokeWidth={1.9} />
+            <span className="flex flex-col gap-1">
+              <span className="font-display text-xl font-semibold">Reflection</span>
+              <span className="text-ink-soft">5 questions, different each time, to notice how you're doing. No score. About 2 minutes.</span>
+            </span>
+          </button>
+        </li>
+      </ul>
+      <div className="mt-auto flex flex-col gap-2 pt-6">
+        <p className="text-sm text-ink-soft">Without an account, your answers stay in this browser tab and are gone when you close it.</p>
+        <Link className="btn btn-ghost" to="/">Not now</Link>
+        <p className="text-center text-sm text-ink-soft">For adults, 18 and over.</p>
+      </div>
+    </div>
+  );
 }
 
 export function CheckInIntro() {
@@ -102,7 +151,7 @@ export function CheckInStep() {
   const progress = loadCheckin();
   const location = useLocation();
 
-  if (!progress) return <Navigate to="/check-in" replace />;
+  if (!progress) return <Navigate to="/check-in/gad7" replace />;
 
   if (step === 'difficulty') {
     if (nextUnanswered(progress) < ITEM_COUNT) return <Navigate to={`/check-in/${nextUnanswered(progress) + 1}`} replace />;
@@ -111,7 +160,7 @@ export function CheckInStep() {
   }
 
   const n = Number(step);
-  if (!Number.isInteger(n) || n < 1 || n > ITEM_COUNT) return <Navigate to="/check-in" replace />;
+  if (!Number.isInteger(n) || n < 1 || n > ITEM_COUNT) return <Navigate to="/check-in/gad7" replace />;
   // No skipping ahead by URL: go to the first unanswered question.
   if (n - 1 > nextUnanswered(progress)) return <Navigate to={`/check-in/${nextUnanswered(progress) + 1}`} replace />;
   return <ItemQuestion key={n} index={n - 1} progress={progress} />;
@@ -155,61 +204,6 @@ export function saveResult(result: GuestResult): Promise<Assessment> {
   });
 }
 
-function QuestionFrame({ count, position, backTo, stem, children, question, titleKey }: {
-  count: number;
-  position: number;
-  backTo: string;
-  stem: string;
-  question: string;
-  titleKey: string;
-  children: React.ReactNode;
-}) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const canPop = location.key !== 'default';
-  return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          aria-label="Back"
-          className="-ml-2 grid size-11 shrink-0 place-items-center rounded-full"
-          onClick={() => (canPop ? navigate(-1) : navigate(backTo))}
-        >
-          <ArrowLeft aria-hidden="true" className="size-6" />
-        </button>
-        <Stitches className="flex-1" total={count} done={position} label={`Question ${position} of ${count}`} />
-        <span className="w-11 shrink-0 text-right text-sm tabular-nums text-ink-soft">{position}/{count}</span>
-      </div>
-      <p className="mt-4 text-sm text-ink-soft">{stem}</p>
-      <PageTitle key={titleKey} className="mt-2 text-[1.875rem] leading-[1.12]" title={`Question ${position} of ${count}`}>
-        {question}
-      </PageTitle>
-      <div role="group" aria-label={question} className="mt-auto flex flex-col gap-2 pt-6" onKeyDown={moveByArrow}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function OptionButton({ label, selected, onSelect }: { label: string; selected: boolean; onSelect: () => void }) {
-  return (
-    <button type="button" className="option" aria-pressed={selected} onClick={onSelect}>
-      <span className="flex-1">{label}</span>
-      {selected && <Check aria-hidden="true" className="size-5 shrink-0" strokeWidth={3} />}
-    </button>
-  );
-}
-
-function useAdvance() {
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-  return (fn: () => void) => {
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(fn, ADVANCE_MS);
-  };
-}
-
 function ItemQuestion({ index, progress }: { index: number; progress: CheckinProgress }) {
   const navigate = useNavigate();
   const advance = useAdvance();
@@ -235,7 +229,7 @@ function ItemQuestion({ index, progress }: { index: number; progress: CheckinPro
     <QuestionFrame
       count={ITEM_COUNT}
       position={index + 1}
-      backTo={index === 0 ? '/check-in' : `/check-in/${index}`}
+      backTo={index === 0 ? '/check-in/gad7' : `/check-in/${index}`}
       stem={GAD7_STEM}
       question={question}
       titleKey={String(index)}
@@ -284,14 +278,6 @@ function DifficultyQuestion({ progress }: { progress: CheckinProgress }) {
           <OptionButton key={o.value} label={o.label} selected={selected === o.value} onSelect={() => choose(o.value)} />
         ))}
       </div>
-    </div>
-  );
-}
-
-function Saving() {
-  return (
-    <div role="status" className="flex flex-1 items-center justify-center">
-      <p className="font-display text-xl">Saving your result</p>
     </div>
   );
 }

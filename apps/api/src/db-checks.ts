@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { Sql } from './db.ts';
 import { RUNTIME_ROLE } from './db.ts';
 import { MIGRATIONS_DIR } from './migrate.ts';
+import { catalogueDifferences } from './questions.ts';
 
 export interface Check {
   name: string;
@@ -29,6 +30,8 @@ const RUNTIME_GRANTS: Record<string, readonly string[]> = {
   device_tokens: ['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
   mood_entries: ['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
   safety_plans: ['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
+  questions: ['SELECT'],
+  reflections: ['DELETE', 'INSERT', 'SELECT'],
 };
 const OUTSIDE_ROLES = ['anon', 'authenticated'];
 
@@ -149,6 +152,18 @@ export async function verifyDatabase(sql: Sql): Promise<Check[]> {
         issues.length === 0
           ? pass('Migrations applied with checksums', `${applied.length} of ${onDisk.length}`)
           : fail('Migrations applied with checksums', issues.join('; '), 'Run npm run db:setup for pending ones. A changed file means this checkout differs from what was applied: never edit an applied migration.'),
+      );
+    }
+
+    const [catalogue] = await tx`SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'app' AND c.relname = 'questions'`;
+    if (!catalogue) {
+      checks.push(fail('Question catalogue matches the shared file', 'app.questions does not exist', 'Run npm run db:setup.'));
+    } else {
+      const differ = await catalogueDifferences(tx);
+      checks.push(
+        differ.length === 0
+          ? pass('Question catalogue matches the shared file', 'every question as in packages/shared/src/questions.ts')
+          : fail('Question catalogue matches the shared file', `differs at ${differ.slice(0, 10).join(', ')}${differ.length > 10 ? ` and ${differ.length - 10} more` : ''}`, 'Question wording is fixed once released. Change it only by a new id in questions.ts and a new migration, never by hand. The server refuses to start until they match.'),
       );
     }
 

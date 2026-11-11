@@ -116,6 +116,11 @@ The Government can notify a fiduciary or class as "significant", considering vol
 | Safety plan time | `safety_plans.updated_at` | **Plaintext** | Display | As the plan | As the plan |
 | Offline copy of an account's safety plan | Browser IndexedDB `anxiocare-vault` | Encrypted with a random, non-extractable WebCrypto key held in the same IndexedDB. Owner kept as a SHA-256 of the account id | Opening the plan with no connection | Until sign-out, session end, account deletion, or another account's sign-in on the device | Automatic, as listed |
 | Guest safety plan | Browser IndexedDB `anxiocare-vault` | Encrypted, as above. Never sent to the server | A plan without an account | Until the person deletes it, moves it to an account, or the browser clears site data | Person, browser. Safari may clear it after 7 days without a visit |
+| Reflection answers and note | `reflections.payload_ct` | Encrypted, padded to 2 KB, so every row is the same size. Which questions were asked is held as question ids inside the ciphertext, never as text | Show back, the report | Until deleted | Person, deletion |
+| When each reflection was taken | `reflections.taken_at`, `created_at` | **Plaintext** | Sorting | Until deleted | Person, deletion |
+| The question catalogue | `questions` | Plaintext. The app's own wording, the same for everyone. **Not personal data** | Saved answers refer to it by id | Permanently. Retired questions stay, inactive | Never deleted, by design |
+| Guest reflection, and the question ids of the tab's last 3 reflections | Browser `sessionStorage` | Plaintext question ids and answer numbers only. Never sent until the person signs in and saves. A browser may restore it with a reopened tab | A reflection without an account, and asking different questions next time | Until the tab closes, sign-out or quick exit | Automatic |
+| Unsaved reflection note | Browser memory only, never in any browser storage | Plaintext | Saving it with the reflection | Until saved, reload, sign-out or quick exit | Automatic |
 | Journal times | `journal_entries.created_at`, `updated_at` | **Plaintext** | Sorting | Until deleted | Person, deletion |
 | Session token hash | `sessions.token_hash` | SHA-256 | Authentication | 30 days idle, 90 days at most, then purge within the hour | Sign-out, purge, deletion |
 | Device label | `sessions.device_label_ct` | Encrypted, coarse ("Safari on iPhone") | Session list | As the session | As the session |
@@ -145,6 +150,17 @@ A safety plan can hold the names and phone numbers of people the person trusts. 
 - **Notice.** The privacy notice has a part, "Other people in your safety plan", which asks the person to add only people who would expect to be called.
 
 **Needs lawyer:** is this the person's own processing for personal purposes, outside the Act under s.3(c)(i), or the operator's processing of a third party's data? If it is the operator's, what basis applies to a contact who never consented, and does the notice need to say more?
+
+## Consent version 2026-11-12
+
+`CONSENT_VERSION` went from `2026-11-11` to `2026-11-12` for reflections: new health data. Everyone with an account is asked again, and sees `CONSENT_CHANGES`:
+
+1. "You can now do a Reflection: five short questions, different each time, with no score. If you save one, we keep which questions you were asked, your answers, the date and any note. They are encrypted, like your check-ins."
+2. "Without an account, a reflection's answers stay in this browser tab and are gone when you close it. A note you add is kept only while the app is open, and is lost if you reload it before saving."
+
+Changed in the notice in `Legal.tsx`: reflections in "What we store" (with "Questions are stored by number, not as words"), in the health-information sentence, the purpose sentence, "How it's protected" and the export in "Your rights"; the tab-only guest reflection, and the note held in memory only, in "Without an account"; and "short unscored reflections" in About.
+
+The version is dated the day after the previous one because two notices can't share a date: `CONSENT_VERSION` is a `YYYY-MM-DD`, shown as "Version dated" on the legal pages. **Owner to decide:** the real date of the text, set when it's deployed. **Owner action: have the lawyer review this text before the deploy.**
 
 ## Consent version 2026-11-11
 

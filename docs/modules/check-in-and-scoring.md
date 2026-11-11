@@ -6,7 +6,8 @@ Administer the GAD-7, with its item and option wording as published, on a phone,
 
 ## User-facing behaviour
 
-- `/check-in`: a short intro. It says about two minutes, no right or wrong answers, a screening and not a diagnosis, for adults. If answers exist, it offers "Continue from question N" and "Start again".
+- `/check-in`: "What would you like to do?", the Anxiety check (GAD-7) or a [Reflection](reflections.md).
+- `/check-in/gad7`: a short intro. It says about two minutes, no right or wrong answers, a screening and not a diagnosis, for adults. If answers exist, it offers "Continue from question N" and "Start again".
 - `/check-in/1` to `/check-in/7`: one question per screen, with the stem above it, four large options, and progress as stitches. Choosing an option moves on after 260 ms. Back returns with the answer still selected.
 - `/check-in/difficulty`: the functional question, only when any answer was above "Not at all".
 - "Get help" stays in the header throughout. There is no tab bar.
@@ -59,7 +60,7 @@ Table: `assessments`. Endpoint: `POST /assessments`. Browser: `sessionStorage` k
 | --- | --- |
 | Refresh mid check-in | Resumes in the same tab |
 | Tab closed | Everything is gone, by design |
-| `/check-in/9`, `/check-in/abc` | Back to the intro |
+| `/check-in/9`, `/check-in/abc` | Back to the GAD-7 intro, `/check-in/gad7` |
 | URL skips ahead | First unanswered question |
 | `/check-in/difficulty` with all zeros | Back to question 7 |
 | `sessionStorage` blocked | Works until a reload |

@@ -77,6 +77,13 @@ export const MOODS = [26, 24, 21, 19, 18, 15, 12, 10, 9, 7, 5, 4, 2, 1].map((ago
   updatedAt: '2026-11-01T04:00:00.000Z',
 }));
 
+export const R1 = '66666666-6666-4666-8666-666666666661';
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+export const REFLECTIONS = [
+  { id: R1, takenAt: daysAgo(1), answers: [{ q: 'REF-005', a: 2 }, { q: 'REF-021', a: 3 }, { q: 'REF-044', a: 1 }, { q: 'REF-062', a: 2 }, { q: 'REF-089', a: 3 }], note: 'Exams next week. Chai with Meena helped.' },
+  { id: '66666666-6666-4666-8666-666666666662', takenAt: daysAgo(6), answers: [{ q: 'REF-011', a: 3 }, { q: 'REF-036', a: 2 }, { q: 'REF-055', a: 2 }, { q: 'REF-070', a: 1 }, { q: 'REF-086', a: 1 }] },
+];
+
 export const PLAN = {
   warningSigns: ['Not sleeping, lying awake going over things', 'Staying in my room and not answering calls'],
   copingStrategies: ['Slow breathing, four in and six out', 'A cold glass of water, then a walk around the block'],
@@ -128,6 +135,13 @@ export async function mockApi(page: Page, options: MockOptions = {}) {
       const found = ASSESSMENTS.find((a) => path.endsWith(a.id));
       return found ? json(found) : json({ type: 'about:blank', title: 'Not found', status: 404, code: 'not_found' }, 404);
     }
+    if (path === '/reflections' && method === 'GET') return json({ items: empty ? [] : REFLECTIONS, nextCursor: null });
+    if (path === '/reflections' && method === 'POST') return json(REFLECTIONS[0], 201);
+    if (path.startsWith('/reflections/')) {
+      if (method !== 'GET') return route.fulfill({ status: 204 });
+      const found = REFLECTIONS.find((r) => path.endsWith(r.id));
+      return found ? json(found) : json({ type: 'about:blank', title: 'Not found', status: 404, code: 'not_found' }, 404);
+    }
     if (path === '/moods') return json({ items: empty ? [] : MOODS });
     if (path.startsWith('/moods/')) return method === 'DELETE' ? route.fulfill({ status: 204 }) : json({ ...MOODS[0]!, day: path.slice(7) });
     if (path === '/safety-plan') {
@@ -160,4 +174,18 @@ export const progress = (answers: (number | null)[], difficulty: number | null =
   clientRequestId: '55555555-5555-4555-8555-555555555556',
   answers,
   difficulty,
+});
+
+export const REFLECTION_KEY = 'anxiocare.reflection.v1';
+export const REFLECTION_RESULT_KEY = 'anxiocare.reflection-result.v1';
+/** As the app stores them: ids and numbers only. A note is never in browser storage. */
+export const reflectionProgress = (questionIds: string[], answers: (number | null)[]) => ({
+  clientRequestId: '55555555-5555-4555-8555-555555555557',
+  questionIds,
+  answers,
+});
+export const REFLECTION_RESULT = (answers: [string, number][]) => ({
+  clientRequestId: '55555555-5555-4555-8555-555555555558',
+  answers: answers.map(([q, a]) => ({ q, a })),
+  takenAt: new Date().toISOString(),
 });

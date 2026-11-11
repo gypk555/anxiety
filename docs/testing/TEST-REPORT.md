@@ -1,5 +1,19 @@
 # Test report
 
+## Reflections run, 2026-11-11
+
+Branch `production-rebuild`, on top of commit `38423d9`, on an **uncommitted working tree**. Follows the [reflections spec](../superpowers/specs/2026-11-11-reflections-design.md).
+
+- After the security review's five fixes (`GET /reflections/:id`, theme and position frozen with a released-question snapshot, the note kept in memory only, recent question ids held across a session end, the Trends count covering 30 days):
+- typecheck clean; lint 0 errors, 19 warnings (none in new code)
+- Vitest 1,019 of 1,019: shared 119, API 626, web 274
+- Playwright `npm run test:e2e`: 723 passed, 1 skipped. With `CI=1`: 723 passed, 1 skipped. An earlier `CI=1` run hit the known-flaky `accounts.spec.ts` "open redirect" test on live-iphone, which also fails 1 in 6 on the committed code
+- build succeeded; `npm audit --omit=dev` 0 vulnerabilities
+- **Initial JS 157.7 KB gzipped (157,746 bytes), against 170 KB.** The question bank is kept out of the first bundle, and `compression.spec.ts` checks that.
+- Not done: no clinician has read the 100 questions, no lawyer the notice for consent version `2026-11-12`, and nothing has run on a real phone. See MT-RF in [MANUAL-TEST-CASES.md](MANUAL-TEST-CASES.md).
+
+## Safety and tracking run
+
 **Date: 2026-11-11.** Branch `production-rebuild`, last commit `ed1bf19`, on an **uncommitted working tree**: no commit identifies this exact code yet. This run follows the [safety and tracking spec](../superpowers/specs/2026-11-11-safety-and-tracking-design.md): quick exit, the personal safety plan, the daily mood log and the doctor report. The results below are from the final runs on this machine on 2026-11-11: Playwright between 21:25 and 21:45 IST, then the static checks. The previous run, of 2026-11-07, is kept further down for its security reviews.
 
 ## Summary

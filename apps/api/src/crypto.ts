@@ -48,6 +48,8 @@ const PAD_STEP: Readonly<Record<string, number>> = {
   'mood_entries.payload': 2048,
   // A typical plan fits in one step, so a dump shows nothing of its size. The largest possible plan takes a few.
   'safety_plans.payload': 16384,
+  // Larger than five answers and the longest note can be, so every reflection row is the same size.
+  'reflections.payload': 2048,
   'users.email': 512,
   'users.display_name': 256,
   'sessions.device_label': 64,

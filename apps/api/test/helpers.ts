@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { Writable } from 'node:stream';
-import { CONSENT_VERSION, CSRF_HEADER, CSRF_HEADER_VALUE } from '@anxiocare/shared';
+import { CONSENT_VERSION, CSRF_HEADER, CSRF_HEADER_VALUE, pickReflection } from '@anxiocare/shared';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import postgres from 'postgres';
 import { inject } from 'vitest';
@@ -243,6 +243,13 @@ export const safetyPlanPayload = (overrides: Record<string, unknown> = {}) => ({
   professionals: [{ name: 'Dr SecretDoctor', phone: '080 2345 6789' }],
   saferSurroundings: [],
   reasonsToLive: ['SECRET-REASON my daughter'],
+  ...overrides,
+});
+
+/** Five fresh questions, one per theme, as the app picks them, answered 0, 1, 2, 3, 0. */
+export const reflectionPayload = (overrides: Record<string, unknown> = {}) => ({
+  clientRequestId: randomUUID(),
+  answers: pickReflection().map((q, i) => ({ q: q.id, a: i % 4 })),
   ...overrides,
 });
 

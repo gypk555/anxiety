@@ -20,10 +20,14 @@ The frame around every screen, the URL map, access guards, global error and sess
 | --- | --- | --- | --- |
 | `/` | Home | No | |
 | `/help` | Help | No | wide |
-| `/check-in` | Check-in intro | No | focus |
+| `/check-in` | What would you like to do? GAD-7 or Reflection | No | focus |
+| `/check-in/gad7` | GAD-7 intro | No | focus |
+| `/reflection/:step` | Reflection question 1-5, or `note` | No | focus |
+| `/reflection/result` | A reflection in this tab, not yet saved | No | |
 | `/check-in/:step` | Question or difficulty | No | focus |
 | `/result` | Guest result | No | |
 | `/result/:id` | Saved result | **Yes** | |
+| `/reflections/:id` | Saved reflection | **Yes** | |
 | `/tools` | Tools | No | |
 | `/tools/breathe` | Breathe | No | focus, night |
 | `/tools/ground` | Grounding | No | focus |

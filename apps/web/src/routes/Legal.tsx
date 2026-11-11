@@ -67,7 +67,7 @@ export function Privacy() {
         <p>You can use the check-in and tools without an account, and then nothing about you reaches our servers. If you create an account, we store only what's needed to show your own history back to you. No one else can see it, and you can delete it all, at once, at any time.</p>
       </Part>
       <Part heading="Without an account">
-        <p>Your check-in answers and result stay in your browser's temporary storage for this tab, and are gone when you close it. They aren't sent to us. Your light or dark setting is kept on your device. Breathing, grounding and sounds run entirely on your device.</p>
+        <p>Your check-in answers and result stay in your browser's temporary storage for this tab, and are gone when you close it. They aren't sent to us. A reflection without an account stays in this tab in the same way, along with which questions your last few reflections asked, so the next one can ask different ones. A note you add to a reflection isn't put in the browser's storage at all: it's kept only while the app is open, until it's saved. Your light or dark setting is kept on your device. Breathing, grounding and sounds run entirely on your device.</p>
         <p>If you write a safety plan without an account, it's kept only on this device, encrypted, and never sent to us. You can delete it at any time from the plan itself. Anyone who can open the app on this unlocked phone can read it.</p>
       </Part>
       <Part heading="What we store if you create an account">
@@ -76,6 +76,7 @@ export function Privacy() {
           <li>If you set a password, a one-way scrambled form of it, which can't be turned back into your password.</li>
           <li>If you use Google, a one-way code made from your Google account's ID, so we can recognise it. We don't ask Google for your name or photo. Google is added to an existing account only when you choose "Connect Google" in Settings, never just because the email addresses match, and resetting your password disconnects it.</li>
           <li>Your check-in answers, score, result range and date.</li>
+          <li>Your reflections, if you do them: the questions you were asked, your answers, the date and any note. Questions are stored by number, not as words.</li>
           <li>Thought records you write.</li>
           <li>Your daily mood log, if you keep one: the day, a rating from Very low to Very good, and any note.</li>
           <li>Your safety plan, if you write one, including the names and phone numbers of anyone you add to it.</li>
@@ -85,7 +86,7 @@ export function Privacy() {
           <li>For a day after a failed password or code attempt, one-way codes made from the email address that was typed and from the network it came from, to limit how many tries can be made. Your network address itself is not stored.</li>
           <li>On each device where you sign in, a cookie holding a random code, so that wrong tries made elsewhere can't lock you out on a device you already use. It lasts a year, says nothing about you, and we keep only a one-way form of it. Resetting your password or deleting your account cancels it.</li>
         </ul>
-        <p>Check-ins, thought records, the mood log and the safety plan are health information. We store them only with your explicit consent, and you must be 18 or older. We don't ask for your age, gender, occupation or your own phone number.</p>
+        <p>Your check-ins, reflections, thought records, the mood log and the safety plan are health information. We store them only with your explicit consent, and you must be 18 or older. We don't ask for your age, gender, occupation or your own phone number.</p>
       </Part>
       <Part heading="Other people in your safety plan">
         <p>A name and phone number you add to your safety plan is that person's personal information. Add only people you'd expect to be comfortable with you calling them. We use these details for one thing: to show you a button that calls them. They're encrypted with the rest of your plan, never written to our logs, and never contacted, shared or used for anything else. They're deleted when you remove them, delete your plan, or delete your account.</p>
@@ -94,10 +95,10 @@ export function Privacy() {
         <p>So that your safety plan opens without a connection, an encrypted copy of it is kept in this browser's storage once it has loaded. The key that unlocks it is made on your device and can't be copied out of it. The copy is removed when you sign out, when your account is deleted, and when someone else signs in on this device. Anyone who can open the app on your unlocked phone while you're signed in can still read your plan, as they could read anything else in your account.</p>
       </Part>
       <Part heading="Why, and on what basis">
-        <p>We process this information on the basis of your consent, under India's Digital Personal Data Protection Act, 2023, for one purpose: giving you your own history, journal, mood log, safety plan and account. We don't use it for advertising, profiling, research, or AI, and we don't sell it.</p>
+        <p>We process this information on the basis of your consent, under India's Digital Personal Data Protection Act, 2023, for one purpose: giving you your own history, reflections, journal, mood log, safety plan and account. We don't use it for advertising, profiling, research, or AI, and we don't sell it.</p>
       </Part>
       <Part heading="How it's protected">
-        <p>Your email, name, device labels, check-ins, thought records, mood ratings and notes, and safety plan are encrypted before they reach the database, with a key unique to you. The days on which you logged a mood are stored as dates, so they can be put in order. Connections are encrypted. You sign in with a password, an emailed one-time code, or Google. Passwords are kept only in a one-way form. The app has no third-party analytics, trackers or ad networks, and loads nothing from other companies' servers.</p>
+        <p>Your email, name, device labels, check-ins, reflections, thought records, mood ratings and notes, and safety plan are encrypted before they reach the database, with a key unique to you. The days on which you logged a mood are stored as dates, so they can be put in order. Connections are encrypted. You sign in with a password, an emailed one-time code, or Google. Passwords are kept only in a one-way form. The app has no third-party analytics, trackers or ad networks, and loads nothing from other companies' servers.</p>
       </Part>
       <Part heading="Who else is involved">
         <p>We use service providers only to run the service:</p>
@@ -112,7 +113,7 @@ export function Privacy() {
       <Part heading="Your rights">
         <ul className="flex list-disc flex-col gap-1 pl-5">
           <li>See and correct your details, in Settings.</li>
-          <li>Download everything we hold about you, in Settings, including your mood log and safety plan.</li>
+          <li>Download everything we hold about you, in Settings, including your reflections, mood log and safety plan.</li>
           <li>Delete your account and all your data, in Settings. It's removed from our database at once, and this also withdraws your consent. Encrypted backups age out <BackupWindow />.</li>
           <li>Raise a grievance with us using the contact below, and if you aren't satisfied, with the Data Protection Board of India.</li>
           <li>Nominate someone to exercise your rights if you cannot. Contact us to do this.</li>
@@ -131,7 +132,7 @@ export function Terms() {
   return (
     <Page title="Terms of use">
       <Part heading="What AnxioCare is">
-        <p>A free self-check for anxiety using the GAD-7 questionnaire, calming tools, a private journal, a daily mood log, a personal safety plan, a report you can print for a doctor, and a list of helplines in India. It is a screening and self-care tool.</p>
+        <p>A free self-check for anxiety using the GAD-7 questionnaire, short unscored reflections, calming tools, a private journal, a daily mood log, a personal safety plan, a report you can print for a doctor, and a list of helplines in India. It is a screening and self-care tool.</p>
       </Part>
       <Part heading="What it is not">
         <p>AnxioCare isn't a medical service, and it doesn't diagnose, treat or give medical advice. A result is not a diagnosis. It doesn't replace a doctor or mental health professional, and nobody at AnxioCare monitors what you enter.</p>

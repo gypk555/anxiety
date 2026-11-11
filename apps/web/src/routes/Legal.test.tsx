@@ -107,6 +107,14 @@ describe('privacy notice for the mood log and safety plan', () => {
     expect(screen.getByText(`Version dated ${formatDate(CONSENT_VERSION)}`)).toBeInTheDocument();
   });
 
+  it('covers reflections: what is kept, that answers are stored as question numbers, and that guests keep them in the tab', async () => {
+    mockFetch({ 'GET /meta': { body: META } });
+    page(<Privacy />);
+    expect(screen.getByText(/Your reflections, if you do them/)).toHaveTextContent(/the questions you were asked, your answers, the date and any note/);
+    expect(screen.getByText(/A reflection without an account stays in this tab/)).toHaveTextContent(/kept only while the app is open/);
+    expect(screen.getByText(/check-ins, reflections, thought records, the mood log and the safety plan are health information/)).toBeInTheDocument();
+  });
+
   it('Help explains quick exit, including what it cannot do', () => {
     page(<Help />);
     expect(screen.getByRole('heading', { name: 'About quick exit' })).toBeInTheDocument();

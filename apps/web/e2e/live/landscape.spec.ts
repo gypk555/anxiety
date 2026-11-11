@@ -1,4 +1,4 @@
-import { signUp, expect, localDay, seedAssessment, seedJournal, seedMood, seedPlan, test } from './support';
+import { signUp, expect, localDay, seedAssessment, seedJournal, seedMood, seedPlan, seedReflection, test } from './support';
 import type { Page } from '@playwright/test';
 
 const SIZE = { width: 568, height: 320 };
@@ -22,8 +22,9 @@ test('real signed-in screens fit a small phone on its side, with nothing cut off
   const entry = await seedJournal(context);
   await seedMood(context, localDay(1), 3, 'Okay, all things considered.');
   await seedPlan(context, { helpContacts: [{ name: 'Didi', phone: '+91 98765 43210' }], reasonsToLive: ['My niece'] });
+  const reflection = await seedReflection(context, [['REF-010', 3], ['REF-022', 2], ['REF-055', 2], ['REF-065', 1], ['REF-094', 0]], 'Exams next week.');
   await page.setViewportSize(SIZE);
-  for (const path of ['/', '/help', '/tools', '/tools/sounds', '/tools/ground', '/trends', '/journal', `/journal/${entry.id}`, `/result/${saved.id}`, '/mood', '/safety-plan', '/safety-plan/edit', '/report', '/settings', '/privacy']) {
+  for (const path of ['/', '/help', '/tools', '/tools/sounds', '/tools/ground', '/trends', '/journal', `/journal/${entry.id}`, `/result/${saved.id}`, '/mood', '/safety-plan', '/safety-plan/edit', '/report', '/settings', '/privacy', '/check-in', '/check-in/gad7', `/reflections/${reflection.id}`]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeAttached();
     await expect.poll(() => cutOff(page), { message: path }).toEqual([]);

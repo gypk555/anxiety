@@ -2,7 +2,7 @@ import { Writable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.ts';
 import { addDays } from '@anxiocare/shared';
-import { API, assessmentPayload, CapturingMailer, Client, createHarness, journalPayload, moodPayload, ORIGIN, safetyPlanPayload, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
+import { API, assessmentPayload, CapturingMailer, Client, createHarness, journalPayload, moodPayload, ORIGIN, reflectionPayload, safetyPlanPayload, signInConsented, uniqueEmail, type Harness } from './helpers.ts';
 
 let h: Harness;
 beforeAll(async () => {
@@ -45,11 +45,15 @@ describe('logs', () => {
     await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload({ helpContacts: [{ name: 'LogMarkerContact', phone: '+91 91234 56781' }] }) });
     await client.request({ method: 'PUT', url: `${API}/safety-plan`, payload: safetyPlanPayload({ helpContacts: [{ name: 'LogMarkerBad', phone: 'LogMarkerPhone' }] }) }); // 400
     await client.get(`${API}/safety-plan`);
+    const reflection = reflectionPayload({ note: 'LogMarkerReflection' });
+    await client.post(`${API}/reflections`, reflection);
+    await client.post(`${API}/reflections`, { ...reflection, clientRequestId: crypto.randomUUID(), answers: [{ q: 'REF-999', a: 1 }, ...reflection.answers.slice(1)] }); // 400
+    await client.get(`${API}/reflections`);
     await client.get(`${API}/me/export`);
 
     const all = h.logs.join('\n');
     expect(h.logs.length).toBeGreaterThan(5);
-    for (const secret of [email, 'never-logged', cookie, code, ip, userAgent, userId, entry.id, 'LogMarker', moodDay, rangeFrom, '91234', 'SecretContactName', 'SECRET-', 'cookie', 'set-cookie', 'authorization', 'x-forwarded']) {
+    for (const secret of [email, 'never-logged', cookie, code, ip, userAgent, userId, entry.id, 'LogMarker', moodDay, rangeFrom, '91234', 'SecretContactName', 'SECRET-', 'REF-', reflection.clientRequestId, 'cookie', 'set-cookie', 'authorization', 'x-forwarded']) {
       expect([secret, all.includes(secret)]).toEqual([secret, false]);
     }
   });

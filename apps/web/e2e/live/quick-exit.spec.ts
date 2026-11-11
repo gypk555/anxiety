@@ -70,7 +70,7 @@ test('from every signed-in screen too, without signing out or waiting for the ne
 test('mid check-in: the answers so far are cleared as well as hidden', async ({ page }) => {
   await page.goto('/about');
   await settled(page);
-  await page.goto('/check-in');
+  await page.goto('/check-in/gad7');
   await page.getByRole('button', { name: 'Begin' }).click();
   await answerItems(page, [2, 3]);
   await expect(page).toHaveURL(/\/check-in\/3$/);

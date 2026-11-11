@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { A1, CHECKIN_KEY, GUEST_RESULT, J1, RESULT_KEY, mockApi, progress, seedSession, type MockOptions } from './fixtures';
+import { A1, CHECKIN_KEY, GUEST_RESULT, J1, R1, REFLECTION_KEY, REFLECTION_RESULT, REFLECTION_RESULT_KEY, RESULT_KEY, mockApi, progress, reflectionProgress, seedSession, type MockOptions } from './fixtures';
 
 export interface Screen {
   name: string;
@@ -14,10 +14,14 @@ export interface Screen {
 const signedIn: MockOptions = { signedIn: true };
 const nulls = [null, null, null, null, null, null, null];
 const result = (answers: number[], difficulty: number | null) => (page: Page) => seedSession(page, RESULT_KEY, GUEST_RESULT(answers, difficulty));
+const REF_IDS = ['REF-001', 'REF-021', 'REF-041', 'REF-061', 'REF-081'];
+const reflection = (answers: [string, number][]) => (page: Page) => seedSession(page, REFLECTION_RESULT_KEY, REFLECTION_RESULT(answers));
 
 export const SCREENS: Screen[] = [
   { name: 'home-first-run', path: '/' },
-  { name: 'checkin-intro', path: '/check-in' },
+  { name: 'checkin-choice', path: '/check-in' },
+  { name: 'checkin-choice-account', path: '/check-in', api: signedIn },
+  { name: 'checkin-intro', path: '/check-in/gad7' },
   { name: 'checkin-q1', path: '/check-in/1', seed: (p) => seedSession(p, CHECKIN_KEY, progress(nulls)) },
   { name: 'checkin-q2-long', path: '/check-in/5', seed: (p) => seedSession(p, CHECKIN_KEY, progress([1, 1, 1, 1, null, null, null])) },
   { name: 'checkin-q7', path: '/check-in/7', seed: (p) => seedSession(p, CHECKIN_KEY, progress([1, 2, 1, 2, 0, 1, null])) },
@@ -28,6 +32,14 @@ export const SCREENS: Screen[] = [
   { name: 'result-severe', path: '/result', seed: result([3, 3, 3, 2, 2, 3, 3], 3) },
   { name: 'result-save-offer', path: '/result', api: signedIn, seed: result([2, 2, 2, 1, 1, 2, 2], 2) },
   { name: 'result-saved', path: `/result/${A1}`, api: signedIn },
+  { name: 'reflection-q1', path: '/reflection/1', seed: (p) => seedSession(p, REFLECTION_KEY, reflectionProgress(REF_IDS, [null, null, null, null, null])) },
+  { name: 'reflection-q3-long', path: '/reflection/3', seed: (p) => seedSession(p, REFLECTION_KEY, reflectionProgress(['REF-013', 'REF-022', 'REF-055', 'REF-065', 'REF-094'], [1, 2, null, null, null])) },
+  { name: 'reflection-note', path: '/reflection/note', seed: (p) => seedSession(p, REFLECTION_KEY, reflectionProgress(REF_IDS, [1, 2, 0, 2, 3])) },
+  { name: 'reflection-result-quiet', path: '/reflection/result', seed: reflection([['REF-001', 1], ['REF-021', 0], ['REF-041', 1], ['REF-061', 1], ['REF-081', 0]]) },
+  { name: 'reflection-result', path: '/reflection/result', seed: reflection([['REF-005', 2], ['REF-021', 3], ['REF-044', 2], ['REF-062', 2], ['REF-089', 3]]) },
+  { name: 'reflection-result-help', path: '/reflection/result', seed: reflection([['REF-010', 3], ['REF-039', 2], ['REF-059', 2], ['REF-070', 0], ['REF-086', 0]]) },
+  { name: 'reflection-save-offer', path: '/reflection/result', api: signedIn, seed: reflection([['REF-005', 2], ['REF-021', 3], ['REF-044', 1], ['REF-062', 2], ['REF-089', 3]]) },
+  { name: 'reflection-saved', path: `/reflections/${R1}`, api: signedIn },
   { name: 'tools', path: '/tools' },
   { name: 'breathe-setup', path: '/tools/breathe' },
   {
@@ -177,7 +189,7 @@ export const SCREENS: Screen[] = [
     path: '/report',
     api: signedIn,
     act: async (p) => {
-      for (const name of ['Mood notes', 'Safety plan', 'Journal entries', 'Put my name at the top']) await p.getByRole('checkbox', { name }).check();
+      for (const name of ['Mood notes', 'Safety plan', 'Journal entries', 'Reflections', 'Reflection notes', 'Put my name at the top']) await p.getByRole('checkbox', { name }).check();
       // Checking scrolls the page, and scrolled, the sticky header covers part of the form, which axe counts as a small target.
       await p.evaluate(() => window.scrollTo(0, 0));
     },

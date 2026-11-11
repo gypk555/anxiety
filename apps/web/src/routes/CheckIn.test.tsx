@@ -6,13 +6,14 @@ import { loadCheckin, loadGuestResult } from '@/lib/guest';
 import { queryClient } from '@/lib/queries';
 import { RequireAccount } from '@/shell/Guards';
 import { ME, mockFetch, problem, renderRoutes } from '@/test/render';
-import { CheckInIntro, CheckInStep } from './CheckIn';
+import { CheckInChoice, CheckInIntro, CheckInStep } from './CheckIn';
 import { GuestResultPage, SavedResultPage } from './Result';
 
 const routes = [
   { path: '/', element: <p>Home</p> },
   { path: '/help', element: <p>Help page</p> },
-  { path: '/check-in', element: <CheckInIntro /> },
+  { path: '/check-in', element: <CheckInChoice /> },
+  { path: '/check-in/gad7', element: <CheckInIntro /> },
   { path: '/check-in/:step', element: <CheckInStep /> },
   { path: '/result', element: <GuestResultPage /> },
   { path: '/sign-in', element: <p>Sign-in page</p> },
@@ -35,7 +36,7 @@ describe('check-in flow', () => {
   it('arrow keys move between the options, wrapping, and Space answers', async () => {
     const user = userEvent.setup();
     mockFetch({});
-    renderRoutes(routes, '/check-in', queryClient);
+    renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     await screen.findByRole('heading', { level: 1, name: GAD7_ITEMS[0] });
     const options = GAD7_OPTIONS.map((o) => screen.getByRole('button', { name: o.label }));
@@ -54,7 +55,7 @@ describe('check-in flow', () => {
   it('shows every GAD-7 item and option in the exact shared wording', async () => {
     const user = userEvent.setup();
     mockFetch({});
-    renderRoutes(routes, '/check-in', queryClient);
+    renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     for (const item of GAD7_ITEMS) {
       expect(await screen.findByRole('heading', { level: 1, name: item })).toBeInTheDocument();
@@ -68,7 +69,7 @@ describe('check-in flow', () => {
   it('a guest reaches a scored result with no network calls for data, held in sessionStorage', async () => {
     const user = userEvent.setup();
     const { calls } = mockFetch({});
-    renderRoutes(routes, '/check-in', queryClient);
+    renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     await answerAll(user, 'More than half the days');
     await screen.findByRole('heading', { level: 1, name: DIFFICULTY_STEM });
@@ -86,7 +87,7 @@ describe('check-in flow', () => {
   it('skips the difficulty item when every answer is "Not at all"', async () => {
     const user = userEvent.setup();
     mockFetch({});
-    renderRoutes(routes, '/check-in', queryClient);
+    renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     await answerAll(user, 'Not at all');
     expect(await screen.findByRole('heading', { level: 1, name: /Minimal range/ })).toHaveTextContent('0 out of 21');
@@ -96,7 +97,7 @@ describe('check-in flow', () => {
   it('resumes where you left off, and refuses to skip ahead by URL', async () => {
     const user = userEvent.setup();
     mockFetch({});
-    const { router } = renderRoutes(routes, '/check-in', queryClient);
+    const { router } = renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     await screen.findByRole('heading', { level: 1, name: GAD7_ITEMS[0] });
     await user.click(screen.getByRole('button', { name: 'Several days' }));
@@ -106,14 +107,14 @@ describe('check-in flow', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/check-in/2'));
     await screen.findByRole('heading', { level: 1, name: GAD7_ITEMS[1] });
 
-    await router.navigate('/check-in');
+    await router.navigate('/check-in/gad7');
     expect(await screen.findByRole('link', { name: 'Continue from question 2' })).toBeInTheDocument();
   });
 
   it('back returns to the previous question with its answer still selected', async () => {
     const user = userEvent.setup();
     mockFetch({});
-    renderRoutes(routes, '/check-in', queryClient);
+    renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     await screen.findByRole('heading', { level: 1, name: GAD7_ITEMS[0] });
     await user.click(screen.getByRole('button', { name: 'Nearly every day' }));
@@ -138,7 +139,7 @@ describe('check-in flow', () => {
       'POST /assessments': { status: 201, body: saved },
       [`GET /assessments/${saved.id}`]: { body: saved },
     });
-    renderRoutes(routes, '/check-in', queryClient);
+    renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     await waitFor(() => expect(queryClient.getQueryData(['me'])).toBeTruthy());
     const id = loadCheckin()!.clientRequestId;
@@ -154,7 +155,7 @@ describe('check-in flow', () => {
   it('keeps the result in the tab if saving fails, and offers to save it', async () => {
     const user = userEvent.setup();
     mockFetch({ 'GET /me': { body: ME }, 'POST /assessments': problem(500, 'internal_error') });
-    renderRoutes(routes, '/check-in', queryClient);
+    renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
     await waitFor(() => expect(queryClient.getQueryData(['me'])).toBeTruthy());
     await answerAll(user, 'Several days');

@@ -125,6 +125,10 @@ Only in the API, with no shared schema:
 | `GET /safety-plan` | Yes | **Yes** | Global | 200 or 404 |
 | `PUT /safety-plan` | Yes | **Yes** | 60 / min | 200 |
 | `DELETE /safety-plan` | Yes | **Yes** | Global | 204 |
+| `GET /reflections` | Yes | **Yes** | Global | 200 page |
+| `GET /reflections/:id` | Yes | **Yes** | Global | 200 |
+| `POST /reflections` | Yes | **Yes** | 60 / min | 201 or 200 |
+| `DELETE /reflections/:id` | Yes | **Yes** | Global | 204 |
 | `GET /meta` | No | No | Global | 200 |
 | `GET /healthz` | No | No | None | 200 |
 | `GET /readyz` | No | No | Web bucket | 200 or 503 |
@@ -298,9 +302,12 @@ Needs a recent re-authentication, not a password: email codes always remain. 204
   "journal": ["JournalEntry, newest first"],
   "moods": ["MoodEntry, oldest day first"],
   "safetyPlan": "SafetyPlan with updatedAt, or null",
+  "reflections": [{ "id": "uuid", "takenAt": "ISO", "answers": [{ "questionId": "REF-017", "question": "the wording", "answer": 2, "answerLabel": "Quite a bit" }], "note": "or null" }],
   "sessions": [{ "id": "uuid", "deviceLabel": "...", "createdAt": "ISO", "lastSeenAt": "ISO", "expiresAt": "ISO" }]
 }
 ```
+
+Reflections are stored as question ids and numbers. The export resolves them from the shared catalogue, so the file reads on its own.
 
 Not in the export: `otp_codes`, `otp_failures`, `login_failures`, `device_tokens`, `oauth_state_uses` and `audit_log` rows, the password hash, and Google's subject value.
 
@@ -448,6 +455,51 @@ Upsert of the whole plan. 200 plan. Errors: 400, 401, 403 `consent_required`.
 #### `DELETE /safety-plan`
 
 204. Errors: 401, 403 `consent_required`, 404 when there is none.
+
+### Reflections
+
+Five unscored questions from the bank of 100, one per theme. Schemas: `reflectionCreateBody`, `reflectionResponse` in [packages/shared/src/reflections.ts](../packages/shared/src/reflections.ts). There is no questions endpoint: the app ships the catalogue in its own bundle ([questions.ts](../packages/shared/src/questions.ts)), so a Reflection works offline and for guests with no request.
+
+`Reflection`:
+
+```json
+{ "id": "uuid", "takenAt": "ISO", "answers": [{ "q": "REF-017", "a": 2 }, "… 5 in all"], "note": "only if there is one" }
+```
+
+Ids and numbers only, never question text. `a` is 0 (Not at all), 1 (A little), 2 (Quite a bit) or 3 (A lot).
+
+#### `GET /reflections`
+
+Query: `limit`, `cursor`. 200 page of `Reflection`, newest first, the same shape as assessments. Errors: 400, 401, 403 `consent_required`.
+
+#### `POST /reflections`
+
+Body:
+
+```json
+{
+  "clientRequestId": "uuid",
+  "answers": [{ "q": "REF-003", "a": 1 }, { "q": "REF-027", "a": 0 }, { "q": "REF-044", "a": 2 }, { "q": "REF-070", "a": 3 }, { "q": "REF-091", "a": 1 }],
+  "note": "optional, trimmed, up to 280 characters",
+  "takenAt": "optional, as for assessments"
+}
+```
+
+- `answers`: exactly 5, with 5 different ids. Each id must be in `app.questions`, of type `reflection`, and active. `a` is an integer from 0 to 3.
+- Anything else, including a GAD-7 id, an unknown or retired id, an extra key or question text, is 400 `validation_failed`. The response names fields, never the ids or text that were sent.
+- `takenAt`: may be up to 24 hours old, so a reflection made before signing in can be saved.
+
+201 with the new row. 200 with the original row if this user has already used this `clientRequestId`. A replay answers before the other checks.
+
+Errors: 400, 401, 403 `consent_required`, 409 `conflict` at 1,000 saved rows.
+
+#### `GET /reflections/:id`
+
+200 `Reflection`. Errors: 401, 403 `consent_required`, 404 for a malformed id, another person's or none.
+
+#### `DELETE /reflections/:id`
+
+204. Errors: 401, 403 `consent_required`, 404.
 
 ### Public
 
