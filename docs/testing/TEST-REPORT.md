@@ -1,5 +1,19 @@
 # Test report
 
+## Home and Settings redesign run, 2026-11-12
+
+Branch `production-rebuild`, on top of commit `88daae3`, on an **uncommitted working tree**. Follows the [Home and Settings redesign spec](../superpowers/specs/2026-11-12-home-settings-redesign-design.md). Web only: no API, schema or migration changes.
+
+- typecheck clean; lint 0 errors, 18 warnings (was 19; none in new code)
+- Vitest 1,049 of 1,049: shared 119, API 626, web 304
+- Playwright `npm run test:e2e`: 723 passed, 1 skipped, 0 failed (7.4 min). With `CI=1`, on the changed areas only, at the owner's request: audit (Home and Settings screens, both themes, 320/390/430 and 568×320) 48 passed; live mood, settings, a11y, accounts, consent, navigation and reflection on iPhone and Pixel 167 passed, 1 skipped. After the last two copy and layout tweaks, CI=1 again on audit Home/Settings (48 passed) and live mood, settings and a11y (28 passed). The full `CI=1` run was stopped partway by the owner; the `https` projects ran only in the full non-CI run.
+- build succeeded; `npm audit --omit=dev` 0 vulnerabilities
+- **Initial JS 160.0 KB gzipped (159,960 bytes), against 170 KB** (was 157.7 KB). Found during the run: the Home check-in choices imported the Reflection starter statically and pulled the 100-question bank into the first bundle (163.6 KB); it now loads on tap.
+- **Found by e2e and fixed:** "Overwhelmed? Breathe first" on the night surface inherited the day ink (contrast 1.01); score copy brought back to "out of 21" to match the rest of the app.
+- **Independent correctness review:** 1 Important (Esc in "Sign out this device?" also closed the device list: nested sheets passed `cancel` up), 4 Minor (compact Change didn't preselect; "Saved for today" announced in a freshly mounted live region with focus lost; mood card remounted when Home learned a check-in was due; download progress not announced and the delete group lost its heading). All fixed, each with a test seen failing first.
+- **Independent security and privacy review:** storage, CSP, Quick exit and Get help, data clearing and API surface all OK. One pre-existing Minor fixed: a mood save landing after sign-out or quick exit wrote back into the cleared query cache.
+- Not done: nothing has run on a real phone or with a real screen reader. See MT-TRD-06 to 08, MT-SET-02, 03, 06 and MT-SP-12 in [MANUAL-TEST-CASES.md](MANUAL-TEST-CASES.md).
+
 ## Reflections run, 2026-11-11
 
 Branch `production-rebuild`, on top of commit `38423d9`, on an **uncommitted working tree**. Follows the [reflections spec](../superpowers/specs/2026-11-11-reflections-design.md).

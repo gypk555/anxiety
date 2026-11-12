@@ -80,7 +80,7 @@ describe('mood card on Home', () => {
     expect(await screen.findByText('Slept badly')).toBeInTheDocument();
   });
 
-  it('change reopens the scale with the saved choice pressed, and keeps the note', async () => {
+  it('change reopens the scale with the saved choice pressed, keeps the note, with no streaks or reminders', async () => {
     const user = userEvent.setup();
     const { calls } = mockFetch(server(entry(2, 'Long day')));
     renderRoutes(routes, '/');

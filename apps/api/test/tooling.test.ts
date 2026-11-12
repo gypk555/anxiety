@@ -157,17 +157,36 @@ describe('npm run db:setup', () => {
     const first = await setup(p);
     expect(first.code, first.output).toBe(0);
     const before = readFileSync(p.secretsFile);
+    const verifier = async () => (await su`SELECT rolpassword FROM pg_authid WHERE rolname = 'anxiocare_runtime'`)[0]!.rolpassword as string;
+    const verifierBefore = await verifier();
     const db = p.database();
     await db`INSERT INTO app.users (id, email_hash, email_ct, wrapped_dek, dek_key_version) VALUES (gen_random_uuid(), '\\x01', '\\x01', '\\x01', 'v1')`;
 
     const second = await setup(p);
     expect(second.code, second.output).toBe(0);
     expect(second.output).toContain('No pending migrations');
+    // A password that already works is not set again. Re-setting it gives a new SCRAM salt, and Supabase's pooler
+    // keeps the old verifier cached, so the running app is refused (28P01) until the pooler refreshes.
+    expect(second.output).toContain('Runtime role: unchanged');
+    expect(await verifier(), 'the stored verifier is untouched').toBe(verifierBefore);
     expect(readFileSync(p.secretsFile).equals(before), 'the secrets file is byte for byte the same').toBe(true);
     expect(await db`SELECT count(*)::int AS n FROM app.users`).toEqual([{ n: 1 }]);
     const applied = await db`SELECT count(*)::int AS n FROM app.schema_migrations`;
     expect(applied[0]!.n).toBe(5);
     await db.end();
+  });
+
+  it('sets the runtime password again when the one in the secrets file no longer works', async () => {
+    const p = await project();
+    expect((await setup(p)).code).toBe(0);
+    await su.unsafe(`ALTER ROLE anxiocare_runtime PASSWORD 'something-else-entirely'`);
+    const r = await setup(p);
+    expect(r.code, r.output).toBe(0);
+    expect(r.output).toContain('Runtime role: updated');
+    const secrets = parseEnv(readFileSync(p.secretsFile, 'utf8'));
+    const runtime = createSql(secrets.DATABASE_URL!, { caCert: cert.toString(), max: 1 });
+    await assertRuntimeRole(runtime);
+    await runtime.end();
   });
 
   it('never overwrites a secret, even one that was edited, and adds only what is missing', async () => {

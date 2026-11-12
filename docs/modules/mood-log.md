@@ -9,7 +9,7 @@ A daily rating of how the person is, in words, with an optional short note. It's
 - Account only.
 - Home has a card, "How are you today?", with five equal steps in one row: Very low, Low, Okay, Good, Very good. Each is a word under a small rising-bars mark; they are buttons with `aria-pressed`, in words, never faces or colours alone. A "Mood log" link sits beside the question.
 - **One tap saves today.** There is no separate Save button; the steps are disabled while saving, so a second tap can't send a second rating. If saving fails, the chosen step stays pressed, the error shows, and the person can tap again.
-- Once today is logged, the card shows "Saved for today", "You're feeling okay", the bars mark, any note, and **Add a note** (or **Edit note**) and **Change**. A note is optional, up to 280 characters with a live count, saved with "Save note". Change reopens the steps with today's choice pressed and keeps the note.
+- Once today is logged, the card shows "Saved for today" with the "Mood log" link beside it, "You're feeling okay", the bars mark, any note, and **Add a note** (or **Edit note**) and **Change**. A note is optional, up to 280 characters with a live count, saved with "Save note". Change reopens the steps with today's choice pressed and keeps the note.
 - When a check-in is due, the check-in leads Home and the saved mood shows as one quiet line, "Today you said Good", with Change.
 - There are no streaks, no reminders, and no "you missed a day". If the card's request fails, Home shows nothing for it, rather than an error.
 - `/mood` shows:

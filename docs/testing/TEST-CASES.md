@@ -22,19 +22,19 @@ This lists what exists. It does not say tests passed: for results, see `docs/tes
 | Unit | Vitest | 119 | 119 |
 | API unit | Vitest | 39 | 39 |
 | API integration | Vitest | 587 | 587 |
-| Web unit and component | Vitest | 274 | 274 |
+| Web unit and component | Vitest | 304 | 304 |
 | E2E mocked | Playwright | 183 | 366 |
 | E2E live | Playwright | 172 | 344 |
 | E2E HTTPS | Playwright | 7 | 14 |
-| **Total** | | **1381** | **1743** |
+| **Total** | | **1411** | **1773** |
 
-Vitest: 1019. Playwright: 362 unique tests, 724 runs across projects: `iphone` 183, `pixel` 183, `live-iphone` 172, `live-pixel` 172, `https-iphone` 7, `https-pixel` 7.
+Vitest: 1049. Playwright: 362 unique tests, 724 runs across projects: `iphone` 183, `pixel` 183, `live-iphone` 172, `live-pixel` 172, `https-iphone` 7, `https-pixel` 7.
 
 Level definitions, and what each does and doesn't prove, are in `docs/testing/TEST-STRATEGY.md`.
 
 ## Traceability matrix
 
-207 requirements: 160 covered, 31 partial, 16 with no automated test.
+207 requirements: 161 covered, 30 partial, 16 with no automated test.
 
 **Covered** means a test exercises the requirement on the stack it runs on (localhost, emulated devices). It does not mean proved in production. **Partial** means part of it is untested: the note says which. **None** means no automated test. A row with many tests shows the first few, and the rest are in the catalogue under that file.
 
@@ -209,7 +209,7 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | --- | --- | --- | --- | --- | --- |
 | PRD-01 | Works without an account: check-in with result, tools, help, legal | Covered | E2E-live-guest-2f5f, E2E-live-guest-6d3b, E2E-live-guest-04f3, E2E-live-guest-e73f, E2E-live-guest-e2fa, E2E-live-guest-f878; E2E-live-safety-e539; WEB-guards-5e69 |  | MT-DEV-01 |
 | PRD-02 | Guest result offered for saving after sign-in | Covered | E2E-live-results-ee19, E2E-live-results-0744, E2E-live-results-d711; WEB-CheckIn-899a, WEB-CheckIn-b7f7 |  | MT-RES-08, MT-RES-10 |
-| PRD-03 | Home: greeting, last result, next check-in date (14 days), quick links | Partial | E2E-live-results-bf8b; WEB-misc-ed5f; E2E-live-settings-0171; E2E-audit-f10b, E2E-audit-7caf | The "due" state and quick-link destinations have no direct test. | MT-TRD-06, MT-TRD-07 |
+| PRD-03 | Home: greeting, last result, next check-in date (14 days), what is due leads, quick links and Your space | Covered | E2E-live-results-bf8b; WEB-misc-ed5f; E2E-live-settings-0171; E2E-audit-f10b, E2E-audit-7caf; WEB-Home-4c95, WEB-Home-2f0f, WEB-Home-2ca8, WEB-Home-04f5; WEB-dates-417c | Whether the order reads as calm is human. | MT-TRD-06, MT-TRD-07, MT-TRD-08 |
 | PRD-04 | Check-in: one item per screen, auto-advance with back | Covered | WEB-CheckIn-e83c, WEB-CheckIn-a213; E2E-live-navigation-05f8 |  | MT-CHK-01, MT-CHK-03 |
 | PRD-05 | Check-in: large tap targets, progress | None | None | Progress is not asserted. Targets only by axe `target-size` (24px). | MT-CHK-01, MT-DEV-10 |
 | PRD-06 | Check-in: resume in-session | Covered | WEB-CheckIn-5415; WEB-guest-0453; E2E-live-guest-423a |  | MT-CHK-05 |
@@ -229,7 +229,7 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | PRD-20 | Help: helplines, emergency 112, offline-capable, no login | Covered | WEB-guards-5e69; E2E-live-safety-ec40, E2E-live-safety-6c2b; E2E-resilience-0292 |  | MT-HELP-16 |
 | PRD-21 | Help: no animation | None | None | By reading `Help.tsx`. | MT-HELP-16 |
 | PRD-22 | Settings: name, email change to both addresses | Covered | E2E-live-settings-0171, E2E-live-settings-d0e6; API-hardening-6cb0, API-hardening-5cc4, API-hardening-8d78, API-hardening-ca9d, API-hardening-10c7, API-hardening-248d, API-hardening-f063, API-hardening-ebdb; API-otp-2c3f, API-otp-a736 |  | MT-SET-02, MT-SET-03, MT-SET-04 |
-| PRD-23 | Settings: sessions, theme, download, delete, legal | Partial | E2E-live-settings-b864, E2E-live-settings-5a96, E2E-live-settings-6c5b; E2E-resilience-c3cd | Legal links only checked by loading their routes. Theme persistence and "Phone setting" are not tested. | MT-SET-15, MT-SET-16 |
+| PRD-23 | Settings: sessions, theme, download, delete, legal | Partial | E2E-live-settings-b864, E2E-live-settings-5a96, E2E-live-settings-6c5b; E2E-resilience-c3cd; WEB-Settings-b710, WEB-Settings-b1ad, WEB-Settings-3254, WEB-Settings-bfee; WEB-SignInSecurity-2e76; WEB-SettingsList-787c | Legal links only checked by loading their routes. Theme persistence across reloads is not tested. | MT-SET-15, MT-SET-16 |
 
 ### UX standards
 
@@ -241,7 +241,7 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | UX-04 | Safe-area insets, `dvh`, thumb reach | None | None | Need a real notch and real browser toolbars. | MT-DEV-08, MT-DEV-09, MT-DEV-10 |
 | UX-05 | Targets at least 44px | Partial | E2E-audit-4c9f | Header and tab bar only. Elsewhere only axe `target-size`, which is 24px. | MT-DEV-10 |
 | UX-06 | `inputmode="numeric"`, `autocomplete="one-time-code"` | Covered | WEB-OtpInput-a517, WEB-OtpInput-a242, WEB-OtpInput-8275 | Attributes only. Real autofill is manual. | MT-MAIL-05, MT-MAIL-06, MT-MAIL-07 |
-| UX-07 | WCAG 2.2 AA: keyboard | Partial | E2E-live-keyboard-1ecc, E2E-live-keyboard-04e8, E2E-live-keyboard-9490, E2E-live-keyboard-2d88, E2E-live-keyboard-504a, E2E-live-keyboard-6b78; WEB-CheckIn-c800; WEB-Settings-b1ad, WEB-Settings-3254 | Skip link, sign-in, consent, check-in, one sheet, theme, Settings tab order and focus not obscured, by script. Journal, Trends and other sheets are not walked. No person has used it. | MT-ACC-18 |
+| UX-07 | WCAG 2.2 AA: keyboard | Partial | E2E-live-keyboard-1ecc, E2E-live-keyboard-04e8, E2E-live-keyboard-9490, E2E-live-keyboard-2d88, E2E-live-keyboard-504a, E2E-live-keyboard-6b78; WEB-CheckIn-c800; WEB-Settings-b710, WEB-Settings-b1ad, WEB-Settings-3254 | Skip link, sign-in, consent, check-in, one sheet, theme, Settings tab order and focus not obscured, by script. Journal, Trends and other sheets are not walked. No person has used it. | MT-ACC-18 |
 | UX-08 | WCAG 2.2 AA: focus management on route change | Covered | E2E-live-keyboard-bdf1, E2E-live-keyboard-9490, E2E-live-keyboard-2d88 | Where focus lands. What a screen reader then says is manual. | MT-ACC-03, MT-ACC-04, MT-ACC-18 |
 | UX-09 | WCAG 2.2 AA: labels and contrast | Partial | E2E-audit-d4c1, E2E-audit-7077, E2E-audit-86c7, E2E-audit-5a23, E2E-audit-44e4, E2E-audit-402c, E2E-audit-f2f6, E2E-audit-7c9d; E2E-live-a11y-65f1, E2E-live-a11y-6cad, E2E-live-a11y-f985, E2E-live-a11y-5899, E2E-live-a11y-7245, E2E-live-a11y-e671 | Axe, with only serious and critical failing the test. See `docs/ACCESSIBILITY.md`. | MT-ACC-14 |
 | UX-10 | WCAG 2.2 AA: live regions | Partial | WEB-Shell-1945; E2E-resilience-21aa | Presence of role. Nothing listens. | MT-ACC-05, MT-ACC-07 |
@@ -295,8 +295,8 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | ST-SP-05 | Guests keep a device-only plan after a notice, can delete it, and can move it to an account after sign-in | Covered | WEB-SafetyPlan-605a, WEB-SafetyPlan-4977, WEB-SafetyPlan-5706; E2E-live-safety-plan-f236 |  | MT-SP-06 |
 | ST-SP-06 | One-tap tel: links for people and professionals; print view | Covered | WEB-SafetyPlan-225e; E2E-audit-59c4 | A real dial needs a real phone. | MT-SP-03, MT-SP-08, MT-SP-09 |
 | ST-SP-07 | Bounds: 10 items of 200, contacts 80 and 20 from [0-9 +()-] | Covered | SHR-tracking-d59d; API-tracking-edfa |  |  |
-| ST-MD-01 | 1 to 5 in words, optional note of 280, one per local day, same-day update, no future, at most 366 back | Covered | SHR-tracking-cbbc; WEB-MoodCard-b6b5; API-tracking-4de1; WEB-MoodLog-67f3; E2E-live-mood-7a2c |  | MT-SP-12 |
-| ST-MD-02 | Gentle Home card, no streaks or nagging | Covered | WEB-MoodCard-dbd1; WEB-MoodLog-61af |  |  |
+| ST-MD-01 | 1 to 5 in words, optional note of 280, one per local day, same-day update, no future, at most 366 back | Covered | SHR-tracking-cbbc; WEB-MoodCard-c414, WEB-MoodCard-c537; WEB-MoodScale-afdb; API-tracking-4de1; WEB-MoodLog-67f3; E2E-live-mood-7a2c |  | MT-SP-12 |
+| ST-MD-02 | Gentle Home card, no streaks or nagging | Covered | WEB-MoodCard-8694; WEB-MoodLog-61af |  |  |
 | ST-MD-03 | Separate chart and table, labelled not a test score, never on the GAD-7 axis | Covered | WEB-MoodChart-de84, WEB-MoodChart-8f08, WEB-MoodChart-7afb, WEB-MoodChart-fa72; WEB-Trends-b9c5; E2E-live-mood-7a2c |  |  |
 | ST-MD-04 | Rating and note sealed, date plain; in export and erasure | Covered | API-tracking-4ddf, API-tracking-c282; API-erasure-6e73, API-erasure-c58a |  |  |
 | ST-RP-01 | Report: period and opt-in sections with the right defaults, name optional, footer | Covered | WEB-Report-e5fd, WEB-Report-0ba9, WEB-Report-69b7; E2E-live-report-3863 |  |  |
@@ -352,7 +352,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 
 ## Catalogue
 
-1381 tests. Playwright rows list the projects each runs in. Duplicate names come from `it.each` tables whose titles don't vary.
+1411 tests. Playwright rows list the projects each runs in. Duplicate names come from `it.each` tables whose titles don't vary.
 
 ### `apps/api/test/accounts.test.ts` (102)
 
@@ -1589,6 +1589,12 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-api-8735 | `api.test.ts` | api client > treats 202 and 204 as success with no body | Web unit and component | UX: errors and client contract |
 | WEB-api-416b | `api.test.ts` | api client > never shows raw server text for internal errors, and gives direction for known ones | Web unit and component | UX: errors and client contract |
 
+### `apps/web/src/lib/dates.test.ts` (1)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| WEB-dates-417c | `dates.test.ts` | formatLongDay > names the weekday, day and month, for the line over the greeting | Web unit and component | Product: home |
+
 ### `apps/web/src/lib/guest.test.ts` (8)
 
 | ID | File | Test name | Level | Requirement area |
@@ -1744,13 +1750,20 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Consent-195e | `Consent.test.tsx` | re-prompt > accepting posts the current version and carries on to the destination | Web unit and component | Privacy: consent |
 | WEB-Consent-b755 | `Consent.test.tsx` | when who you are cannot be loaded > shows an error with a retry, rather than guess which words are true | Web unit and component | Privacy: consent |
 
-### `apps/web/src/routes/Home.test.tsx` (4)
+### `apps/web/src/routes/Home.test.tsx` (11)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | WEB-Home-413b | `Home.test.tsx` | Home > sends someone whose consent is out of date to the prompt, not to a screen that looks signed out | Web unit and component | Privacy: consent |
 | WEB-Home-c291 | `Home.test.tsx` | Home > sends someone who has never consented to the prompt | Web unit and component | Privacy: consent |
-| WEB-Home-ad33 | `Home.test.tsx` | Home > a guest stays on the first-run screen | Web unit and component | Privacy: consent |
+| WEB-Home-ad33 | `Home.test.tsx` | Home > a guest stays on the first-run screen | Web unit and component | Product: home |
+| WEB-Home-9967 | `Home.test.tsx` | Home > first run offers both check-ins and breathing | Web unit and component | Product: home |
+| WEB-Home-b566 | `Home.test.tsx` | Home > Reflection on Home picks its questions and starts at the first one | Web unit and component | Product: home |
+| WEB-Home-4c95 | `Home.test.tsx` | Home > not due: leads with the mood question, then tools, check-ins and your space | Web unit and component | Product: home |
+| WEB-Home-2f0f | `Home.test.tsx` | Home > due: leads with Time for a check-in, offering both kinds | Web unit and component | Product: home |
+| WEB-Home-2ca8 | `Home.test.tsx` | Home > no check-in yet counts as due, with first-time wording | Web unit and component | Product: home |
+| WEB-Home-eb05 | `Home.test.tsx` | Home > the mood card keeps its state when Home learns a check-in is due | Web unit and component | Product: home |
+| WEB-Home-04f5 | `Home.test.tsx` | Home > your space links to the safety plan, mood log and doctor report | Web unit and component | Product: home |
 | WEB-Home-4268 | `Home.test.tsx` | Home > a reflection left in the tab can be picked up again from Home | Web unit and component | Privacy: consent |
 
 ### `apps/web/src/routes/JournalForm.test.tsx` (6)
@@ -1838,7 +1851,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-SafetyPlan-5706 | `SafetyPlan.test.tsx` | safety plan, writing > after signing in, offers to move a guest plan to the account, then removes the device copy | Web unit and component | Product: safety plan |
 | WEB-SafetyPlan-4977 | `SafetyPlan.test.tsx` | safety plan, writing > a guest can delete the device copy at any time | Web unit and component | Product: safety plan |
 
-### `apps/web/src/routes/Settings.test.tsx` (10)
+### `apps/web/src/routes/Settings.test.tsx` (15)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -1847,9 +1860,14 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Settings-ba74 | `Settings.test.tsx` | rights while consent is outstanding > holds back only what the server refuses until consent: changing the name and email | Web unit and component | Privacy: rights |
 | WEB-Settings-61a2 | `Settings.test.tsx` | rights while consent is outstanding > a re-prompt says the data is kept; a new account says it goes after 24 hours | Web unit and component | Privacy: rights |
 | WEB-Settings-2dfb | `Settings.test.tsx` | rights while consent is outstanding > a consented account sees no prompt | Web unit and component | Privacy: rights |
+| WEB-Settings-bfee | `Settings.test.tsx` | rights while consent is outstanding > the last control on the page is deleting the account, after signing out | Web unit and component | Privacy: rights |
+| WEB-Settings-fbda | `Settings.test.tsx` | rights while consent is outstanding > says out loud when the download starts | Web unit and component | Privacy: rights |
+| WEB-Settings-c74c | `Settings.test.tsx` | rights while consent is outstanding > the delete group can be found by its heading | Web unit and component | Privacy: rights |
+| WEB-Settings-4ed7 | `Settings.test.tsx` | rights while consent is outstanding > changes the name in a sheet, and the row shows the new one | Web unit and component | Privacy: rights |
 | WEB-Settings-878a | `Settings.test.tsx` | offline on a fresh load > says why the account section is missing, and offers to try again | Web unit and component | Privacy: rights |
 | WEB-Settings-bd22 | `Settings.test.tsx` | sending a new code from a sheet > delete: waits out the cooldown, then sends another code and says so | Web unit and component | Privacy: rights |
 | WEB-Settings-46a4 | `Settings.test.tsx` | sending a new code from a sheet > email change: resends to both inboxes, for the same new address | Web unit and component | Privacy: rights |
+| WEB-Settings-b710 | `Settings.test.tsx` | theme options > are short enough to sit on one line: Phone, Light, Dark | Web unit and component | Privacy: rights |
 | WEB-Settings-b1ad | `Settings.test.tsx` | theme options > are one Tab stop, on the chosen option | Web unit and component | Privacy: rights |
 | WEB-Settings-3254 | `Settings.test.tsx` | theme options > arrow keys move and choose, wrapping at the ends | Web unit and component | Privacy: rights |
 
@@ -1888,12 +1906,14 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-SignIn-9ff2 | `SignIn.test.tsx` | forgot password > checks the password rules first, in plain words | Web unit and component | Security: auth |
 | WEB-SignIn-bca1 | `SignIn.test.tsx` | forgot password > the reset screen with no address, such as after a reload, goes back | Web unit and component | Security: auth |
 
-### `apps/web/src/routes/SignInSecurity.test.tsx` (13)
+### `apps/web/src/routes/SignInSecurity.test.tsx` (15)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
-| WEB-SignInSecurity-420b | `SignInSecurity.test.tsx` | Sign-in and security > lists the ways this account can sign in | Web unit and component | Security: auth |
-| WEB-SignInSecurity-c6f8 | `SignInSecurity.test.tsx` | Sign-in and security > with Google off and not connected, does not mention it | Web unit and component | Security: auth |
+| WEB-SignInSecurity-9fd6 | `SignInSecurity.test.tsx` | Sign-in and security > lists the ways this account can sign in, each row saying how it is now | Web unit and component | Security: auth |
+| WEB-SignInSecurity-7a82 | `SignInSecurity.test.tsx` | Sign-in and security > with Google off and not connected, has no Google row | Web unit and component | Security: auth |
+| WEB-SignInSecurity-2e76 | `SignInSecurity.test.tsx` | Sign-in and security > shows how many devices are signed in, and lists them in a sheet | Web unit and component | Security: auth |
+| WEB-SignInSecurity-0a47 | `SignInSecurity.test.tsx` | Sign-in and security > Esc on "Sign out this device?" goes back to the device list, not past it | Web unit and component | Security: auth |
 | WEB-SignInSecurity-7bd1 | `SignInSecurity.test.tsx` | Sign-in and security > changes a password with the current one, with the right attributes, and says what happened | Web unit and component | Security: auth |
 | WEB-SignInSecurity-d459 | `SignInSecurity.test.tsx` | Sign-in and security > a wrong current password stays signed in and says so | Web unit and component | Security: auth |
 | WEB-SignInSecurity-d29e | `SignInSecurity.test.tsx` | Sign-in and security > checks the new password in plain words before sending | Web unit and component | Security: auth |
@@ -1956,14 +1976,21 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Shell-f54b | `Shell.test.tsx` | shell > a quick exit is inside every open sheet too, because a modal makes the header unreachable | Web unit and component | Clinical safety: Get help |
 | WEB-Shell-565f | `Shell.test.tsx` | shell > Escape three times exits from anywhere in the app | Web unit and component | Clinical safety: Get help |
 
-### `apps/web/src/ui/MoodCard.test.tsx` (5)
+### `apps/web/src/ui/MoodCard.test.tsx` (12)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
-| WEB-MoodCard-b6b5 | `MoodCard.test.tsx` | mood card on Home > asks how today is, in words on a 1-5 scale, and saves today by the phone's own date | Web unit and component | Product: mood log |
-| WEB-MoodCard-dbd1 | `MoodCard.test.tsx` | mood card on Home > once logged, shows it and lets the person change it, with no streaks or reminders | Web unit and component | Product: mood log |
-| WEB-MoodCard-a0e3 | `MoodCard.test.tsx` | mood card on Home > keeps the choice when saving fails, and says so | Web unit and component | Product: mood log |
-| WEB-MoodCard-f9e7 | `MoodCard.test.tsx` | mood card on Home > the save button needs a choice first | Web unit and component | Product: mood log |
+| WEB-MoodCard-c414 | `MoodCard.test.tsx` | mood card on Home > one tap saves today, by the phone's own date, with no note | Web unit and component | Product: mood log |
+| WEB-MoodCard-c537 | `MoodCard.test.tsx` | mood card on Home > a second tap while saving is ignored | Web unit and component | Product: mood log |
+| WEB-MoodCard-0aa2 | `MoodCard.test.tsx` | mood card on Home > adds a note after saving, keeping the rating | Web unit and component | Product: mood log |
+| WEB-MoodCard-8694 | `MoodCard.test.tsx` | mood card on Home > change reopens the scale with the saved choice pressed, keeps the note, with no streaks or reminders | Web unit and component | Product: mood log |
+| WEB-MoodCard-7032 | `MoodCard.test.tsx` | mood card on Home > keeps the choice when saving fails, says so, and lets the person try again | Web unit and component | Product: mood log |
+| WEB-MoodCard-44d1 | `MoodCard.test.tsx` | mood card on Home > links to the mood log, before and after saving | Web unit and component | Product: mood log |
+| WEB-MoodCard-dac4 | `MoodCard.test.tsx` | mood card on Home > once saved, the mood log link sits up by "Saved for today", before the buttons | Web unit and component | Product: mood log |
+| WEB-MoodCard-97f7 | `MoodCard.test.tsx` | mood card on Home > compact Change starts from the saved word | Web unit and component | Product: mood log |
+| WEB-MoodCard-1875 | `MoodCard.test.tsx` | mood card on Home > after one tap, says "Saved for today" in a live region that was already there, and moves focus to the result | Web unit and component | Product: mood log |
+| WEB-MoodCard-d14d | `MoodCard.test.tsx` | mood card on Home > a save that lands after the data was cleared (sign-out, quick exit) does not put the mood back | Web unit and component | Product: mood log |
+| WEB-MoodCard-0f50 | `MoodCard.test.tsx` | mood card on Home > compact, once saved, is one line with a way to change it | Web unit and component | Product: mood log |
 | WEB-MoodCard-b12d | `MoodCard.test.tsx` | todayLocal > is the phone's calendar day, not UTC | Web unit and component | Product: mood log |
 
 ### `apps/web/src/ui/MoodChart.test.tsx` (4)
@@ -1975,6 +2002,15 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-MoodChart-7afb | `MoodChart.test.tsx` | MoodChart > offers a table alternative, newest first, with the words | Web unit and component | Product: mood log |
 | WEB-MoodChart-fa72 | `MoodChart.test.tsx` | MoodChart > summarises without judgement | Web unit and component | Product: mood log |
 
+### `apps/web/src/ui/MoodScale.test.tsx` (4)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| WEB-MoodScale-afdb | `MoodScale.test.tsx` | MoodScale > renders five buttons in order with their words, in a group named by its question | Web unit and component | Product: mood log |
+| WEB-MoodScale-e560 | `MoodScale.test.tsx` | MoodScale > marks only the chosen step pressed | Web unit and component | Product: mood log |
+| WEB-MoodScale-d102 | `MoodScale.test.tsx` | MoodScale > calls onChange with the step's rating | Web unit and component | Product: mood log |
+| WEB-MoodScale-6514 | `MoodScale.test.tsx` | MoodScale > disabled stops choices | Web unit and component | Product: mood log |
+
 ### `apps/web/src/ui/OtpInput.test.tsx` (6)
 
 | ID | File | Test name | Level | Requirement area |
@@ -1985,6 +2021,15 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-OtpInput-760f | `OtpInput.test.tsx` | OtpInput > cleans codes | Web unit and component | UX: sign-in input |
 | WEB-OtpInput-8275 | `OtpInput.test.tsx` | OtpInput > takes a code pasted out of a whole sentence, however long | Web unit and component | UX: sign-in input |
 | WEB-OtpInput-f9c7 | `OtpInput.test.tsx` | OtpInput > draws one box per digit from the shared length | Web unit and component | UX: sign-in input |
+
+### `apps/web/src/ui/SettingsList.test.tsx` (4)
+
+| ID | File | Test name | Level | Requirement area |
+| --- | --- | --- | --- | --- |
+| WEB-SettingsList-ceb8 | `SettingsList.test.tsx` | settings list > a row with onClick is a button named by its title, described by its value | Web unit and component | Privacy: rights |
+| WEB-SettingsList-cabe | `SettingsList.test.tsx` | settings list > a row with to is a link | Web unit and component | Privacy: rights |
+| WEB-SettingsList-bd14 | `SettingsList.test.tsx` | settings list > a row with neither is static text, with no chevron | Web unit and component | Privacy: rights |
+| WEB-SettingsList-787c | `SettingsList.test.tsx` | settings list > a group is a region named by its title, with no divider lines between rows | Web unit and component | Privacy: rights |
 
 ### `apps/web/src/ui/TrendChart.test.tsx` (5)
 

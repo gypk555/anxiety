@@ -3350,7 +3350,7 @@ Guest and account states.
 
 **Steps:**
 
-1. Tap **Phone setting**, **Light**, **Dark**, in each phone theme.
+1. Tap **Phone**, **Light**, **Dark**, in each phone theme.
 2. Reload. Reopen after closing.
 3. Run breathing in **Light**.
 

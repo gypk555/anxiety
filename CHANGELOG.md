@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Home and Settings redesign
+
+From [the Home and Settings redesign spec](docs/superpowers/specs/2026-11-12-home-settings-redesign-design.md). Web only; no API or data changes.
+
+- **Home leads with what's due today.** The date over the greeting. When the two-week check-in is due (or there's none yet), "Time for a check-in" leads, offering the Anxiety check (GAD-7) and a Reflection, one tap each; otherwise the mood card leads. Then For right now (Breathe on the night surface), Your check-ins, and a new **Your space** list: Safety plan, Mood log, Report for your doctor.
+- **Mood card: one tap saves today.** Five equal steps in one row, each a word under a rising-bars mark. No Save button; the steps lock while saving. Afterwards, "Saved for today · You're feeling okay", with Add a note and Change. Focus moves to the result and a live region announces it. A save that lands after sign-out or quick exit no longer writes into the cleared cache.
+- **First visit:** smaller rings, both check-in choices, "Overwhelmed? Breathe first" and a soft sign-in card.
+- **Settings is grouped:** a profile card, then Account, Sign-in and security, Appearance (Phone, Light, Dark), On this phone, and Your data and privacy, as rows with no dividers that show their current state and open sheets. Name and Signed-in devices move into sheets; connecting Google first asks "Connect Google?". Sign out follows, and Delete my account is last, alone.
+- Esc in a sheet opened from another sheet now closes only the top one.
+- Initial JS 159.9 KB gzipped (was 157.7 KB); the Reflection question bank still loads only when a Reflection starts.
+
 ### Reflections
 
 From [the reflections spec](docs/superpowers/specs/2026-11-11-reflections-design.md).

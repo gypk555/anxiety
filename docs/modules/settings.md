@@ -12,7 +12,7 @@ The page is grouped into labelled lists on patches ("rows"), with no divider lin
 
 Everyone sees:
 
-- **Appearance**: a three-way segmented control: Phone setting, Light or Dark (a radio group: one Tab stop, arrow keys move and choose).
+- **Appearance**: a three-way segmented control: Phone (follow the phone's setting), Light or Dark (a radio group: one Tab stop, arrow keys move and choose).
 - **On this phone**: an "Add to home screen" row where the browser offers it, the iOS instructions as a row's description, and nothing when already installed.
 - **About and legal** (signed out) or inside **Your data and privacy** (signed in): rows linking to Privacy notice, Terms of use and About.
 
@@ -32,7 +32,7 @@ Signed in with consent outstanding: "Your agreement is needed" first, then the e
 
 ## How it works
 
-Each group is a small component in one file, using TanStack Query, built from `SettingsGroup` and `SettingsRow` in [SettingsList.tsx](../../apps/web/src/ui/SettingsList.tsx). A row is a button (opens a sheet here), a link (another page) or plain text; it is named by its title and described by its value and description. Sign-out and delete call `clearClientData`, which clears the query cache, guest data, drafts and held work. Download uses `requestFile`, then a Blob URL revoked after 10 seconds. Theme is in [theme.ts](../../apps/web/src/lib/theme.ts): the choice is stored in `localStorage` as `anxiocare-theme`, and "Phone setting" removes the key. `theme-init.js` applies it before first paint.
+Each group is a small component in one file, using TanStack Query, built from `SettingsGroup` and `SettingsRow` in [SettingsList.tsx](../../apps/web/src/ui/SettingsList.tsx). A row is a button (opens a sheet here), a link (another page) or plain text; it is named by its title and described by its value and description. Sign-out and delete call `clearClientData`, which clears the query cache, guest data, drafts and held work. Download uses `requestFile`, then a Blob URL revoked after 10 seconds. Theme is in [theme.ts](../../apps/web/src/lib/theme.ts): the choice is stored in `localStorage` as `anxiocare-theme`, and "Phone" removes the key. `theme-init.js` applies it before first paint.
 
 Server behaviour is documented where it lives: [auth and sessions](auth-and-sessions.md) for email change and sessions, [consent and privacy rights](consent-and-privacy-rights.md) for export and deletion.
 
