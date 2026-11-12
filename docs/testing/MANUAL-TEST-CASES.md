@@ -2025,7 +2025,7 @@ Answers below give each boundary band. The score is the sum, with **Not at all**
 
 1. Read the whole screen.
 
-**Expected result:** **Minimal range**, **4 out of 21**, the plain meaning and the screening line. No **Talk to a professional**. **Keep an eye on it** is shown. **talk to someone now** is present. The scale marks **Minimal** in words.
+**Expected result:** **Minimal range**, **4 out of 21**, the heading **Anxiety isn't getting in your way much right now** with its message, and the screening line. No **Talk to a professional**. **Keep an eye on it** is shown. **talk to someone now** is present. The scale marks **Minimal** in words.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -2218,6 +2218,26 @@ Answers below give each boundary band. The score is the sum, with **Not at all**
 1. Open `/result`.
 
 **Expected result:** Goes to the check-in intro.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-RES-14: Compared with last time
+
+**Priority:** P1 | **Device:** Any phone
+
+**Preconditions:** An account with no check-ins.
+
+**Steps:**
+
+1. Take a check-in with every answer **More than half the days** (14). Open the saved result.
+2. Take another with every answer **Several days** (7). Open its saved result.
+3. Take a third with answers 2,2,2,2,2,1,1 (12).
+4. Take a fourth with answers 2,2,2,2,1,1,1 (11).
+5. Open the first result again from Trends.
+
+**Expected result:** 1: no comparison. 2: **Lower than last time**, "from 14 on <date> to 7 now", calm, no praise. 3: **Higher than last time**, "isn't a failure", and that it has now reached the point to talk to a doctor or counsellor. 4: **About the same as last time**. 5: no comparison. No arrows, no colour change, and nothing about the comparison on the printed page.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -4130,7 +4150,7 @@ Every route in `apps/web/src/router.tsx`, and the cases that exercise it.
 | `/check-in` | No | MT-CHK-01, 04, 05 |
 | `/check-in/:step` | No | MT-CHK-01 to 03, 06 to 10, MT-ACC-03 |
 | `/result` | No | MT-RES-01 to 10, 12, MT-PRN-01 to 06 |
-| `/result/:id` | Yes | MT-RES-11, 13, MT-NAV-04 |
+| `/result/:id` | Yes | MT-RES-11, 13, 14, MT-NAV-04 |
 | `/tools` | No | MT-TOL-17 |
 | `/tools/breathe` | No | MT-TOL-01 to 07, MT-ACC-07 |
 | `/tools/ground` | No | MT-TOL-15, 16 |
@@ -4171,11 +4191,11 @@ For a qualified clinician (psychiatrist, clinical psychologist) and, where noted
 
 **Notes:** ____________
 
-### MT-CLN-02: Band meanings
+### MT-CLN-02: Band meanings and result messages
 
 **Priority:** P0 | **Device:** Desktop browser
 
-**Preconditions:** The four band meanings in `gad7.ts`, and the result screens.
+**Preconditions:** The four band meanings in `gad7.ts`, the messages, tips and comparison wording in `apps/web/src/lib/result-guidance.ts`, and the result screens.
 
 **Steps:**
 

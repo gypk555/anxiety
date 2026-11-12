@@ -51,10 +51,33 @@ A questionnaire's sensitivity and specificity belong to the words that were test
 
 | Score | The app shows | Why |
 | --- | --- | --- |
-| Every score | Range label, score of 21, plain meaning, "This is a screening, not a diagnosis. Only a doctor or mental health professional can diagnose anxiety." | Honest about what it is. |
-| 0 to 9 | Calming tools, "keep an eye on it", next check-in date. | No recommendation for professional care, in line with the published cut point. |
+| Every score | Range label, score of 21, a message for the range (below), "This is a screening, not a diagnosis. Only a doctor or mental health professional can diagnose anxiety." | Honest about what it is. |
+| 0 to 9 | "Things that often help", "keep an eye on it", next check-in date. | No recommendation for professional care, in line with the published cut point. |
 | 10 to 21 | Also: "Talk to a professional", naming Tele-MANAS as a starting point. | `GAD7_REFERRAL_CUTOFF`. |
 | 15 to 21 | Also: a prominent calm support section with a one-tap call, and fuller self-harm guidance. | Calm, never alarming. |
+
+### Result messages and the comparison with last time
+
+Owner decision, 2026-11-13: each result gets an encouraging message that helps, and a saved result says how it compares with the person's own previous check-in. The copy is in `apps/web/src/lib/result-guidance.ts`, with tests in `result-guidance.test.ts`.
+
+**A message for each range**, with "Things that often help" (breathing, grounding, sounds, the safety plan, routines, talking to someone):
+
+| Range | Heading | Points |
+| --- | --- | --- |
+| Minimal | "Anxiety isn't getting in your way much right now" | Notice what keeps you steady; come back on harder days. Never "you're fine": the GAD-7 doesn't ask about low mood or self-harm. |
+| Mild | "Some anxiety is showing up, and that's common" | Common in stressful times; small regular steps help. |
+| Moderate | "Anxiety seems to be affecting your daily life" | Not a weakness; a good time to talk to a doctor or counsellor; often gets better with support. |
+| Severe | "You're carrying a lot right now" | Speak to a doctor or mental health professional soon, ideally this week; don't wait for it to get worse; it can get better with support. The call section and self-harm guidance are unchanged. |
+
+**The comparison** uses only the person's own last saved check-in, never anyone else, and never a guest result.
+
+- A change of **4 points or more** is named: "Lower than last time" or "Higher than last time", with both scores and the earlier date. 4 is the minimal clinically important difference reported in Toussaint et al., *J Affect Disord* 2020;265:395-401. **Reviewer: confirm the threshold.**
+- Smaller moves say "About the same as last time … ordinary ups and downs."
+- Lower is said calmly, with no praise or celebration: "That's a real change. Think about what may have helped … and keep it going." If the score is still 10 or more, it adds that talking to a professional is still a good next step.
+- Higher is said without blame: "That isn't a failure. It usually means things have been harder lately." If it has just reached 10, it says this is the point to talk to a doctor or counsellor. If it was already 10 or more, it says not to wait.
+- Words only: no arrows, no colour, and no change line in the print view.
+
+A test keeps out diagnosis words, promises, praise and "you're fine". **Reviewer: please check every message and tip, especially the severe message and the "higher" wording.**
 
 Severity changes words and position, never colour alone. There is no red score, celebration, streak or badge. The next check-in date is 14 days out, because the questions cover two weeks.
 

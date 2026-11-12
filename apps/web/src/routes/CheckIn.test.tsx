@@ -137,7 +137,7 @@ describe('check-in flow', () => {
     const { calls } = mockFetch({
       'GET /me': { body: ME },
       'POST /assessments': { status: 201, body: saved },
-      [`GET /assessments/${saved.id}`]: { body: saved },
+      [`GET /assessments/${saved.id}`]: { body: saved }, 'GET /assessments': { body: { items: [], nextCursor: null } },
     });
     renderRoutes(routes, '/check-in/gad7', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Begin' }));
@@ -154,17 +154,35 @@ describe('check-in flow', () => {
 
   it('a saved result suggests tools that fit the stress factors chosen, and none without them', async () => {
     const saved: Assessment = { id: '22222222-2222-4222-8222-222222222229', takenAt: '2026-11-06T04:00:00.000Z', answers: [1, 1, 1, 1, 1, 1, 1], difficulty: 1, score: 7, severity: 'mild' };
-    mockFetch({ 'GET /me': { body: { ...ME, profile: { stressFactors: ['work'] } } }, [`GET /assessments/${saved.id}`]: { body: saved } });
+    mockFetch({ 'GET /me': { body: { ...ME, profile: { stressFactors: ['work'] } } }, [`GET /assessments/${saved.id}`]: { body: saved }, 'GET /assessments': { body: { items: [], nextCursor: null } } });
     const view = renderRoutes(routes, `/result/${saved.id}`, queryClient);
     const next = await screen.findByRole('region', { name: 'What you could do next' });
     expect(await within(next).findByRole('link', { name: /A thought record/ })).toHaveAttribute('href', '/journal/new');
     expect(within(next).getByText(/Because you mentioned work/)).toBeInTheDocument();
     view.unmount();
     queryClient.clear();
-    mockFetch({ 'GET /me': { body: ME }, [`GET /assessments/${saved.id}`]: { body: saved } });
+    mockFetch({ 'GET /me': { body: ME }, [`GET /assessments/${saved.id}`]: { body: saved }, 'GET /assessments': { body: { items: [], nextCursor: null } } });
     renderRoutes(routes, `/result/${saved.id}`, queryClient);
     const plain = await screen.findByRole('region', { name: 'What you could do next' });
     expect(within(plain).queryByText(/Because you mentioned/)).not.toBeInTheDocument();
+  });
+
+  it('a saved result says how it compares with the check-in before it, in words', async () => {
+    const page = (items: Assessment[]) => ({ body: { items, nextCursor: null } });
+    const now: Assessment = { id: '22222222-2222-4222-8222-222222222231', takenAt: '2026-11-20T04:00:00.000Z', answers: [1, 1, 1, 1, 1, 1, 1], difficulty: 1, score: 7, severity: 'mild' };
+    const before: Assessment = { id: '22222222-2222-4222-8222-222222222230', takenAt: '2026-11-06T04:00:00.000Z', answers: [2, 2, 2, 2, 2, 2, 2], difficulty: 2, score: 14, severity: 'moderate' };
+    mockFetch({ 'GET /me': { body: ME }, [`GET /assessments/${now.id}`]: { body: now }, 'GET /assessments': page([now, before]) });
+    const view = renderRoutes(routes, `/result/${now.id}`, queryClient);
+    const change = await screen.findByRole('region', { name: 'Lower than last time' });
+    expect(change).toHaveTextContent(/from 14 on .* to 7 now/);
+    view.unmount();
+    queryClient.clear();
+
+    mockFetch({ 'GET /me': { body: ME }, [`GET /assessments/${before.id}`]: { body: before }, 'GET /assessments': page([now, before]) });
+    renderRoutes(routes, `/result/${before.id}`, queryClient);
+    await screen.findByRole('heading', { level: 1, name: /Moderate range/ });
+    await waitFor(() => expect(queryClient.getQueryData(['assessments', 'recent'])).toBeTruthy());
+    expect(screen.queryByRole('region', { name: /than last time|same as last time/ })).not.toBeInTheDocument();
   });
 
   it('keeps the result in the tab if saving fails, and offers to save it', async () => {
@@ -199,6 +217,20 @@ describe('result by severity', () => {
     expect(screen.getByRole('heading', { name: /thoughts of harming yourself/ })).toBeInTheDocument();
   });
 
+  it('each range has its own message, and a guest result has nothing to compare with', async () => {
+    mockFetch({});
+    seed([0, 1, 0, 1, 0, 0, 0]);
+    const first = renderRoutes(routes, '/result', queryClient);
+    expect(await screen.findByRole('heading', { name: /isn't getting in your way much/ })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /than last time|same as last time/ })).not.toBeInTheDocument();
+    first.unmount();
+    seed([3, 3, 3, 2, 2, 3, 3]);
+    renderRoutes(routes, '/result', queryClient);
+    expect(await screen.findByRole('heading', { name: "You're carrying a lot right now" })).toBeInTheDocument();
+    const next = screen.getByRole('region', { name: 'What you could do next' });
+    expect(within(next).getByRole('link', { name: /Make a plan for hard moments/ })).toHaveAttribute('href', '/safety-plan');
+  });
+
   it('10 and over recommends a professional; below does not', async () => {
     mockFetch({});
     seed([2, 2, 2, 1, 1, 1, 1]);
@@ -231,7 +263,7 @@ describe('result by severity', () => {
     const { calls } = mockFetch({
       'GET /me': { body: ME },
       'POST /assessments': { status: 201, body: saved },
-      [`GET /assessments/${saved.id}`]: { body: saved },
+      [`GET /assessments/${saved.id}`]: { body: saved }, 'GET /assessments': { body: { items: [], nextCursor: null } },
     });
     const { router } = renderRoutes(routes, '/result', queryClient);
     await user.click(await screen.findByRole('button', { name: 'Save result' }));

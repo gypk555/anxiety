@@ -199,3 +199,25 @@ test('deleting from the result screen leaves trends empty, and the deleted resul
   await expect(page.getByRole('heading', { level: 1, name: "There's nothing at this address" })).toBeVisible();
 });
 
+
+test('a saved result compares with the check-in before it, in words only', async ({ page, context }) => {
+  await signUp(page, 'compare');
+  const first = await seedAssessment(context, [2, 2, 2, 2, 2, 2, 2], 2, new Date(Date.now() - 6 * 3_600_000).toISOString());
+  const second = await seedAssessment(context, [1, 1, 1, 1, 1, 1, 1], 1);
+
+  await page.goto(`/result/${first.id}`);
+  await expect(resultHeading(page)).toContainText('14 out of 21');
+  await expect(page.getByRole('heading', { name: 'Anxiety seems to be affecting your daily life' })).toBeVisible();
+  await expect(page.getByRole('region', { name: /than last time|same as last time/ })).toHaveCount(0);
+
+  await page.goto(`/result/${second.id}`);
+  const change = page.getByRole('region', { name: 'Lower than last time' });
+  await expect(change).toContainText(`from 14 on ${await dateInPage(page, first.takenAt)} to 7 now`);
+  await expect(page.getByRole('heading', { name: "Some anxiety is showing up, and that's common" })).toBeVisible();
+
+  const third = await seedAssessment(context, [2, 2, 2, 2, 2, 1, 1], 2);
+  await page.goto(`/result/${third.id}`);
+  const higher = page.getByRole('region', { name: 'Higher than last time' });
+  await expect(higher).toContainText("isn't a failure");
+  await expect(higher).toContainText('now reached the point where talking to a doctor or counsellor');
+});

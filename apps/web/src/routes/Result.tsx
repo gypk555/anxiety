@@ -20,8 +20,9 @@ import { ApiError, errorMessage, isNotFound, request } from '@/lib/api';
 import { formatDate, nextCheckInDate } from '@/lib/dates';
 import { clearGuestResult, loadGuestResult, type GuestResult } from '@/lib/guest';
 import { withNext } from '@/lib/next-path';
+import { compareWithPrevious, guidanceFor, type Previous } from '@/lib/result-guidance';
 import { suggestionsFor } from '@/lib/suggestions';
-import { assessmentsKey, useMe } from '@/lib/queries';
+import { assessmentsKey, fetchAssessments, useMe } from '@/lib/queries';
 import { NotFound } from '@/shell/RouteError';
 import { PageTitle } from '@/ui/PageTitle';
 import { ConfirmSheet } from '@/ui/Sheet';
@@ -70,6 +71,8 @@ export function SavedResultPage() {
     },
   });
 
+  const recent = useQuery({ queryKey: [...assessmentsKey, 'recent'], queryFn: () => fetchAssessments() });
+
   if (query.isPending) return <PageSkeleton />;
   if (isNotFound(query.error)) return <NotFound />;
   if (query.isError) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
@@ -77,6 +80,7 @@ export function SavedResultPage() {
   return (
     <ResultView
       result={query.data}
+      previous={previousOf(query.data, recent.data?.items)}
       footer={
         <div className="no-print flex flex-col gap-1">
           <Link className="link self-start py-2" to="/trends">See all your check-ins</Link>
@@ -99,8 +103,21 @@ export function SavedResultPage() {
   );
 }
 
-function ResultView({ result, footer }: { result: ResultData; footer: React.ReactNode }) {
+/**
+ * The check-in just before this one, from the newest page of the person's own history. A page is a contiguous,
+ * newest-first run, so the latest earlier item on it is the one before. An old result whose predecessor is on a later
+ * page finds none, and the comparison is simply left out.
+ */
+export function previousOf(current: Assessment, items: readonly Assessment[] | undefined): Previous | null {
+  const earlier = (items ?? [])
+    .filter((a) => a.id !== current.id && a.takenAt < current.takenAt)
+    .sort((a, b) => b.takenAt.localeCompare(a.takenAt))[0];
+  return earlier ? { score: earlier.score, takenAt: earlier.takenAt } : null;
+}
+
+function ResultView({ result, previous = null, footer }: { result: ResultData; previous?: Previous | null; footer: React.ReactNode }) {
   const band = severityFor(result.score);
+  const guidance = guidanceFor(result.score);
   const severe = band.severity === 'severe';
   const difficulty = result.difficulty === null ? null : DIFFICULTY_OPTIONS[result.difficulty]?.label;
   const primary = HELPLINES[0]!;
@@ -114,9 +131,15 @@ function ResultView({ result, footer }: { result: ResultData; footer: React.Reac
           <span className="sr-only">: </span>
           <span className="block font-body text-lg font-medium tracking-normal">{result.score} out of {GAD7_MAX_SCORE}</span>
         </PageTitle>
-        <p className="text-lg leading-snug">{band.meaning}</p>
         <p className="text-sm text-ink-soft">This is a screening, not a diagnosis. Only a doctor or mental health professional can diagnose anxiety.</p>
       </header>
+
+      <section aria-labelledby="message" className="flex flex-col gap-2">
+        <h2 id="message" className="text-xl">{guidance.title}</h2>
+        <p className="text-lg leading-snug">{guidance.message}</p>
+      </section>
+
+      {previous && <ChangeNote score={result.score} previous={previous} />}
 
       {severe && (
         <section aria-labelledby="support" className="patch-quilted no-print flex flex-col gap-3">
@@ -212,6 +235,7 @@ function ScoreScale({ score }: { score: number }) {
 function NextSteps({ score, takenAt }: { score: number; takenAt: string }) {
   const professional = score >= GAD7_REFERRAL_CUTOFF;
   const primary = HELPLINES[0]!;
+  const tips = guidanceFor(score).tips;
   return (
     <section aria-labelledby="next" className="no-print flex flex-col gap-3">
       <h2 id="next" className="text-xl">What you could do next</h2>
@@ -225,12 +249,9 @@ function NextSteps({ score, takenAt }: { score: number; takenAt: string }) {
             </span>
           </li>
         )}
-        <li>
-          <strong className="block font-semibold">Try something calming</strong>
-          <span className="text-ink-soft">
-            A few minutes of <Link className="link" to="/tools/breathe">slow breathing</Link> or{' '}
-            <Link className="link" to="/tools/ground">grounding</Link> can help you settle.
-          </span>
+        <li className="flex flex-col gap-2">
+          <strong className="block font-semibold">Things that often help</strong>
+          <SuggestionList items={tips} />
         </li>
         {!professional && (
           <li>
@@ -238,7 +259,7 @@ function NextSteps({ score, takenAt }: { score: number; takenAt: string }) {
             <span className="text-ink-soft">If this starts getting in the way of work, home or relationships, it's worth talking to a doctor.</span>
           </li>
         )}
-        <FittingTools />
+        <FittingTools shown={tips.map((t) => t.id)} />
         <li>
           <strong className="block font-semibold">Check in again around {formatDate(nextCheckInDate(takenAt))}</strong>
           <span className="text-ink-soft">The questions cover two weeks, so that's the soonest a new answer tells you something new.</span>
@@ -249,10 +270,10 @@ function NextSteps({ score, takenAt }: { score: number; takenAt: string }) {
 }
 
 /** For an account that chose stress factors: the tools that fit them. Nothing for anyone else. */
-function FittingTools() {
+function FittingTools({ shown }: { shown: readonly string[] }) {
   const me = useMe();
   const profile = me.data && !me.data.consentRequired ? me.data.profile : undefined;
-  const items = suggestionsFor(profile?.stressFactors);
+  const items = suggestionsFor(profile?.stressFactors).filter((s) => !shown.includes(s.id));
   if (!profile || !items.length) return null;
   const words = readableProfile(profile).stressFactors!.map((w) => w.toLowerCase()).join(', ');
   return (
@@ -261,6 +282,18 @@ function FittingTools() {
       <span className="text-ink-soft">Because you mentioned {words}.</span>
       <SuggestionList items={items} />
     </li>
+  );
+}
+
+/** How this score compares with the person's own previous check-in. Words only: no arrows, no colour, no praise. */
+function ChangeNote({ score, previous }: { score: number; previous: Previous }) {
+  const change = compareWithPrevious(score, previous, formatDate(previous.takenAt));
+  return (
+    <section aria-labelledby="change" className="patch no-print flex flex-col gap-2">
+      <h2 id="change" className="text-lg">{change.title}</h2>
+      <p>{change.message}</p>
+      {'note' in change && change.note && <p className="font-medium">{change.note}</p>}
+    </section>
   );
 }
 

@@ -1,5 +1,6 @@
 import { GAD7_MAX_SCORE, HELPLINES, scoreGad7, severityFor } from '@anxiocare/shared';
 import { answerItems, expect, expectGuestHome, readGuestResult, resultHeading, takeCheckin, test } from './support';
+import { guidanceFor } from '../../src/lib/result-guidance';
 
 const CASES: { name: string; answers: number[]; difficulty: number | null; expected: string }[] = [
   { name: 'all zero skips the difficulty item', answers: [0, 0, 0, 0, 0, 0, 0], difficulty: null, expected: 'minimal' },
@@ -25,7 +26,10 @@ for (const { name, answers, difficulty, expected } of CASES) {
     expect(band.severity).toBe(expected);
     await expect(resultHeading(page)).toContainText(`${band.label} range`);
     await expect(resultHeading(page)).toContainText(`${score} out of ${GAD7_MAX_SCORE}`);
-    await expect(page.getByText(band.meaning)).toBeVisible();
+    const guidance = guidanceFor(score);
+    await expect(page.getByRole('heading', { name: guidance.title })).toBeVisible();
+    await expect(page.getByText(guidance.message)).toBeVisible();
+    await expect(page.getByRole('region', { name: /than last time|same as last time/ })).toHaveCount(0);
     await expect(page.getByText('This is a screening, not a diagnosis.')).toBeVisible();
 
     await expect(page.getByText('Talk to a professional')).toBeVisible({ visible: band.recommendProfessional });
