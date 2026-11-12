@@ -37,8 +37,20 @@ export function CreateAccount() {
     if (state?.passwordError) passwordRef.current?.focus();
   }, [state?.passwordError]);
 
+  // Set when the address already has an account: the owner chose to say so (docs/decisions/015). Holds only the address.
+  const [existsFor, setExistsFor] = useState<string | null>(null);
+  const noticeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (existsFor) noticeRef.current?.focus();
+  }, [existsFor]);
   const ask = useMutation({
     mutationFn: (address: string) => request('POST', '/auth/register/request', { body: { email: address } }),
+    onError: (e, address) => {
+      if (!(e instanceof ApiError && e.code === 'account_exists')) return;
+      // The password isn't needed any more, so it goes now, and was never held anywhere but this field.
+      setPassword('');
+      setExistsFor(address);
+    },
     onSuccess: (_, address) => {
       holdRegistration({ email: address, password, displayName: name.trim() });
       navigate(withNext('/create-account/code', next), { state: { email: address, sentAt: Date.now() } });
@@ -65,11 +77,13 @@ export function CreateAccount() {
       return;
     }
     setFieldError(null);
+    setExistsFor(null);
     setSends((n) => n + 1);
     ask.mutate(parsed.data);
   };
 
-  const error = fieldError ?? (ask.error ? errorMessage(ask.error) : null);
+  const exists = ask.error instanceof ApiError && ask.error.code === 'account_exists';
+  const error = fieldError ?? (ask.error && !exists ? errorMessage(ask.error) : null);
 
   return (
     <form className="flex flex-1 flex-col" onSubmit={submit} noValidate>
@@ -111,6 +125,14 @@ export function CreateAccount() {
         <div aria-live="polite">
           {error && <p id="create-error" role="alert" className="font-medium text-madder">{error}</p>}
         </div>
+        {existsFor && (
+          <div ref={noticeRef} tabIndex={-1} role="alert" className="patch flex flex-col gap-3">
+            <p className="font-semibold">There's already an account for this email.</p>
+            <Link className="btn btn-primary" to={withNext('/sign-in', next)} state={{ email: existsFor }}>Sign in</Link>
+            <GoogleButton next={next} note={false} />
+            <Link className="btn btn-secondary" to={withNext('/forgot-password', next)} state={{ email: existsFor }}>Reset password</Link>
+          </div>
+        )}
       </div>
       <div className="mt-auto flex flex-col gap-2 pt-6">
         <button type="submit" className="btn btn-primary" disabled={ask.isPending}>{ask.isPending ? 'Sending' : 'Continue'}</button>
@@ -193,7 +215,6 @@ export function CreateAccountCode() {
       <p className="mt-2 break-words text-ink-soft">
         We emailed <strong className="font-semibold text-ink">{pending.email}</strong>. A {OTP_LENGTH}-digit code in it works for 10 minutes.
       </p>
-      <p className="mt-2 text-sm text-ink-soft">If you already have an account with this address, the email says so, and has no code: go to sign in instead.</p>
       <div className="mt-5">
         <OtpInput
           ref={inputRef}

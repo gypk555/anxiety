@@ -82,7 +82,7 @@ Only in the API, with no shared schema:
 | --- | --- | --- | --- | --- |
 | `POST /auth/otp/request` | No | No | 20 / 10 min | 202 |
 | `POST /auth/otp/verify` | No | No | 30 / 10 min | 200 `Me` |
-| `POST /auth/register/request` | No | No | 20 / 10 min | 202 |
+| `POST /auth/register/request` | No | No | 20 / 10 min | 202, or 409 `account_exists` |
 | `POST /auth/register/verify` | No | No | 30 / 10 min | 200 `Me` |
 | `POST /auth/login` | No | No | 60 / 10 min | 200 `Me` |
 | `POST /auth/password/forgot` | No | No | 20 / 10 min | 202 |
@@ -159,7 +159,13 @@ Errors: 400 `invalid_code`, 400 `validation_failed`.
 
 #### `POST /auth/register/request`
 
-Body: `{ "email": string }`. 202 with an empty body, always. A new address gets a code, purpose `register`. An address with an account gets a neutral notice with no code, under the same send quota. Nothing is stored about the account. Errors: 400 `validation_failed` for a malformed address.
+Body: `{ "email": string }`. Both kinds of address first spend the same send quota, counted the same way (a code row each time; 5 an hour per address and client, 20 an hour per address). Then:
+
+- **A new address:** 202 with an empty body, and a code, purpose `register`, mailed after the response.
+- **An address with an account:** 409 `account_exists`, and **no mail at all**. This deliberately says that the address has an account ([decision 015](decisions/015-say-when-an-email-already-has-an-account.md)). The body holds no input, and the address is never logged.
+- **Over the quota:** 202 with an empty body for either kind, and nothing mailed, so the answer can't be used to check addresses past it.
+
+Nothing is stored about the account. Errors: 400 `validation_failed` for a malformed address, 409 `account_exists`, 429 over the route limit.
 
 #### `POST /auth/register/verify`
 
@@ -217,7 +223,7 @@ Errors: 401.
 `Me`:
 
 ```json
-{ "id": "uuid", "email": "a@example.com", "displayName": "Asha", "createdAt": "ISO", "consentRequired": false, "consentVersion": "2026-11-13", "acceptedConsentVersion": "2026-11-12", "profile": { "avatar": "leaf", "stressFactors": ["sleep"] }, "aboutSeen": true }
+{ "id": "uuid", "email": "a@example.com", "displayName": "Asha", "createdAt": "ISO", "consentRequired": false, "consentVersion": "2026-11-14", "acceptedConsentVersion": "2026-11-12", "profile": { "avatar": "leaf", "stressFactors": ["sleep"] }, "aboutSeen": true }
 ```
 
 `displayName` is null only for an account made with Google, by email code, or before the name was required, until the person gives one. `profile` holds only the optional details that are set (`{}` when none): `avatar` (`sage`, `leaf`, `spark`, `ocean`, `mountain`), `ageRange` (`18-24`, `25-34`, `35-44`, `45-59`, `60+`, `na`), `gender` (`woman`, `man`, `nonbinary`, `na`), `occupation` (`student`, `employed`, `self_employed`, `homemaker`, `looking`, `retired`, `other`, `na`), `stressFactors` (any of `work`, `studies`, `money`, `family`, `relationships`, `health`, `sleep`, `screens`, each once). `aboutSeen` says whether the one-time About you screen was saved or skipped.

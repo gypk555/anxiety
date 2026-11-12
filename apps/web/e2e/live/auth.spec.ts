@@ -34,6 +34,8 @@ test('sign-up: email, code, consent gate, home', async ({ page, context, guard }
   await giveName(page);
   await expect(page).toHaveURL(/\/trends$/);
   expect((await http.get('/assessments')).status()).toBe(200);
+  // Let Trends finish loading first: WebKit reports requests cut off by a navigation as uncaught errors.
+  await page.waitForLoadState('networkidle');
   await page.goto('/');
   await expectAccountHome(page);
 });

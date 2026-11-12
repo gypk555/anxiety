@@ -9,7 +9,6 @@ export type MailPurpose =
   | CodePurpose
   | 'email_changed_notice'
   | 'new_signin_notice'
-  | 'account_exists_notice'
   | 'password_changed_notice'
   | 'google_linked_notice'
   | 'google_unlinked_notice'
@@ -40,7 +39,6 @@ const SUBJECTS: Record<Exclude<MailPurpose, 'operator_notice'>, string> = {
   reauth: 'Your code to confirm it is you',
   email_changed_notice: 'Your email address was changed',
   new_signin_notice: 'New sign-in to your account',
-  account_exists_notice: 'About your account',
   password_changed_notice: 'Your password was changed',
   google_linked_notice: 'Google sign-in was added to your account',
   google_unlinked_notice: 'Google sign-in was removed from your account',
@@ -85,17 +83,6 @@ export function newSignInNotice(to: string, device: string): MailMessage {
     code: null,
     subject: SUBJECTS.new_signin_notice,
     text: `Your account was just signed in to on this device: ${device}.\n\nIf that was you, there is nothing to do.\n\nIf it was not, open Settings in the app and choose "Sign out on all devices", then change your password there and the password of this email account, because sign-in codes are sent here.\n`,
-  };
-}
-
-/** Someone asked to create an account with an address that has one. It tells them no more than the code mail would. */
-export function accountExistsNotice(to: string): MailMessage {
-  return {
-    to,
-    purpose: 'account_exists_notice',
-    code: null,
-    subject: SUBJECTS.account_exists_notice,
-    text: 'Someone asked to create an account with this email address, but you already have an account. Sign in, or reset your password if you have forgotten it.\n\nIf this was not you, you can ignore this message. Nothing has changed.\n',
   };
 }
 

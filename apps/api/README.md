@@ -35,7 +35,7 @@ Each line is one JSON object, appended in send order, and the file is never trun
 ```
 
 `purpose` is `login`, `register`, `password_reset`, `password_set`, `email_change` (to the new address), `email_change_current` (to the current address), `account_delete`, `reauth`,
-`email_changed_notice`, `new_signin_notice`, `account_exists_notice`, `password_changed_notice`, `google_linked_notice` or `google_unlinked_notice` (`code` is `null` for the notices). `code` is plain digits; the mail's `text` prints them
+`email_changed_notice`, `new_signin_notice`, `password_changed_notice`, `google_linked_notice` or `google_unlinked_notice` (`code` is `null` for the notices). `code` is plain digits; the mail's `text` prints them
 grouped, `123 456`. Take the last line matching `to` and `purpose`. Delivery happens just after the 202, so poll for a line. In
 development, codes are also printed to the console. Each purpose allows an address 5 codes an hour per client and 20 overall, so give
 each e2e test its own address, or `DEV_FRESH=1` between runs.

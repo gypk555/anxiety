@@ -21,7 +21,7 @@ import { deviceLabel } from '../device.ts';
 import { knownDevice, knownDeviceOf, rememberDevice } from '../devices.ts';
 import { ApiError, conflict, fieldError, invalidCode, invalidCredentials, overloaded } from '../errors.ts';
 import { googleDisconnectedByResetNotice, newSignInNotice, passwordChangedNotice } from '../mail.ts';
-import { consumeOtp, deliverOtp, deliverPasswordReset, deliverRegistration, loginQuotaKey, otpTarget } from '../otp.ts';
+import { consumeOtp, deliverOtp, deliverPasswordReset, loginQuotaKey, otpTarget, registrationMail, startRegistration } from '../otp.ts';
 import { PasswordsBusyError } from '../passwords.ts';
 import { createUserWithPassword, emailOf, toMe, type UserRow } from '../users.ts';
 import { emptyBody, parse } from '../validate.ts';
@@ -153,8 +153,9 @@ export function accountRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<
   // ── Create account ──────────────────────────────────────────────────
   app.post('/auth/register/request', { config: { rateLimit: { max: 20, timeWindow: '10 minutes' } } }, async (request, reply) => {
     const { email } = parse(registerRequestBody, request.body);
-    const source = client(request);
-    ctx.background.run(request.log, 'otp_delivery', () => deliverRegistration(ctx, { email, clientKey: source }));
+    const started = await startRegistration(ctx, { email, clientKey: client(request) });
+    if (started.outcome === 'exists') throw new ApiError(409, 'account_exists');
+    if (started.outcome === 'send') ctx.background.run(request.log, 'otp_delivery', () => ctx.mailer.send(registrationMail(email, started.code)));
     return reply.code(202).send();
   });
 

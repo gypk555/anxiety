@@ -4,7 +4,8 @@ import { useMeta } from '@/lib/queries';
  * A plain link, styled to Google's branding guidelines, with their mark from a local file. No Google script runs in
  * the browser, so the CSP stays as it is. It must be a real navigation: the API answers with a redirect to Google.
  */
-export function GoogleButton({ next }: { next: string }) {
+/** `note: false` leaves out the privacy line, where the same page already shows it once. */
+export function GoogleButton({ next, note = true }: { next: string; note?: boolean }) {
   const meta = useMeta();
   if (!meta.data?.googleEnabled) return null;
   return (
@@ -18,7 +19,7 @@ export function GoogleButton({ next }: { next: string }) {
         </svg>
         Continue with Google
       </a>
-      <p className="text-sm text-ink-soft">If you choose Google, Google learns that you use this service. We only get your email address from it.</p>
+      {note && <p className="text-sm text-ink-soft">If you choose Google, Google learns that you use this service. We only get your email address from it.</p>}
     </div>
   );
 }

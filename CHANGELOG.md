@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Create account says when an email already has an account
+
+The owner's decision, 2026-11-12 ([decision 015](docs/decisions/015-say-when-an-email-already-has-an-account.md)).
+
+- `POST /auth/register/request` answers 409 `account_exists` for an address with an account and sends no email; the `account_exists_notice` mail is gone. Every limit and the send quota are counted the same way for both kinds of address, and past the quota both get the same quiet 202.
+- Create account shows "There's already an account for this email." in place, focused and announced, with **Sign in**, **Continue with Google** and **Reset password**, keeping the email and `next`. The typed password is cleared. Continue with Google was already offered up front.
+- `CONSENT_VERSION` is now `2026-11-14`: the privacy notice says that someone typing your address on Create account is told an account exists.
+
 ### Required name, and optional profile details
 
 From the owner's request (name) and [the profile details spec](docs/superpowers/specs/2026-11-12-profile-details-design.md).

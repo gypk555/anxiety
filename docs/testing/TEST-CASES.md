@@ -19,22 +19,22 @@ This lists what exists. It does not say tests passed: for results, see `docs/tes
 
 | Level | Runner | Unique tests | Test runs |
 | --- | --- | --- | --- |
-| Unit | Vitest | 134 | 134 |
+| Unit | Vitest | 135 | 135 |
 | API unit | Vitest | 39 | 39 |
-| API integration | Vitest | 607 | 607 |
-| Web unit and component | Vitest | 344 | 344 |
-| E2E mocked | Playwright | 193 | 386 |
+| API integration | Vitest | 609 | 609 |
+| Web unit and component | Vitest | 348 | 348 |
+| E2E mocked | Playwright | 195 | 390 |
 | E2E live | Playwright | 176 | 352 |
 | E2E HTTPS | Playwright | 7 | 14 |
-| **Total** | | **1500** | **1876** |
+| **Total** | | **1509** | **1887** |
 
-Vitest: 1124. Playwright: 376 unique tests, 752 runs across projects: `iphone` 193, `pixel` 193, `live-iphone` 176, `live-pixel` 176, `https-iphone` 7, `https-pixel` 7.
+Vitest: 1131. Playwright: 378 unique tests, 756 runs across projects: `iphone` 195, `pixel` 195, `live-iphone` 176, `live-pixel` 176, `https-iphone` 7, `https-pixel` 7.
 
 Level definitions, and what each does and doesn't prove, are in `docs/testing/TEST-STRATEGY.md`.
 
 ## Traceability matrix
 
-225 requirements: 179 covered, 30 partial, 16 with no automated test.
+229 requirements: 183 covered, 30 partial, 16 with no automated test.
 
 **Covered** means a test exercises the requirement on the stack it runs on (localhost, emulated devices). It does not mean proved in production. **Partial** means part of it is untested: the note says which. **None** means no automated test. A row with many tests shows the first few, and the rest are in the catalogue under that file.
 
@@ -61,7 +61,7 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 
 | Req | Requirement | Status | Automated tests | Not covered, or note | Manual |
 | --- | --- | --- | --- | --- | --- |
-| ACC-01 | Create account: always 202; existing address gets a notice, not a code, under the send quota | Covered | API-accounts-db18, API-accounts-60d7; E2E-live-accounts-5cc7 |  | MT-AUTH-12 |
+| ACC-01 | Create account: a new address gets 202 and a code; an existing one 409 account_exists and no mail (changed by decision 015), under the same send quota | Covered | API-accounts-6996, API-accounts-110c, API-accounts-c96e; E2E-live-accounts-92bf | The spec asked for an identical answer; the owner changed that on 2026-11-12. | MT-AUTH-12 |
 | ACC-02 | Nothing about an account is stored before its code is verified | Covered | API-accounts-79b7, API-accounts-6002; API-google-df7a |  |  |
 | ACC-03 | Password login: unknown, no password and wrong password identical in body, status and work | Covered | API-accounts-a56d, API-accounts-6376, API-accounts-72cd | Timing proved in process, not across a network. | MT-AUTH-14 |
 | ACC-04 | Failed passwords: 10 a day per address and network, 100 a day per address, then same response, unevaluated, under a burst | Covered | API-accounts-5541, API-accounts-afce, API-accounts-c584, API-accounts-0223; API-security-regressions-ead2 |  | MT-AUTH-14 |
@@ -334,7 +334,7 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | PN-03 | An account with no name is asked once after sign-in and consent, keeping next; Google is never asked for a name | Covered | WEB-Name-e75c, WEB-Name-b37c, WEB-Name-876e; API-google-05b9; E2E-live-accounts-bc86 |  | MT-PRO-02, MT-PRO-03 |
 | PN-04 | The name screen never blocks Get help, Quick exit, sign out, export or delete; guests unaffected | Covered | WEB-Name-07d4, WEB-Name-e2e8, WEB-Name-6f90, WEB-Name-8060; E2E-live-safety-c33e |  | MT-PRO-02 |
 | PN-05 | Settings: the name can be changed, never removed; PATCH /me takes a non-null name | Covered | WEB-Settings-9334; API-data-a5c8; SHR-gad7-66aa; E2E-live-settings-33ec |  | MT-SET-02 |
-| PN-06 | The notice and consent screen no longer call the name optional; one consent bump for both changes | Covered | WEB-Consent-9ff7; WEB-Legal-9b2c; SHR-gad7-2286 | Needs legal review. | MT-PRO-10 |
+| PN-06 | The notice and consent screen no longer call the name optional; one consent bump for both changes | Covered | WEB-Consent-9ff7; WEB-Legal-9b2c; SHR-gad7-b1f0 | Needs legal review. | MT-PRO-10 |
 | PD-01 | Profile details from fixed lists only, all optional, strict schema, null clears | Covered | SHR-profile-c051, SHR-profile-d5e5, SHR-profile-d84a, SHR-profile-9ab7 |  |  |
 | PD-02 | About you after the name, once: Save and Skip for now, remembered, never a gate | Covered | WEB-AboutYou-8541, WEB-AboutYou-7ef1, WEB-AboutYou-d2e3, WEB-AboutYou-1678, WEB-AboutYou-609a, WEB-AboutYou-ffa7, WEB-AboutYou-a5f9, WEB-AboutYou-aec8; E2E-live-profile-e9bc, E2E-live-profile-7ce1 |  | MT-PRO-04, MT-PRO-05 |
 | PD-03 | Settings edits or clears every field; avatar in Settings and the header | Covered | WEB-Settings-099f; WEB-Shell-99c8, WEB-Shell-b2b9 |  | MT-PRO-06 |
@@ -346,6 +346,10 @@ Level definitions, and what each does and doesn't prove, are in `docs/testing/TE
 | PD-09 | The notice lists the details honestly; one CONSENT_VERSION bump | Covered | WEB-Legal-9b48; WEB-Consent-dc68; SHR-gad7-844a | Needs legal review. | MT-PRO-10 |
 | PD-11 | Rights without consent: delete all check-ins and clear profile details, in the rights-only Settings view | Covered | API-profile-dadb, API-profile-2f4a, API-profile-7178; WEB-Settings-44ca |  |  |
 | PD-12 | Robust and private storage: unknown stored values dropped without failing, empty profiles sealed, no lost concurrent updates | Covered | API-profile-e970, API-profile-7972, API-profile-dbb4 |  |  |
+| AE-01 | Create account: an existing address gets 409 account_exists, no mail, the same quota counted | Covered | API-accounts-6996, API-accounts-c96e | Deliberately reveals that an address has an account: decision 015. | MT-AUTH-12 |
+| AE-03 | The privacy notice says so; consent bumped to 2026-11-14 | Covered | WEB-Legal-5141; SHR-gad7-a126 | Needs legal review. | MT-PRO-10 |
+| AE-02 | The notice in place: Sign in, Continue with Google and Reset password, keeping the email and next; no code page; no mail | Covered | WEB-SignIn-8452, WEB-SignIn-2a86; E2E-live-accounts-92bf |  | MT-AUTH-12 |
+| DB-IX-01 | Every foreign key column leads an index; the purge finds old code failures by age | Covered | API-database-8645, API-database-85f1 |  |  |
 | PD-10 | New screens: axe, 320px, no CSP violations | Covered | E2E-audit-1855, E2E-audit-88a9, E2E-audit-7db2 and 7 more in audit.spec.ts; E2E-live-a11y-6cad, E2E-live-a11y-7245; E2E-live-profile-e9bc |  |  |
 
 ## Requirements with no automated coverage
@@ -375,16 +379,16 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 
 ## Catalogue
 
-1500 tests. Playwright rows list the projects each runs in. Duplicate names come from `it.each` tables whose titles don't vary.
+1509 tests. Playwright rows list the projects each runs in. Duplicate names come from `it.each` tables whose titles don't vary.
 
 ### `apps/api/test/accounts.test.ts` (103)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | API-accounts-79b7 | `accounts.test.ts` | create account: request > mails a register code to a new address and stores nothing about the account | API integration | Security: auth |
-| API-accounts-db18 | `accounts.test.ts` | create account: request > an existing address gets an identical response and a notice with no code | API integration | Security: auth |
-| API-accounts-efc5 | `accounts.test.ts` | create account: request > answers before any delivery work, for both kinds of address | API integration | Security: auth |
-| API-accounts-60d7 | `accounts.test.ts` | create account: request > cannot be used to mail-bomb an account: the notice spends the same send quota as a code | API integration | Security: auth |
+| API-accounts-6996 | `accounts.test.ts` | create account: request > an existing address is told so, 409 account_exists, and nothing is mailed | API integration | Security: auth |
+| API-accounts-110c | `accounts.test.ts` | create account: request > a new address still gets 202 and its code, mailed after the response | API integration | Security: auth |
+| API-accounts-c96e | `accounts.test.ts` | create account: request > counts the same quota for an existing address as for a new one, so it cannot be checked in bulk past it | API integration | Security: auth |
 | API-accounts-15ba | `accounts.test.ts` | create account: request > rejects a malformed address before anything else | API integration | Security: auth |
 | API-accounts-be0f | `accounts.test.ts` | create account: verify > creates the account, stores an Argon2id PHC string, starts a session and leaves consent for later | API integration | Security: auth |
 | API-accounts-cdd7 | `accounts.test.ts` | create account: verify > refuses an account with no name, echoing nothing back, and leaves the code to use with one | API integration | Security: auth |
@@ -584,7 +588,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-data-7c13 | `data.test.ts` | pagination > cursors are opaque, and tampered ones are a clean 400 | API integration | Product: lists |
 | API-data-b0b1 | `data.test.ts` | pagination > bounds limit | API integration | Product: lists |
 
-### `apps/api/test/database.test.ts` (29)
+### `apps/api/test/database.test.ts` (31)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -617,6 +621,8 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-database-7a1b | `database.test.ts` | migration runner > applies once, records checksums, and a second run is a no-op | API integration | Security: database |
 | API-database-f6d2 | `database.test.ts` | migration runner > refuses when an applied file changed or vanished | API integration | Security: database |
 | API-database-3d2a | `database.test.ts` | migration runner > rolls back a failing migration as a whole | API integration | Security: database |
+| API-database-8645 | `database.test.ts` | indexes > every foreign key column is the leading column of some index, so a cascade or a join never scans the table | API integration | Security: database |
+| API-database-85f1 | `database.test.ts` | indexes > the purge can find old code failures by age alone | API integration | Security: database |
 
 ### `apps/api/test/dev-script.test.ts` (6)
 
@@ -1138,7 +1144,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | API-user-rate-limit-4835 | `user-rate-limit.test.ts` | per-user rate limit on signed-in routes > covers writes too, and every device of the account shares the budget | API integration | Security: per-user caps |
 | API-user-rate-limit-7fd1 | `user-rate-limit.test.ts` | per-user rate limit on signed-in routes > can be configured within safe bounds, and refuses nonsense | API integration | Security: per-user caps |
 
-### `apps/web/e2e/audit.spec.ts` (187)
+### `apps/web/e2e/audit.spec.ts` (189)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -1220,6 +1226,8 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | E2E-audit-5ac3 | `audit.spec.ts` | create-account-password-problem dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-1f17 | `audit.spec.ts` | create-account-code light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-6bbf | `audit.spec.ts` | create-account-code dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-6f1d | `audit.spec.ts` | create-account-exists light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
+| E2E-audit-41cf | `audit.spec.ts` | create-account-exists dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-8288 | `audit.spec.ts` | forgot-password light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-29b0 | `audit.spec.ts` | forgot-password dark | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
 | E2E-audit-338b | `audit.spec.ts` | forgot-password-reset light | E2E mocked (iphone, pixel) | UX: axe, overflow and CSP |
@@ -1358,7 +1366,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | E2E-live-accounts-748b | `accounts.spec.ts` | start to finish: name, address, password, code, consent, signed in with that password | E2E live (live-iphone, live-pixel) | Security: auth |
-| E2E-live-accounts-5cc7 | `accounts.spec.ts` | an existing address shows the same next screen, and its owner gets a notice with no code | E2E live (live-iphone, live-pixel) | Security: auth |
+| E2E-live-accounts-92bf | `accounts.spec.ts` | an existing address gets a notice in place, no code page, and no mail at all | E2E live (live-iphone, live-pixel) | Security: auth |
 | E2E-live-accounts-0908 | `accounts.spec.ts` | a weak password is caught in plain words before any mail goes out | E2E live (live-iphone, live-pixel) | Security: auth |
 | E2E-live-accounts-c837 | `accounts.spec.ts` | a reload on the code screen forgets the password and goes back to the form | E2E live (live-iphone, live-pixel) | Security: auth |
 | E2E-live-accounts-636a | `accounts.spec.ts` | a wrong code says so, and the right one still works with the password held in memory | E2E live (live-iphone, live-pixel) | Security: auth |
@@ -1873,7 +1881,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-JournalForm-72d8 | `JournalForm.test.tsx` | thought record form > walks all five steps and saves the shared body shape | Web unit and component | Product: journal |
 | WEB-JournalForm-93e1 | `JournalForm.test.tsx` | thought record form > keeps the draft and says so when saving fails | Web unit and component | Product: journal |
 
-### `apps/web/src/routes/Legal.test.tsx` (14)
+### `apps/web/src/routes/Legal.test.tsx` (15)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -1890,6 +1898,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Legal-9807 | `Legal.test.tsx` | privacy notice for the mood log and safety plan > covers reflections: what is kept, that answers are stored as question numbers, and that guests keep them in the tab | Web unit and component | Privacy: notice and claims |
 | WEB-Legal-9b2c | `Legal.test.tsx` | privacy notice for the mood log and safety plan > says the name is needed, and can be a nickname | Web unit and component | Privacy: notice and claims |
 | WEB-Legal-9b48 | `Legal.test.tsx` | privacy notice for the mood log and safety plan > covers the optional profile details: chosen from lists, encrypted, what each is for, and removable | Web unit and component | Privacy: notice and claims |
+| WEB-Legal-5141 | `Legal.test.tsx` | privacy notice for the mood log and safety plan > says plainly that the sign-up page tells anyone typing your email that an account exists | Web unit and component | Privacy: notice and claims |
 | WEB-Legal-6dd1 | `Legal.test.tsx` | privacy notice for the mood log and safety plan > Help explains quick exit, including what it cannot do | Web unit and component | Privacy: notice and claims |
 
 ### `apps/web/src/routes/MoodLog.test.tsx` (5)
@@ -1990,12 +1999,15 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-Settings-b1ad | `Settings.test.tsx` | theme options > are one Tab stop, on the chosen option | Web unit and component | Privacy: rights |
 | WEB-Settings-3254 | `Settings.test.tsx` | theme options > arrow keys move and choose, wrapping at the ends | Web unit and component | Privacy: rights |
 
-### `apps/web/src/routes/SignIn.test.tsx` (31)
+### `apps/web/src/routes/SignIn.test.tsx` (34)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
 | WEB-SignIn-3157 | `SignIn.test.tsx` | repeated wrong codes > the first failure is just the usual message | Web unit and component | Security: auth |
 | WEB-SignIn-3a18 | `SignIn.test.tsx` | repeated wrong codes > after a second, it explains the pause, what still works, and is based only on what this screen saw | Web unit and component | Security: auth |
+| WEB-SignIn-8452 | `SignIn.test.tsx` | sign in with a password > an address with an account gets a notice, not the code page, with sign in, Google and reset, each keeping the email | Web unit and component | Security: auth |
+| WEB-SignIn-2a86 | `SignIn.test.tsx` | sign in with a password > Reset password from the notice goes to forgot password with the email in | Web unit and component | Security: auth |
+| WEB-SignIn-0e9b | `SignIn.test.tsx` | sign in with a password > offers Continue with Google up front, for people who would rather not have a password | Web unit and component | Security: auth |
 | WEB-SignIn-69a2 | `SignIn.test.tsx` | sign in with a password > has the attributes password managers need | Web unit and component | Security: auth |
 | WEB-SignIn-8572 | `SignIn.test.tsx` | sign in with a password > sends the address normalised and the password exactly as typed, then goes to next | Web unit and component | Security: auth |
 | WEB-SignIn-8b9b | `SignIn.test.tsx` | sign in with a password > a wrong password clears the field, moves focus to it, says what to do, and keeps a guest result | Web unit and component | Security: auth |
@@ -2015,7 +2027,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-SignIn-9c73 | `SignIn.test.tsx` | create account > has the attributes password managers need | Web unit and component | Security: auth |
 | WEB-SignIn-c087 | `SignIn.test.tsx` | create account > checks the password first, in plain words, and asks for no code until it is fine | Web unit and component | Security: auth |
 | WEB-SignIn-388e | `SignIn.test.tsx` | create account > sends only the address at first, then the password with the code, and holds it nowhere but memory | Web unit and component | Security: auth |
-| WEB-SignIn-c3d8 | `SignIn.test.tsx` | create account > the code screen says the same for every address, and mentions the other possibility | Web unit and component | Security: auth |
+| WEB-SignIn-bf8e | `SignIn.test.tsx` | create account > the code screen no longer talks about an existing account: that is told on the form instead | Web unit and component | Security: auth |
 | WEB-SignIn-feba | `SignIn.test.tsx` | create account > the code screen with nothing held, such as after a reload, goes back to the form | Web unit and component | Security: auth |
 | WEB-SignIn-6b37 | `SignIn.test.tsx` | create account > a password the server refuses goes back to the form with its words, and the password is gone | Web unit and component | Security: auth |
 | WEB-SignIn-6f26 | `SignIn.test.tsx` | create account > a wrong code keeps the screen usable and the password held | Web unit and component | Security: auth |
@@ -2163,7 +2175,7 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | WEB-TrendChart-cf49 | `TrendChart.test.tsx` | TrendChart > states change neutrally | Web unit and component | Product: trends |
 | WEB-TrendChart-96e0 | `TrendChart.test.tsx` | TrendChart > copes with a single check-in and none | Web unit and component | Product: trends |
 
-### `packages/shared/src/gad7.test.ts` (31)
+### `packages/shared/src/gad7.test.ts` (32)
 
 | ID | File | Test name | Level | Requirement area |
 | --- | --- | --- | --- | --- |
@@ -2190,7 +2202,8 @@ The **Partial** rows above also carry gaps, and these three matter most: CLN-08 
 | SHR-gad7-9c17 | `gad7.test.ts` | helplines > every helpline has a dialable number | Unit | Clinical safety: helplines |
 | SHR-gad7-83b2 | `gad7.test.ts` | helplines > leads with a 24-hour national service | Unit | Clinical safety: helplines |
 | SHR-gad7-33c0 | `gad7.test.ts` | helplines > does not claim a phone check until someone has phoned | Unit | Clinical safety: helplines |
-| SHR-gad7-2286 | `gad7.test.ts` | consent changes > this version makes the name required, and says so to people asked again | Unit | Privacy: consent |
+| SHR-gad7-a126 | `gad7.test.ts` | consent changes > this version says the sign-up page reveals that an account exists, and says so to people asked again | Unit | Privacy: consent |
+| SHR-gad7-b1f0 | `gad7.test.ts` | consent changes > the name stays required, and is still described to people asked again | Unit | Privacy: consent |
 | SHR-gad7-844a | `gad7.test.ts` | consent changes > the same version adds the optional profile details, and says what they are for | Unit | Privacy: consent |
 | SHR-gad7-0aba | `gad7.test.ts` | consent changes > the summary shown at a re-prompt is written for the current version | Unit | Privacy: consent |
 | SHR-gad7-2e56 | `gad7.test.ts` | consent changes > the API says what was last accepted, which may be nothing | Unit | Privacy: consent |

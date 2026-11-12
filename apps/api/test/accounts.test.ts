@@ -76,41 +76,50 @@ describe('create account: request', () => {
     expect(await userCount(email)).toBe(0);
   });
 
-  it('an existing address gets an identical response and a notice with no code', async () => {
+  it('an existing address is told so, 409 account_exists, and nothing is mailed', async () => {
     const { email } = await register();
     h.mailer.sent.length = 0;
-    const fresh = await new Client(h).post(`${API}/auth/register/request`, { email: uniqueEmail('fresh') });
+    h.logs.length = 0;
     const taken = await new Client(h).post(`${API}/auth/register/request`, { email });
-    expect(observable(taken)).toEqual(observable(fresh));
+    expect(taken.statusCode).toBe(409);
+    expect(taken.json().code).toBe('account_exists');
+    expect(taken.body).not.toContain(email);
     await h.app.drainBackground();
-    expect(sentTo(email, 'register')).toEqual([]);
-    const [notice] = sentTo(email, 'account_exists_notice');
-    expect(notice!.code).toBeNull();
-    expect(notice!.text).toMatch(/already have an account/i);
-    expect(notice!.text).toMatch(/reset your password/i);
-    expect(notice!.text).not.toMatch(/\d{3} \d{3}/);
+    expect(h.mailer.sent.filter((m) => m.to === email)).toEqual([]);
+    expect(h.logs.join('\n')).not.toContain(email);
   });
 
-  it('answers before any delivery work, for both kinds of address', async () => {
-    const { email } = await register();
+  it('a new address still gets 202 and its code, mailed after the response', async () => {
     let release = () => {};
     const gate = new Promise<void>((resolve) => { release = resolve; });
     h.mailer.hook = () => gate;
-    const fresh = await new Client(h).post(`${API}/auth/register/request`, { email: uniqueEmail('slow') });
-    const taken = await new Client(h).post(`${API}/auth/register/request`, { email });
-    expect([fresh.statusCode, taken.statusCode]).toEqual([202, 202]);
+    const email = uniqueEmail('slow');
+    const fresh = await new Client(h).post(`${API}/auth/register/request`, { email });
+    expect(fresh.statusCode).toBe(202);
     release();
     h.mailer.hook = async () => {};
     await h.app.drainBackground();
+    expect(h.mailer.codeFor(email, 'register')).toMatch(/^\d{6}$/);
   });
 
-  it('cannot be used to mail-bomb an account: the notice spends the same send quota as a code', async () => {
+  it('counts the same quota for an existing address as for a new one, so it cannot be checked in bulk past it', async () => {
     const { email } = await register();
-    h.mailer.sent.length = 0;
+    const fresh = uniqueEmail('quota');
     const client = new Client(h);
-    for (let i = 0; i < 8; i += 1) await client.post(`${API}/auth/register/request`, { email });
+    const takenStatuses: number[] = [];
+    const freshStatuses: number[] = [];
+    for (let i = 0; i < 7; i += 1) {
+      takenStatuses.push((await client.post(`${API}/auth/register/request`, { email })).statusCode);
+      freshStatuses.push((await client.post(`${API}/auth/register/request`, { email: fresh })).statusCode);
+    }
     await h.app.drainBackground();
-    expect(sentTo(email, 'account_exists_notice')).toHaveLength(5);
+    // Five an hour from one client, for either kind; past that, the same quiet 202 for both, and nothing is mailed.
+    expect(takenStatuses).toEqual([409, 409, 409, 409, 409, 202, 202]);
+    expect(freshStatuses).toEqual([202, 202, 202, 202, 202, 202, 202]);
+    expect(sentTo(fresh, 'register')).toHaveLength(5);
+    // Counted as rows, the same way as a new address's codes: one from creating the account, then five.
+    const [row] = await h.admin<{ n: number }[]>`SELECT count(*)::int AS n FROM app.otp_codes WHERE purpose = 'register' AND email_hash = ${emailBlindIndex(h.config.keys, email)}`;
+    expect(row!.n).toBe(6);
   });
 
   it('rejects a malformed address before anything else', async () => {
@@ -898,10 +907,9 @@ describe('the failed-guess cap', () => {
 
 describe('mail wording', () => {
   it('nothing new names the service or its subject', async () => {
-    const { otpMail, accountExistsNotice, passwordChangedNotice, googleLinkedNotice, googleUnlinkedNotice } = await import('../src/mail.ts');
+    const { otpMail, passwordChangedNotice, googleLinkedNotice, googleUnlinkedNotice } = await import('../src/mail.ts');
     const mails = [
       ...(['register', 'password_reset', 'password_set'] as const).map((p) => otpMail('a@example.com', p, '123456')),
-      accountExistsNotice('a@example.com'),
       passwordChangedNotice('a@example.com'),
       googleLinkedNotice('a@example.com'),
       googleUnlinkedNotice('a@example.com'),

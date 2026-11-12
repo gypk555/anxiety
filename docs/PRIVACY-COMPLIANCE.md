@@ -153,6 +153,16 @@ A safety plan can hold the names and phone numbers of people the person trusts. 
 
 **Needs lawyer:** is this the person's own processing for personal purposes, outside the Act under s.3(c)(i), or the operator's processing of a third party's data? If it is the operator's, what basis applies to a contact who never consented, and does the notice need to say more?
 
+## Consent version 2026-11-14
+
+`CONSENT_VERSION` went from `2026-11-13` to `2026-11-14` because the owner chose to say on Create account when an address already has an account ([decision 015](decisions/015-say-when-an-email-already-has-an-account.md)). Neither 2026-11-13 nor 2026-11-14 has been deployed, so people asked again see all of `CONSENT_CHANGES`: the four lines listed under 2026-11-13, and a fifth:
+
+5. "If someone enters your email address on the page to create an account, they are told that an account already exists. Nothing is emailed to you when that happens."
+
+Changed in the notice in `Legal.tsx`: a new item in "What we store if you create an account": "If someone enters your email address on the page to create an account, they will be told that an account already exists for it, so they know to sign in instead. Nothing is emailed to you when that happens, and the page limits how often it can be asked."
+
+**Whether an address has an account is now revealed on Create account.** Mitigations: the same rate limits and send quota for both kinds of address, the same quiet answer for both past the quota, no email sent, the address never logged. Sign-in and forgot password still don't reveal it. See [THREAT-MODEL.md](THREAT-MODEL.md) R8 and question 21. **Owner action: have the lawyer review this before the deploy.**
+
 ## Consent version 2026-11-13
 
 `CONSENT_VERSION` went from `2026-11-12` to `2026-11-13`, one bump for two changes made together: the name became required, and optional profile details were added. Everyone with an account is asked again, and sees `CONSENT_CHANGES`:
@@ -263,6 +273,7 @@ In addition to those above:
 18. Is the doctor report, which the person prints or saves themselves, any new duty? Is the footer "Self-reported. A screening, not a diagnosis." enough?
 19. Gender stored alongside health data: is it sensitive under SPDI or any other rule, and is the optional, list-only, encrypted design and the notice wording enough? Same for occupation and the stress factors.
 20. The name is now required (a nickname is fine). Is requiring it proportionate to the purpose (greeting, and the report if chosen) under data minimisation, s.6(1)?
+21. Create account now tells anyone who types an address that it already has an account ([decision 015](decisions/015-say-when-an-email-already-has-an-account.md)). Since having an account here hints at mental health care, is revealing that an account exists, with rate limits, no email and a line in the notice, acceptable under the Act's duty of reasonable security safeguards (s.8(5)) and under SPDI?
 
 ## Sources
 

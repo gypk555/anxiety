@@ -218,6 +218,16 @@ These are real and remain after everything above. The owner must read and accept
 
 **A related risk.** The SMTP provider sees codes in plaintext for as long as it keeps message content, so a compromise there is also a way in. The 10-minute expiry narrows this.
 
+### R8. Create account says whether an email has an account
+
+**Scenario.** Anyone can type an address on `/create-account` and learn whether it has an account here. Since an account here suggests someone is looking after their mental health, that alone can matter (asset A4).
+
+**Why accepted.** The owner's decision on 2026-11-12 ([decision 015](decisions/015-say-when-an-email-already-has-an-account.md)): a clear "There's already an account for this email." with Sign in, Google and Reset password costs less, and confuses fewer people, than a neutral code page and an "account exists" email. Sign-in and forgot password still don't say.
+
+**Mitigations.** The endpoint keeps every limit, counted the same way for both kinds of address: 20 requests per 10 minutes per client, and the send quota of 5 an hour per address and client and 20 an hour per address. Past the quota both kinds get the same quiet 202, so the answer can't be used to check addresses beyond it. No email is sent to an existing address, so it can't be used to mail-bomb anyone. The address is never logged, and the 409 body holds no input. The privacy notice says plainly that this happens.
+
+**What would change this.** Any sign of bulk checking in the per-client limits, or a lawyer's advice against it ([PRIVACY-COMPLIANCE.md](PRIVACY-COMPLIANCE.md#questions-for-the-lawyer), question 21).
+
 ### R7. Others worth knowing
 
 - **Password hashes are now a target.** A database dump alone isn't enough to attack them, because of the pepper. A dump plus `PASSWORD_PEPPER` allows offline guessing, slowed by Argon2id.

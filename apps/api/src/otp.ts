@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { constantTimeEqual, emailBlindIndex, emailQuotaIndex, generateOtp, hmac, loginQuotaIndex, otpHmac, type Keys } from './crypto.ts';
 import type { Sql, Db } from './db.ts';
 import type { Ctx } from './context.ts';
-import { accountExistsNotice, otpMail, type CodePurpose } from './mail.ts';
+import { otpMail, type CodePurpose } from './mail.ts';
 
 export type OtpPurpose = CodePurpose;
 
@@ -206,14 +206,22 @@ export async function deliverOtp(
  * route cannot mail-bomb anyone. The code issued in that case is never sent to anyone, and could not create
  * anything even if guessed, because verify refuses an address that already has an account.
  */
-export async function deliverRegistration(ctx: Ctx, input: { email: string; clientKey: string }): Promise<void> {
+/**
+ * Create account, step one. The owner chose to say plainly when an address already has an account (decision 015), so
+ * this runs before the response. Both kinds of address spend the same send quota first, in the same way: once it is
+ * spent, both get the same quiet answer and nothing is mailed, so the answer can't be used to check addresses past it.
+ * An existing address gets no mail at all. A new one gets its code, mailed after the response.
+ */
+export async function startRegistration(ctx: Ctx, input: { email: string; clientKey: string }): Promise<{ outcome: 'exists' } | { outcome: 'quiet' } | { outcome: 'send'; code: string }> {
   const { keys } = ctx.config;
   const target = otpTarget(keys, 'register', input.email, null);
   const code = await issueOtp(ctx.sql, keys, target, input.clientKey);
-  if (!code) return;
+  if (!code) return { outcome: 'quiet' };
   const [existing] = await ctx.sql`SELECT 1 FROM app.users WHERE email_hash = ${target.emailHash}`;
-  await ctx.mailer.send(existing ? accountExistsNotice(input.email) : otpMail(input.email, 'register', code));
+  return existing ? { outcome: 'exists' } : { outcome: 'send', code };
 }
+
+export const registrationMail = (email: string, code: string) => otpMail(email, 'register', code);
 
 /** Forgot password. An address with no account gets nothing, and no row: the response was already sent, so nobody can tell. */
 export async function deliverPasswordReset(ctx: Ctx, input: { email: string; clientKey: string }): Promise<void> {

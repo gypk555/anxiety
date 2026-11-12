@@ -78,8 +78,11 @@ describe('helplines', () => {
 });
 
 describe('consent changes', () => {
-  it('this version makes the name required, and says so to people asked again', () => {
-    expect(CONSENT_VERSION).toBe('2026-11-13');
+  it('this version says the sign-up page reveals that an account exists, and says so to people asked again', () => {
+    expect(CONSENT_VERSION).toBe('2026-11-14');
+    expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/told that an account already exists/);
+  });
+  it('the name stays required, and is still described to people asked again', () => {
     expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/name/);
     expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/nickname/);
   });

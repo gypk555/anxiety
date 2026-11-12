@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { queryClient } from '@/lib/queries';
@@ -68,6 +68,56 @@ describe('sign in with a password', () => {
     return { ...mocks, ...view, user };
   };
   const password = () => screen.getByLabelText('Password');
+
+  it('an address with an account gets a notice, not the code page, with sign in, Google and reset, each keeping the email', async () => {
+    const mocks = mockFetch({
+      'POST /auth/register/request': problem(409, 'account_exists'),
+      'GET /meta': { body: { ...META, googleEnabled: true } },
+    });
+    const view = renderRoutes(accountRoutes, '/create-account?next=%2Fjournal', queryClient);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Your name or a nickname'), 'Asha');
+    await user.type(screen.getByLabelText('Email address'), 'Asha@Example.in');
+    await user.type(screen.getByLabelText('Password'), PASSWORD);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    const notice = await screen.findByRole('alert');
+    expect(notice).toHaveTextContent("There's already an account for this email.");
+    await waitFor(() => expect(notice).toHaveFocus());
+    expect(view.router.state.location.pathname).toBe('/create-account');
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+    expect(allStorage()).not.toContain(PASSWORD);
+    expect(JSON.stringify(view.router.state.location)).not.toContain(PASSWORD);
+    expect(mocks.calls.filter((c) => c.key === 'POST /auth/register/request')).toHaveLength(1);
+
+    const google = within(notice).getByRole('link', { name: 'Continue with Google' });
+    expect(google).toHaveAttribute('href', '/api/v1/auth/google/start?next=%2Fjournal');
+    expect(within(notice).getByRole('link', { name: 'Reset password' })).toHaveClass('btn');
+
+    await user.click(within(notice).getByRole('link', { name: 'Sign in' }));
+    expect(view.router.state.location.pathname).toBe('/sign-in');
+    expect(view.router.state.location.search).toBe('?next=%2Fjournal');
+    expect(screen.getByLabelText('Email address')).toHaveValue('asha@example.in');
+  });
+
+  it('Reset password from the notice goes to forgot password with the email in', async () => {
+    mockFetch({ 'POST /auth/register/request': problem(409, 'account_exists') });
+    const view = renderRoutes(accountRoutes, '/create-account', queryClient);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Your name or a nickname'), 'Asha');
+    await user.type(screen.getByLabelText('Email address'), 'asha@example.in');
+    await user.type(screen.getByLabelText('Password'), PASSWORD);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(within(await screen.findByRole('alert')).getByRole('link', { name: 'Reset password' }));
+    expect(view.router.state.location.pathname).toBe('/forgot-password');
+    expect(await screen.findByLabelText('Email address')).toHaveValue('asha@example.in');
+  });
+
+  it('offers Continue with Google up front, for people who would rather not have a password', async () => {
+    mockFetch({ 'GET /meta': { body: { ...META, googleEnabled: true } } });
+    renderRoutes(accountRoutes, '/create-account?next=%2Fjournal', queryClient);
+    expect(await screen.findByRole('link', { name: 'Continue with Google' })).toHaveAttribute('href', '/api/v1/auth/google/start?next=%2Fjournal');
+  });
 
   it('has the attributes password managers need', async () => {
     await start();
@@ -268,12 +318,12 @@ describe('create account', () => {
     await waitFor(() => expect(JSON.stringify(queryClient.getMutationCache().getAll().map((m) => m.state))).not.toContain(PASSWORD));
   });
 
-  it('the code screen says the same for every address, and mentions the other possibility', async () => {
+  it('the code screen no longer talks about an existing account: that is told on the form instead', async () => {
     const { user } = await start();
     await user.type(screen.getByLabelText('Password'), PASSWORD);
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('heading', { name: 'Check your email' });
-    expect(screen.getByText(/already have an account/)).toBeInTheDocument();
+    expect(screen.queryByText(/already have an account/)).not.toBeInTheDocument();
   });
 
   it('the code screen with nothing held, such as after a reload, goes back to the form', async () => {

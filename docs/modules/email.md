@@ -20,7 +20,6 @@ Deliver account codes and security notices, in wording that reveals nothing abou
 | `reauth` | Your code to confirm it is you | Current address, before connecting or disconnecting Google | Yes |
 | `email_changed_notice` | Your email address was changed | Old address | No |
 | `new_signin_notice` | New sign-in to your account | Current address | No |
-| `account_exists_notice` | About your account | An address with an account, on Create account, instead of a code | No |
 | `password_changed_notice` | Your password was changed | Current address, after a reset, change or set | No |
 | `google_linked_notice` | Google sign-in was added to your account | Current address, after connecting Google in Settings | No |
 | `google_unlinked_notice` | Google sign-in was removed from your account | Current address, after disconnecting in Settings, or after a password reset removed it (its own wording) | No |

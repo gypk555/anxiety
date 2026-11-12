@@ -38,7 +38,7 @@ describe('migration 002', () => {
     });
     await owner.end();
 
-    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql', '004_mood_and_safety_plan.sql', '005_questions.sql', '006_profile.sql']);
+    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql', '004_mood_and_safety_plan.sql', '005_questions.sql', '006_profile.sql', '007_indexes.sql']);
     expect(await migrate(sql), 'and runs once').toEqual([]);
 
     const [user] = await sql<{ password_hash: string | null; email_ct: Buffer }[]>`SELECT password_hash, email_ct FROM app.users WHERE id = ${id}::uuid`;
@@ -294,5 +294,29 @@ describe('migration runner', () => {
     } finally {
       await sql.end();
     }
+  });
+});
+
+describe('indexes', () => {
+  it('every foreign key column is the leading column of some index, so a cascade or a join never scans the table', async () => {
+    const missing = await h.admin<{ tbl: string; col: string }[]>`
+      SELECT c.conrelid::regclass::text AS tbl, a.attname AS col
+      FROM pg_constraint c
+      JOIN pg_namespace n ON n.oid = c.connamespace
+      JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+      WHERE c.contype = 'f' AND n.nspname = 'app'
+        AND NOT EXISTS (
+          SELECT 1 FROM pg_index i WHERE i.indrelid = c.conrelid AND i.indkey[0] = c.conkey[1]
+        )
+      ORDER BY 1, 2
+    `;
+    expect(missing).toEqual([]);
+  });
+
+  it('the purge can find old code failures by age alone', async () => {
+    const [row] = await h.admin<{ n: number }[]>`
+      SELECT count(*)::int AS n FROM pg_indexes WHERE schemaname = 'app' AND tablename = 'otp_failures' AND indexdef LIKE '%(created_at)%'
+    `;
+    expect(row!.n).toBe(1);
   });
 });

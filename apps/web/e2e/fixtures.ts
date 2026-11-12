@@ -110,6 +110,8 @@ export interface MockOptions {
   unnamed?: boolean;
   /** An account that hasn't been offered About you yet, with these details already set. */
   aboutUnseen?: boolean;
+  /** Create account answers that the address already has an account. */
+  accountExists?: boolean;
   profile?: Record<string, unknown>;
 }
 
@@ -117,7 +119,7 @@ const unauth = { type: 'about:blank', title: 'Unauthenticated', status: 401, cod
 
 /** A stand-in for the API, from the shared contract, for visual and accessibility checks. */
 export async function mockApi(page: Page, options: MockOptions = {}) {
-  const { signedIn = false, consentRequired = false, empty = false, acceptedConsentVersion, googleEnabled = false, methods = { password: true, google: false }, loginFails = false, unnamed = false, aboutUnseen = false, profile } = options;
+  const { signedIn = false, consentRequired = false, empty = false, acceptedConsentVersion, googleEnabled = false, methods = { password: true, google: false }, loginFails = false, unnamed = false, aboutUnseen = false, profile, accountExists = false } = options;
   const account = () => me({ consentRequired, ...(acceptedConsentVersion ? { acceptedConsentVersion } : {}), ...(unnamed ? { displayName: null } : {}), ...(aboutUnseen ? { aboutSeen: false } : {}), ...(profile ? { profile } : {}) });
   await page.route('**/api/v1/**', async (route) => {
     const url = new URL(route.request().url());
@@ -129,6 +131,7 @@ export async function mockApi(page: Page, options: MockOptions = {}) {
     if (path === '/meta') return json({ operatorName: 'AnxioCare Health LLP', grievanceEmail: 'grievance@anxiocare.example', consentVersion: CONSENT_VERSION, backupRetentionDays: 7, dataLocation: 'Mumbai, India', serverLocation: 'Singapore', mailProvider: 'our email provider', googleEnabled });
     if (method === 'POST' && path === '/auth/otp/request') return route.fulfill({ status: 202 });
     if (path === '/auth/otp/verify') return json(account());
+    if (method === 'POST' && path === '/auth/register/request' && accountExists) return route.fulfill({ status: 409, contentType: 'application/problem+json', body: JSON.stringify({ type: 'about:blank', title: 'There is already an account for this email', status: 409, code: 'account_exists' }) });
     if (method === 'POST' && (path === '/auth/register/request' || path === '/auth/password/forgot')) return route.fulfill({ status: 202 });
     if (path === '/auth/login' && loginFails) return json({ type: 'about:blank', title: 'That email and password did not match', status: 400, code: 'invalid_credentials' }, 400);
     if (['/auth/login', '/auth/register/verify', '/auth/password/reset'].includes(path)) return json(account());

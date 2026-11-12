@@ -1,6 +1,6 @@
 # Manual test cases
 
-Step-by-step human tests for AnxioCare. 302 cases: 109 P0, 150 P1, 42 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-07, on 2026-11-11 for MT-QX and MT-SP, and on 2026-11-12 for MT-SET-02 and MT-PRO. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
+Step-by-step human tests for AnxioCare. 302 cases: 109 P0, 150 P1, 42 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-07 (MT-AUTH-12 again on 2026-11-12), on 2026-11-11 for MT-QX and MT-SP, and on 2026-11-12 for MT-SET-02 and MT-PRO. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
 
 **None of these has been run yet.** The Result lines are blank on purpose. See `docs/testing/TEST-REPORT.md` for what has and hasn't been tested, and `docs/testing/TEST-CASES.md` for the automated catalogue.
 
@@ -1452,11 +1452,12 @@ Reached from **Sign in to see saved results**, **Sign in to save**, or a tab tha
 
 **Steps:**
 
-1. On **Create an account**, enter that address and a new password. Tap **Continue**.
-2. Compare the next screen with the same step for a new address.
-3. Read the mail.
+1. On **Create an account**, enter a name, that address and a new password. Tap **Continue**.
+2. With TalkBack or VoiceOver on, listen to what is announced.
+3. Tap each of **Sign in**, **Continue with Google** and **Reset password** in turn (go back between them).
+4. Wait five minutes and check the inbox, spam included.
 
-**Expected result:** The screens match. The mail, **About your account**, says you already have an account and to sign in or reset your password. It has no code, and doesn't mention health. Nothing about the account changed: the old password still works.
+**Expected result:** No code page. **There's already an account for this email.** appears on the same screen, is announced, and takes focus. The password field is empty. **Sign in** and **Reset password** open with the address filled in; **Continue with Google** goes to Google. Each is a full-size button. No mail arrives at all. Nothing about the account changed: the old password still works. See [decision 015](../decisions/015-say-when-an-email-already-has-an-account.md).
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 

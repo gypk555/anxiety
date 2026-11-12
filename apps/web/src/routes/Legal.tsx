@@ -83,6 +83,7 @@ export function Privacy() {
           <li>Your safety plan, if you write one, including the names and phone numbers of anyone you add to it.</li>
           <li>A label for each signed-in device and when it was last used, so you can review and end sessions.</li>
           <li>Your consent: which version you accepted, and when.</li>
+          <li>If someone enters your email address on the page to create an account, they will be told that an account already exists for it, so they know to sign in instead. Nothing is emailed to you when that happens, and the page limits how often it can be asked.</li>
           <li>For about an hour after we send you a code, a one-way code made from your email and network address, to limit how many can be sent. Your network address itself is not stored.</li>
           <li>For a day after a failed password or code attempt, one-way codes made from the email address that was typed and from the network it came from, to limit how many tries can be made. Your network address itself is not stored.</li>
           <li>On each device where you sign in, a cookie holding a random code, so that wrong tries made elsewhere can't lock you out on a device you already use. It lasts a year, says nothing about you, and we keep only a one-way form of it. Resetting your password or deleting your account cancels it.</li>

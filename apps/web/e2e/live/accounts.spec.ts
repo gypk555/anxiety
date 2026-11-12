@@ -1,4 +1,4 @@
-import { CODE_LABEL, FAKE_OIDC, GOOGLE_OFF_ORIGIN, NEW_PASSWORD, PASSWORD, acceptConsent, api, continueAtProvider, createAccount, differentCode, enterCode, expect, fillLoginFailures, expectAccessible, expectAccountHome, expectFocusedHeading, expectGuestHome, expectNoOverflowAt320, expectNoPasswordKept, lastMail, mailCount, requestCode, shiftTabKey, signInWithPassword, signOut, signUp, startCreateAccount, tabKey, tabTo, takeCheckin, test, uniqueEmail, uniqueGmail, waitForCode, watchUrls, giveName, skipAboutYou } from './support';
+import { CODE_LABEL, FAKE_OIDC, GOOGLE_OFF_ORIGIN, NEW_PASSWORD, PASSWORD, acceptConsent, api, continueAtProvider, createAccount, differentCode, enterCode, expect, fillLoginFailures, expectAccessible, expectAccountHome, expectFocusedHeading, expectGuestHome, expectNoOverflowAt320, expectNoPasswordKept, lastMail, mailCount, requestCode, shiftTabKey, signInWithPassword, signOut, signUp, startCreateAccount, tabKey, tabTo, takeCheckin, test, uniqueEmail, uniqueGmail, waitForCode, watchUrls, giveName, skipAboutYou, allMailCount } from './support';
 import type { Page } from '@playwright/test';
 
 const SEVEN = [1, 1, 1, 1, 1, 1, 1];
@@ -40,25 +40,36 @@ test.describe('create account', () => {
     await expectNoPasswordKept(page, urls, PASSWORD);
   });
 
-  test('an existing address shows the same next screen, and its owner gets a notice with no code', async ({ page }) => {
+  test('an existing address gets a notice in place, no code page, and no mail at all', async ({ page, guard }) => {
+    guard.expectHttpError(/^\/api\/v1\/auth\/register\/request$/, 409);
     const existing = await signUp(page, 'existing');
     await signOut(page);
+    const before = allMailCount(existing);
+    const urls = watchUrls(page);
 
-    const fresh = uniqueEmail('fresh');
-    await startCreateAccount(page, fresh);
-    const freshScreen = await page.getByRole('main').innerText();
+    await page.goto('/create-account?next=%2Fjournal');
+    await page.getByLabel('Your name or a nickname').fill('Asha');
+    await page.getByLabel('Email address').fill(existing);
+    await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Continue' }).click();
 
-    await startCreateAccount(page, existing);
-    const takenScreen = await page.getByRole('main').innerText();
-    const neutral = (text: string, email: string) => text.replace(email, '<email>').replace(/in \d+s/, 'in Ns');
-    expect(neutral(takenScreen, existing)).toBe(neutral(freshScreen, fresh));
+    const notice = page.getByRole('alert').filter({ hasText: "There's already an account for this email." });
+    await expect(notice).toBeVisible();
+    await expect(notice).toBeFocused();
+    await expect(page).toHaveURL(/\/create-account\?next=%2Fjournal$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Check your email' })).toHaveCount(0);
+    for (const name of ['Sign in', 'Continue with Google', 'Reset password']) {
+      const box = await notice.getByRole('link', { name }).boundingBox();
+      expect(box!.height, name).toBeGreaterThanOrEqual(44);
+    }
+    await expectNoPasswordKept(page, urls, PASSWORD);
 
-    await expect.poll(() => mailCount(existing, 'account_exists_notice')).toBe(1);
-    expect(mailCount(existing, 'register')).toBe(0);
-    const notice = lastMail(existing, 'account_exists_notice')!;
-    expect(notice.code).toBeNull();
-    expect(notice.text).toMatch(/already have an account/);
-    expect(notice.text).not.toMatch(/anxi|health/i);
+    await notice.getByRole('link', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/sign-in\?next=%2Fjournal$/);
+    await expect(page.getByLabel('Email address')).toHaveValue(existing);
+    // Give any mail a moment it would have had, then check nothing at all went to the address.
+    await page.waitForTimeout(500);
+    expect(allMailCount(existing)).toBe(before);
   });
 
   test('a weak password is caught in plain words before any mail goes out', async ({ page }) => {

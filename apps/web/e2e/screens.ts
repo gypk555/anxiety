@@ -108,6 +108,18 @@ export const SCREENS: Screen[] = [
       await p.getByLabel('6-digit code').fill('123');
     },
   },
+  {
+    name: 'create-account-exists',
+    path: '/create-account',
+    api: { accountExists: true, googleEnabled: true },
+    act: async (p) => {
+      await p.getByLabel('Your name or a nickname').fill('Asha');
+      await p.getByLabel('Email address').fill('asha.menon@example.in');
+      await p.getByLabel('Password', { exact: true }).fill('river stone quiet morning');
+      await p.getByRole('button', { name: 'Continue' }).click();
+      await p.getByText("There's already an account for this email.").waitFor();
+    },
+  },
   { name: 'forgot-password', path: '/forgot-password' },
   {
     name: 'forgot-password-reset',

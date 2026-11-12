@@ -4,19 +4,20 @@ import { passwordLength, PASSWORD_MAX, PASSWORD_MIN } from './password-length.ts
 import { profileSchema } from './profile.ts';
 
 /** Bump when the privacy notice changes materially; users are asked to accept again. */
-export const CONSENT_VERSION = '2026-11-13';
+export const CONSENT_VERSION = '2026-11-14';
 
 /**
  * Shown to everyone asked to accept again, so it must be rewritten with every bump: a test fails while
  * `version` differs from CONSENT_VERSION. Plain words, and only what really changed from the last version.
  */
 export const CONSENT_CHANGES = {
-  version: '2026-11-13',
+  version: '2026-11-14',
   summary: [
     'An account now needs a name: what you\'d like us to call you. It can be a nickname. It is encrypted, used to greet you, and put on a report for your doctor only if you choose.',
     'You can change it in Settings at any time, but not remove it. It is deleted with your account.',
     'You can now add a few optional details about you: an avatar, an age range, your gender, what you do, and what tends to cause you stress. Each is picked from a list. They are encrypted, and you can change or remove any of them in Settings at any time.',
     'They are used only to show back to you, in a report for your doctor if you choose to include them, and (for stress) to suggest tools that may help. They are never used to compare you with anyone, and never shared.',
+    'If someone enters your email address on the page to create an account, they are told that an account already exists. Nothing is emailed to you when that happens.',
   ],
 } as const;
 /** Every state-changing API request must carry this header (CSRF defence in depth). */
@@ -182,4 +183,5 @@ export type Problem = z.infer<typeof problemResponse>;
 export const ERROR_CODES = [
   'validation_failed', 'unauthenticated', 'consent_required', 'forbidden', 'not_found',
   'invalid_code', 'invalid_credentials', 'rate_limited', 'csrf_failed', 'conflict', 'internal_error', 'reauth_required',
+  'account_exists',
 ] as const;

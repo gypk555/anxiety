@@ -1,5 +1,15 @@
 # Test report
 
+## Existing-email notice and two indexes, 2026-11-12
+
+Same uncommitted tree, on top of the required-name and profile work. Follows the owner's [decision 015](../decisions/015-say-when-an-email-already-has-an-account.md), and adds migration `007_indexes.sql`.
+
+- Create account: `POST /auth/register/request` answers 409 `account_exists` for an address with an account and mails nothing; the `account_exists_notice` template and its tests are gone. The send quota is spent and counted the same way for both kinds of address, and past it both get the same quiet 202. The form shows "There's already an account for this email." in place, focused, with Sign in, Continue with Google and Reset password. `CONSENT_VERSION` is now `2026-11-14`, for the line in the privacy notice.
+- `007_indexes.sql`: `otp_codes_subject_user_idx` (the only foreign key without an index) and `otp_failures_age_idx` (the purge). A new database test fails if any foreign key column doesn't lead an index.
+- Each new test was seen failing first. typecheck clean; lint 0 errors, 17 warnings; Vitest 1,131 of 1,131 (shared 135, API 648, web 348); build succeeded.
+- Playwright `npm run test:e2e`: first run 754 passed, 1 skipped, 1 failed: `auth.spec.ts` sign-up on live-iphone, where the test left Trends while its requests were in flight and WebKit reported them as uncaught. It failed 3 of 3 on repeat, so the test now waits for Trends to settle; then 30 of 30 on repeat. Full re-run: 755 passed, 1 skipped, 0 failed. `CI=1 npm run test:e2e`: 755 passed, 1 skipped, 0 failed.
+- Not done: the lawyer question 21 on revealing that an address has an account, and MT-AUTH-12 on a real phone.
+
 ## Required name and profile details run, 2026-11-12
 
 Branch `production-rebuild`, on top of commit `35cdc27`, on an **uncommitted working tree**. Two changes together: the owner's request to make the name required, and the [profile details spec](../superpowers/specs/2026-11-12-profile-details-design.md). One consent bump for both, to `2026-11-13`. Migration `006_profile.sql`.

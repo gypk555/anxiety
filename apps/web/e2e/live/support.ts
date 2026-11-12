@@ -159,7 +159,7 @@ export const test = base.extend<Fixtures>({
 
 export type MailPurpose =
   | 'login' | 'register' | 'password_reset' | 'password_set' | 'email_change' | 'email_change_current' | 'account_delete' | 'reauth'
-  | 'email_changed_notice' | 'new_signin_notice' | 'account_exists_notice' | 'password_changed_notice' | 'google_linked_notice' | 'google_unlinked_notice';
+  | 'email_changed_notice' | 'new_signin_notice' | 'password_changed_notice' | 'google_linked_notice' | 'google_unlinked_notice';
 interface Mail {
   to: string;
   purpose: MailPurpose;
@@ -190,6 +190,22 @@ function mailFor(to: string, purpose: MailPurpose): Mail[] {
 }
 
 export const lastMail = (to: string, purpose: MailPurpose) => mailFor(to, purpose).at(-1);
+/** Every mail of any kind to this address, from the file outbox. */
+export function allMailCount(to: string): number {
+  let raw = '';
+  try {
+    raw = readFileSync(OUTBOX, 'utf8');
+  } catch {
+    return 0;
+  }
+  return raw.split('\n').filter((line) => {
+    try {
+      return (JSON.parse(line) as Mail).to === to;
+    } catch {
+      return false;
+    }
+  }).length;
+}
 export const mailCount = (to: string, purpose: MailPurpose) => mailFor(to, purpose).length;
 
 /** The latest code, once more than `after` mails to this address exist. Delivery follows the 202. */

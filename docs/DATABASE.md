@@ -245,7 +245,9 @@ Plaintext: ids, timestamps (when a person checked in, reflected, wrote, signed i
 | `otp_codes_rate_idx` | `otp_codes (quota_hash, purpose, created_at)` | Hourly quotas |
 | `otp_codes_email_idx` | `otp_codes (email_hash)` | Cleanup on erasure |
 | `otp_codes_expiry_idx` | `otp_codes (expires_at)` | Purge |
+| `otp_codes_subject_user_idx` | `otp_codes (subject_user_id) WHERE subject_user_id IS NOT NULL` | The foreign key: an account deletion cascades without scanning the table. From `007_indexes.sql` |
 | `otp_failures_rate_idx` | `otp_failures (quota_hash, purpose, created_at)` | Failed-guess cap |
+| `otp_failures_age_idx` | `otp_failures (created_at)` | Purge, by age alone. From `007_indexes.sql` |
 | `user_identities_subject_key` | `user_identities (provider, subject_hmac)`, unique | Sign-in lookup |
 | `login_failures_rate_idx` | `login_failures (quota_hash, created_at)` | Failure cap |
 | `login_failures_age_idx` | `login_failures (created_at)` | Purge |
@@ -264,6 +266,8 @@ Plaintext: ids, timestamps (when a person checked in, reflected, wrote, signed i
 | `reflections_idempotency_key` | `reflections (user_id, client_request_id)`, unique | Idempotent saves |
 | `reflections_page_idx` | `reflections (user_id, taken_at DESC, id DESC)` | Keyset paging |
 | `audit_log_created_idx` | `audit_log (created_at)` | Purge |
+
+Every foreign key column leads some index; `database.test.ts` ("indexes") fails if a new one doesn't.
 
 Sort-key timestamps are `timestamptz(3)` because JavaScript dates carry milliseconds, so a cursor round-trips exactly.
 
@@ -341,7 +345,7 @@ Runner: [apps/api/src/migrate.ts](../apps/api/src/migrate.ts). `npm run migrate`
 - An applied file whose checksum changed, or that is missing from disk, stops the run. History must not be rewritten.
 - The server does not migrate at boot. `render.yaml` runs it as `preDeployCommand`, and starts the server without the migration URL.
 
-Applied so far: `001_init.sql`, `002_accounts.sql`, `003_devices_and_reauth.sql`, `004_mood_and_safety_plan.sql`, `005_questions.sql`, `006_profile.sql` (`users.profile_ct`, `users.about_seen_at`, and `assessments_delete` added to the audit actions).
+Applied so far: `001_init.sql`, `002_accounts.sql`, `003_devices_and_reauth.sql`, `004_mood_and_safety_plan.sql`, `005_questions.sql`, `006_profile.sql` (`users.profile_ct`, `users.about_seen_at`, and `assessments_delete` added to the audit actions), `007_indexes.sql` (`otp_codes_subject_user_idx`, `otp_failures_age_idx`).
 
 ### Adding a migration
 

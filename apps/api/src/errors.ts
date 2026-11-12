@@ -16,6 +16,7 @@ const TITLES: Record<string, string> = {
   conflict: 'Conflict',
   internal_error: 'Something went wrong',
   reauth_required: 'Confirm it is you first',
+  account_exists: 'There is already an account for this email',
 };
 
 export class ApiError extends Error {

@@ -130,6 +130,12 @@ describe('privacy notice for the mood log and safety plan', () => {
     expect(document.body.textContent).not.toMatch(/We don't ask for your age, gender, occupation/);
   });
 
+  it('says plainly that the sign-up page tells anyone typing your email that an account exists', async () => {
+    mockFetch({ 'GET /meta': { body: META } });
+    page(<Privacy />);
+    expect(screen.getByText(/If someone enters your email address on the page to create an account, they will be told that an account already exists/)).toBeInTheDocument();
+  });
+
   it('Help explains quick exit, including what it cannot do', () => {
     page(<Help />);
     expect(screen.getByRole('heading', { name: 'About quick exit' })).toBeInTheDocument();

@@ -152,6 +152,7 @@ render.yaml         Render service definition
 12. [Passwords, Google and six-digit codes](docs/decisions/012-passwords-google-and-six-digit-codes.md)
 13. [Encrypted offline copy of the safety plan](docs/decisions/013-encrypted-offline-safety-plan.md)
 14. [Profile details, and what was left out](docs/decisions/014-profile-details-and-what-was-left-out.md)
+15. [Say when an email already has an account](docs/decisions/015-say-when-an-email-already-has-an-account.md)
 
 **Security, privacy and safety**
 
