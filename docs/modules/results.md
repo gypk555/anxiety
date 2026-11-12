@@ -11,7 +11,7 @@ Show what a GAD-7 score means, without diagnosing, with a next step that fits. M
 - Date, "{Severity} range", score out of 21, the plain meaning, and "This is a screening, not a diagnosis".
 - A score scale: stitched bands with a marker and labelled ranges.
 - What the person said about difficulty, if asked.
-- Next steps. A score of 10 or more leads with "Talk to a professional". Below 10 it says "Keep an eye on it". All get calming tools and a check-in date 14 days on.
+- Next steps. A score of 10 or more leads with "Talk to a professional". Below 10 it says "Keep an eye on it". All get calming tools and a check-in date 14 days on. An account that chose stress factors also gets "Tools that may help", the same fixed suggestions as Home (see [profile](profile.md)).
 - A note that these questions don't ask about thoughts of self-harm, with a link to Help.
 - "Print for a doctor".
 - The GAD-7 attribution.

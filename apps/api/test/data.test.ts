@@ -122,15 +122,19 @@ describe('consent gate', () => {
 });
 
 describe('profile', () => {
-  it('sets, trims and clears the display name', async () => {
+  it('sets, trims and changes the name, and never removes it', async () => {
     const { client } = await signInConsented(h);
     const set = await client.patch(`${API}/me`, { displayName: '  Asha  ' });
     expect(set.statusCode).toBe(200);
     expect(meResponse.strict().parse(set.json()).displayName).toBe('Asha');
     expect((await client.get(`${API}/me`)).json().displayName).toBe('Asha');
-    expect((await client.patch(`${API}/me`, { displayName: '   ' })).json().displayName).toBeNull();
-    expect((await client.patch(`${API}/me`, { displayName: null })).json().displayName).toBeNull();
-    expect((await client.patch(`${API}/me`, { displayName: 'x'.repeat(61) })).statusCode).toBe(400);
+    expect((await client.patch(`${API}/me`, { displayName: 'Meera' })).json().displayName).toBe('Meera');
+    for (const body of [{ displayName: '   ' }, { displayName: '' }, { displayName: null }, {}, { displayName: 'x'.repeat(61) }]) {
+      const r = await client.patch(`${API}/me`, body);
+      expect(r.statusCode, JSON.stringify(body)).toBe(400);
+      expect(r.json().code).toBe('validation_failed');
+    }
+    expect((await client.get(`${API}/me`)).json().displayName).toBe('Meera');
   });
 });
 

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router';
-import { CONSENT_VERSION } from '@anxiocare/shared';
+import { CONSENT_VERSION, type Profile } from '@anxiocare/shared';
 import { vi } from 'vitest';
 
 /** Renders routes on a memory router. Shares the app's query client when one is passed. */
@@ -57,6 +57,8 @@ export const ME = {
   consentRequired: false,
   consentVersion: CONSENT_VERSION,
   acceptedConsentVersion: CONSENT_VERSION as string | null,
+  profile: {} as Profile,
+  aboutSeen: true,
 };
 
 export const problem = (status: number, code: string) => ({

@@ -1,4 +1,4 @@
-import { acceptConsent, answerItems, answerDifficulty, api, corruptJournal, expect, injectFault, readGuestResult, resultHeading, seedJournal, serviceWorkerActive, signIn, signInHere, signUp, takeCheckin, test, uniqueEmail, type SavedAssessment } from './support';
+import { acceptConsent, answerItems, answerDifficulty, api, corruptJournal, expect, injectFault, readGuestResult, resultHeading, seedJournal, serviceWorkerActive, signIn, signInHere, signUp, takeCheckin, test, uniqueEmail, type SavedAssessment, giveName } from './support';
 import type { BrowserContext, Page } from '@playwright/test';
 
 const SITUATION = 'Typed before the server failed';
@@ -240,6 +240,7 @@ test('signed out while saving a record: someone else signing in never sees it', 
 
   await signInHere(page, uniqueEmail('stranger'));
   await acceptConsent(page);
+  await giveName(page);
   await expect(page).toHaveURL(/\/journal\/new/);
   await expect(page.getByLabel('Is there a more balanced way to see it?')).toHaveValue('');
   await page.getByRole('button', { name: 'Previous step' }).click();
@@ -284,6 +285,7 @@ test('signed out while saving a result: someone else signing in never sees it', 
   await resultWaitingToSave(page, context, email, newContext);
   await signInHere(page, uniqueEmail('stranger'));
   await acceptConsent(page);
+  await giveName(page);
   await expect(page).toHaveURL(/\/check-in/);
   await expect(page.locator('body')).not.toContainText('16 out of 21');
   expect(await readGuestResult(page)).toBeNull();

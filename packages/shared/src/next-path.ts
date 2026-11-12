@@ -1,4 +1,4 @@
-const NO_RETURN = ['/sign-in', '/consent', '/create-account', '/forgot-password', '/api'];
+const NO_RETURN = ['/sign-in', '/consent', '/name', '/about-you', '/create-account', '/forgot-password', '/api'];
 const MAX_LENGTH = 2048;
 const BASE = 'https://same-origin.invalid';
 

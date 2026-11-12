@@ -1,4 +1,4 @@
-import { CODE_LABEL, acceptConsent, api, differentCode, enterCode, expect, expectAccountHome, expectGuestHome, mailCount, requestCode, signOut, signUp, test, uniqueEmail, waitForCode } from './support';
+import { CODE_LABEL, acceptConsent, api, differentCode, enterCode, expect, expectAccountHome, expectGuestHome, mailCount, requestCode, signOut, signUp, test, uniqueEmail, waitForCode, giveName } from './support';
 
 test('sign-up: email, code, consent gate, home', async ({ page, context, guard }) => {
   guard.expectHttpError(/^\/api\/v1\/me$/, 403);
@@ -29,6 +29,9 @@ test('sign-up: email, code, consent gate, home', async ({ page, context, guard }
 
   await page.getByRole('checkbox', { name: /I agree to AnxioCare storing/ }).check();
   await page.getByRole('button', { name: 'Agree and continue' }).click();
+  // Then the name, asked once, still on the way to Trends.
+  await expect(page).toHaveURL(/\/name\?next=%2Ftrends$/);
+  await giveName(page);
   await expect(page).toHaveURL(/\/trends$/);
   expect((await http.get('/assessments')).status()).toBe(200);
   await page.goto('/');
@@ -52,6 +55,7 @@ test('a wrong code says so, keeps the form usable, and the right code still work
   await expect(page.getByLabel(CODE_LABEL)).toBeFocused();
   await enterCode(page, code);
   await acceptConsent(page);
+  await giveName(page);
   await expectAccountHome(page);
 });
 
@@ -79,6 +83,7 @@ test('resend waits out its cooldown, and only the newest code works', async ({ p
   }
   await enterCode(page, second);
   await acceptConsent(page);
+  await giveName(page);
   await expectAccountHome(page);
 });
 

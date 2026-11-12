@@ -72,7 +72,8 @@ export function Privacy() {
       </Part>
       <Part heading="What we store if you create an account">
         <ul className="flex list-disc flex-col gap-1 pl-5">
-          <li>Your email address, to sign you in, and a display name if you add one.</li>
+          <li>Your email address, to sign you in, and the name or nickname you give us, to greet you. It doesn't have to be your real name. You can change it in Settings, and it goes on a report for your doctor only if you choose.</li>
+          <li>If you add them, the optional details about you: an avatar, an age range (never a birth date), your gender, what you do, and what tends to cause you stress, all chosen from lists. They're encrypted. The avatar is only shown to you. The others are shown back to you, put in a report for your doctor only if you include them, and stress is used to suggest tools that may help. They're never used to compare you with anyone, never used for analytics, and never shared. You can change or remove any of them in Settings at any time.</li>
           <li>If you set a password, a one-way scrambled form of it, which can't be turned back into your password.</li>
           <li>If you use Google, a one-way code made from your Google account's ID, so we can recognise it. We don't ask Google for your name or photo. Google is added to an existing account only when you choose "Connect Google" in Settings, never just because the email addresses match, and resetting your password disconnects it.</li>
           <li>Your check-in answers, score, result range and date.</li>
@@ -86,7 +87,7 @@ export function Privacy() {
           <li>For a day after a failed password or code attempt, one-way codes made from the email address that was typed and from the network it came from, to limit how many tries can be made. Your network address itself is not stored.</li>
           <li>On each device where you sign in, a cookie holding a random code, so that wrong tries made elsewhere can't lock you out on a device you already use. It lasts a year, says nothing about you, and we keep only a one-way form of it. Resetting your password or deleting your account cancels it.</li>
         </ul>
-        <p>Your check-ins, reflections, thought records, the mood log and the safety plan are health information. We store them only with your explicit consent, and you must be 18 or older. We don't ask for your age, gender, occupation or your own phone number.</p>
+        <p>Your check-ins, reflections, thought records, the mood log and the safety plan are health information. We store them only with your explicit consent, and you must be 18 or older. We never ask for your birth date, your exact age or your own phone number.</p>
       </Part>
       <Part heading="Other people in your safety plan">
         <p>A name and phone number you add to your safety plan is that person's personal information. Add only people you'd expect to be comfortable with you calling them. We use these details for one thing: to show you a button that calls them. They're encrypted with the rest of your plan, never written to our logs, and never contacted, shared or used for anything else. They're deleted when you remove them, delete your plan, or delete your account.</p>
@@ -95,10 +96,10 @@ export function Privacy() {
         <p>So that your safety plan opens without a connection, an encrypted copy of it is kept in this browser's storage once it has loaded. The key that unlocks it is made on your device and can't be copied out of it. The copy is removed when you sign out, when your account is deleted, and when someone else signs in on this device. Anyone who can open the app on your unlocked phone while you're signed in can still read your plan, as they could read anything else in your account.</p>
       </Part>
       <Part heading="Why, and on what basis">
-        <p>We process this information on the basis of your consent, under India's Digital Personal Data Protection Act, 2023, for one purpose: giving you your own history, reflections, journal, mood log, safety plan and account. We don't use it for advertising, profiling, research, or AI, and we don't sell it.</p>
+        <p>We process this information on the basis of your consent, under India's Digital Personal Data Protection Act, 2023, for one purpose: giving you your own history, reflections, journal, mood log, safety plan, optional details and account, including tool suggestions from the stress you choose to tell us about. We don't use it for advertising, profiling, research, or AI, and we don't sell it.</p>
       </Part>
       <Part heading="How it's protected">
-        <p>Your email, name, device labels, check-ins, reflections, thought records, mood ratings and notes, and safety plan are encrypted before they reach the database, with a key unique to you. The days on which you logged a mood are stored as dates, so they can be put in order. Connections are encrypted. You sign in with a password, an emailed one-time code, or Google. Passwords are kept only in a one-way form. The app has no third-party analytics, trackers or ad networks, and loads nothing from other companies' servers.</p>
+        <p>Your email, name, optional details, device labels, check-ins, reflections, thought records, mood ratings and notes, and safety plan are encrypted before they reach the database, with a key unique to you. The days on which you logged a mood are stored as dates, so they can be put in order. Connections are encrypted. You sign in with a password, an emailed one-time code, or Google. Passwords are kept only in a one-way form. The app has no third-party analytics, trackers or ad networks, and loads nothing from other companies' servers.</p>
       </Part>
       <Part heading="Who else is involved">
         <p>We use service providers only to run the service:</p>

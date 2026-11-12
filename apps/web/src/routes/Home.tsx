@@ -1,4 +1,4 @@
-import { GAD7_ITEMS, severityFor, type Assessment, type Me } from '@anxiocare/shared';
+import { GAD7_ITEMS, readableProfile, severityFor, type Assessment, type Me } from '@anxiocare/shared';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, ChevronRight, Ear, FileText, ListChecks, NotebookPen, RotateCcw, Waves, Wind, type LucideIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -7,19 +7,22 @@ import { formatDate, formatLongDay, greeting, nextCheckInDate } from '@/lib/date
 import { hasDirtyDraft, NEW_DRAFT } from '@/lib/drafts';
 import { loadCheckin, loadGuestResult, nextUnanswered } from '@/lib/guest';
 import { loadReflection, loadReflectionResult, nextUnansweredReflection, STEPS } from '@/lib/reflection-store';
-import { withNext } from '@/lib/next-path';
+import { accountStep } from '@/lib/next-path';
+import { suggestionsFor } from '@/lib/suggestions';
 import { assessmentsKey, fetchAssessments, useMe } from '@/lib/queries';
 import { CheckInChoices } from '@/ui/CheckInChoices';
 import { MoodCard } from '@/ui/MoodCard';
 import { PageTitle } from '@/ui/PageTitle';
 import { RingsMark } from '@/ui/Rings';
 import { SettingsGroup, SettingsRow } from '@/ui/SettingsList';
+import { SuggestionList } from '@/ui/SuggestionList';
 import { ErrorState, Skeleton } from '@/ui/States';
 
 export function Home() {
   const me = useMe();
-  // Signed in with consent outstanding looks signed out here, so they go to the question that is waiting.
-  if (me.data?.consentRequired) return <Navigate to={withNext('/consent', '/')} replace />;
+  // Signed in with consent or a name outstanding looks signed out here, so they go to the question that is waiting.
+  const step = me.data ? accountStep(me.data, '/') : null;
+  if (step) return <Navigate to={step} replace />;
   // A guest and someone offline both see the guest home: every part of it works without a server.
   if (me.data) return <AccountHome me={me.data} />;
   return <FirstRun />;
@@ -172,6 +175,8 @@ function AccountHome({ me }: { me: Me }) {
         </ul>
       </Titled>
 
+      <Suggestions me={me} />
+
       {latest.isSuccess && last && !due && <YourCheckIns assessment={last} />}
 
       <SettingsGroup id="your-space" title="Your space" heading="section">
@@ -182,6 +187,22 @@ function AccountHome({ me }: { me: Me }) {
     </div>
   );
 }
+
+/** Existing tools that fit the stress factors the person chose. Nothing at all when they chose none. */
+function Suggestions({ me }: { me: Me }) {
+  const factors = me.profile.stressFactors;
+  const items = suggestionsFor(factors);
+  if (!items.length) return null;
+  const words = readableProfile(me.profile).stressFactors!.map((w) => w.toLowerCase());
+  return (
+    <Titled id="suggested" title="Tools that may help">
+      <p className="-mt-1 text-sm text-ink-soft">Because you mentioned {listOf(words)}. You can change this in Settings.</p>
+      <SuggestionList items={items} />
+    </Titled>
+  );
+}
+
+const listOf = (words: string[]) => (words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`);
 
 /** Leads the page when two weeks have passed, or before the first check-in: both kinds, one tap each. */
 function CheckInDue({ last }: { last: Assessment | undefined }) {

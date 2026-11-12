@@ -212,11 +212,34 @@ describe('a returning person', () => {
     const email = uniqueEmail('google-next');
     const sub = `sub-${email}`;
     const client = await signInConsented(h, email);
+    await client.client.patch(`${API}/me`, { displayName: 'Asha' });
+    await client.client.post(`${API}/me/about-seen`);
     await connectGoogle(client.client, { email, sub });
     const browser = new Browser();
     const r = await browser.signIn({ email, sub }, '/journal/new?step=2');
     expect(r.headers.location).toBe('/journal/new?step=2');
     expect((await browser.api('/me')).json().id).toBe(client.id);
+  });
+});
+
+describe('the name', () => {
+  it('is never asked of Google: a consented account with no name goes to the name screen, keeping next', async () => {
+    const email = uniqueEmail('google-noname');
+    const sub = `sub-${email}`;
+    const owner = await signInConsented(h, email);
+    await connectGoogle(owner.client, { email, sub });
+    const r = await new Browser().signIn({ email, sub }, '/journal/new?step=2');
+    expect(r.headers.location).toBe('/name?next=%2Fjournal%2Fnew%3Fstep%3D2');
+    await owner.client.patch(`${API}/me`, { displayName: 'Asha' });
+    // Named, then About you is offered once, and then never again.
+    expect((await new Browser().signIn({ email, sub }, '/journal')).headers.location).toBe('/about-you?next=%2Fjournal');
+    await owner.client.post(`${API}/me/about-seen`);
+    expect((await new Browser().signIn({ email, sub }, '/journal')).headers.location).toBe('/journal');
+  });
+
+  it('a new Google account asks consent first, and the name after it', async () => {
+    const r = await new Browser().signIn({ email: uniqueEmail('google-new-name') }, '/trends');
+    expect(r.headers.location).toBe('/consent?next=%2Ftrends');
   });
 });
 
@@ -235,6 +258,7 @@ describe('linking', () => {
   it('connecting from Settings links it, keeping the account\'s data, mails a notice and audits it', async () => {
     const owner = await signInConsented(h);
     await owner.client.patch(`${API}/me`, { displayName: 'Asha' });
+    await owner.client.post(`${API}/me/about-seen`);
     const r = await connectGoogle(owner.client, { email: owner.email, sub: `sub-${owner.email}` });
     expect(r.headers.location).toBe('/settings?google=connected');
     const browser = new Browser();
@@ -490,10 +514,12 @@ describe('what a rejection logs', () => {
 describe('open redirect through next', () => {
   it.each([
     'https://evil.example', '//evil.example', '/\\evil.example', '\\\\evil.example', '/\t/evil.example', '/\n/evil.example', '/.//evil.example',
-    'javascript:alert(1)', 'evil.example', '/api/v1/me', '/sign-in', '/consent',
+    'javascript:alert(1)', 'evil.example', '/api/v1/me', '/sign-in', '/consent', '/name',
   ])('%j falls back to /', async (next) => {
     const email = uniqueEmail('redirect');
     const owner = await signInConsented(h, email);
+    await owner.client.patch(`${API}/me`, { displayName: 'Asha' });
+    await owner.client.post(`${API}/me/about-seen`);
     await connectGoogle(owner.client, { email, sub: `sub-${email}` });
     const browser = new Browser();
     const r = await browser.signIn({ email, sub: `sub-${email}` }, next);

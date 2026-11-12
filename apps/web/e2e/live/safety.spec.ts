@@ -1,5 +1,5 @@
 import { EMERGENCY_NUMBER, HELPLINES } from '@anxiocare/shared';
-import { answerItems, api, enterCode, expect, requestCode, seedAssessment, seedJournal, serviceWorkerActive, signUp, test, uniqueEmail, waitForCode } from './support';
+import { answerItems, api, enterCode, expect, requestCode, seedAssessment, seedJournal, serviceWorkerActive, signUp, test, uniqueEmail, waitForCode, giveName } from './support';
 import type { Page } from '@playwright/test';
 
 async function helpIsOneTapAway(page: Page, path: string) {
@@ -59,6 +59,13 @@ test('Get help is on every signed-in route, in the consent gate, the code screen
   await page.getByRole('checkbox', { name: 'I am 18 or older.' }).check();
   await page.getByRole('checkbox', { name: /I agree to AnxioCare storing/ }).check();
   await page.getByRole('button', { name: 'Agree and continue' }).click();
+  // The name screen, like the consent gate, keeps Get help and Quick exit.
+  await expect(page.getByRole('heading', { level: 1, name: 'What should we call you?' })).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Quick exit' })).toBeVisible();
+  await page.getByRole('banner').getByRole('link', { name: 'Get help' }).click();
+  await expect(page).toHaveURL(/\/help$/);
+  await page.goto('/');
+  await giveName(page);
   await expect(page.getByRole('heading', { level: 2, name: 'For right now' })).toBeVisible();
 
   const result = await seedAssessment(context, [1, 1, 1, 1, 1, 1, 1], 1);

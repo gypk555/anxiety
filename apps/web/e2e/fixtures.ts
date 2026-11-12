@@ -13,6 +13,8 @@ export const me = (over: Record<string, unknown> = {}) => ({
   consentRequired: false,
   consentVersion: CONSENT_VERSION,
   acceptedConsentVersion: over.consentRequired ? null : CONSENT_VERSION,
+  profile: {},
+  aboutSeen: true,
   ...over,
 });
 
@@ -104,14 +106,19 @@ export interface MockOptions {
   googleEnabled?: boolean;
   methods?: { password: boolean; google: boolean };
   loginFails?: boolean;
+  /** An account with no name yet, as one made with Google is. */
+  unnamed?: boolean;
+  /** An account that hasn't been offered About you yet, with these details already set. */
+  aboutUnseen?: boolean;
+  profile?: Record<string, unknown>;
 }
 
 const unauth = { type: 'about:blank', title: 'Unauthenticated', status: 401, code: 'unauthenticated' };
 
 /** A stand-in for the API, from the shared contract, for visual and accessibility checks. */
 export async function mockApi(page: Page, options: MockOptions = {}) {
-  const { signedIn = false, consentRequired = false, empty = false, acceptedConsentVersion, googleEnabled = false, methods = { password: true, google: false }, loginFails = false } = options;
-  const account = () => me({ consentRequired, ...(acceptedConsentVersion ? { acceptedConsentVersion } : {}) });
+  const { signedIn = false, consentRequired = false, empty = false, acceptedConsentVersion, googleEnabled = false, methods = { password: true, google: false }, loginFails = false, unnamed = false, aboutUnseen = false, profile } = options;
+  const account = () => me({ consentRequired, ...(acceptedConsentVersion ? { acceptedConsentVersion } : {}), ...(unnamed ? { displayName: null } : {}), ...(aboutUnseen ? { aboutSeen: false } : {}), ...(profile ? { profile } : {}) });
   await page.route('**/api/v1/**', async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/api/v1', '');

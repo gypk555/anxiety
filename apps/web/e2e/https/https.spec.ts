@@ -84,6 +84,7 @@ const bodyCode = (raw: string) => {
 test('production: create an account with a password, sign out, and sign in with it, under __Host- cookies', async ({ page, context }) => {
   const email = `pw-${randomBytes(6).toString('hex')}@example.com`;
   await page.goto('/create-account');
+  await page.getByLabel('Your name or a nickname').fill('Asha');
   await page.getByLabel('Email address').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -186,6 +187,13 @@ test.describe('Google over real TLS', () => {
     await page.getByRole('checkbox', { name: 'I am 18 or older.' }).check();
     await page.getByRole('checkbox', { name: /I agree to AnxioCare storing/ }).check();
     await page.getByRole('button', { name: 'Agree and continue' }).click();
+    // Google is never asked for a name, so it is asked here, once.
+    await expect(page.getByRole('heading', { level: 1, name: 'What should we call you?' })).toBeVisible();
+    await page.getByLabel('Your name or a nickname').fill('Asha');
+    await page.getByRole('button', { name: 'Continue' }).click();
+    // Then About you, offered once and skipped.
+    await expect(page.getByRole('heading', { level: 1, name: 'About you' })).toBeVisible();
+    await page.getByRole('button', { name: 'Skip for now' }).click();
     await expect(page.getByRole('heading', { level: 2, name: 'Save this result to your account?' })).toBeVisible();
     expect(csp).toEqual([]);
   });

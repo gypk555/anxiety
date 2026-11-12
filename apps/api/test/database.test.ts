@@ -38,7 +38,7 @@ describe('migration 002', () => {
     });
     await owner.end();
 
-    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql', '004_mood_and_safety_plan.sql', '005_questions.sql']);
+    expect(await migrate(sql)).toEqual(['002_accounts.sql', '003_devices_and_reauth.sql', '004_mood_and_safety_plan.sql', '005_questions.sql', '006_profile.sql']);
     expect(await migrate(sql), 'and runs once').toEqual([]);
 
     const [user] = await sql<{ password_hash: string | null; email_ct: Buffer }[]>`SELECT password_hash, email_ct FROM app.users WHERE id = ${id}::uuid`;

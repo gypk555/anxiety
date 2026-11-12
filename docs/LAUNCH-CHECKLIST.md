@@ -36,6 +36,8 @@ Start these early. They can change the code and the words.
   - [ ] Retention for inactive accounts: decided.
   - [ ] How to file a breach report: written into [OPERATIONS.md](OPERATIONS.md#timeline).
   - [ ] Safe harbour wording: reviewed.
+- [ ] **Lawyer review of the required name and the optional profile details** (consent version `2026-11-13`): gender, occupation and stress factors stored with health data, and whether requiring a name is proportionate. [Questions 19 and 20](PRIVACY-COMPLIANCE.md#questions-for-the-lawyer). **Blocks launch: Yes.**
+- [ ] **Clinician review of the stress-factor tool suggestions** in [apps/web/src/lib/suggestions.ts](../apps/web/src/lib/suggestions.ts) (Home and the GAD-7 result), and the "Breath N" counter. [Profile](modules/profile.md). **Blocks launch: Yes.**
 - [ ] **Clinician review and signed form.** Use the [sign-off form](CLINICAL-SAFETY.md#clinician-review-sign-off). Include the [hazard log](CLINICAL-SAFETY.md#hazard-log), and the [safety plan wording](CLINICAL-SAFETY.md#safety-plan-wording), items 19 to 23. **Blocks launch: Yes.**
 - [ ] **Decide whether the Stanley-Brown safety plan needs attribution or permission.** See [clinical safety](CLINICAL-SAFETY.md#safety-plan-wording). **Blocks launch: Yes.**
 - [ ] **Run the real-phone quick exit and safety plan cases**, MT-QX and MT-SP in the [manual test cases](testing/MANUAL-TEST-CASES.md). **Blocks launch: Yes.**

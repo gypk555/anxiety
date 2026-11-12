@@ -1,16 +1,20 @@
-import { emailSchema, googleConnectResponse, OTP_LENGTH, signInMethodsResponse, type Me, type SessionInfo } from '@anxiocare/shared';
+import { avatarFor, emailSchema, googleConnectResponse, OTP_LENGTH, readableProfile, signInMethodsResponse, type Me, type Profile, type SessionInfo } from '@anxiocare/shared';
 import { passwordProblem } from '@anxiocare/shared/passwords';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Info, KeyRound, Link2, LogOut, Mail, MailCheck, Moon, ScrollText, Shield, Smartphone, SquarePlus, Sun, Trash2, User } from 'lucide-react';
-import { useEffect, useState, type KeyboardEvent } from 'react';
+import { Download, Info, KeyRound, Link2, ListX, LogOut, Mail, MailCheck, Moon, ScrollText, Shield, Smartphone, SquarePlus, Sun, Trash2, User, UserRound } from 'lucide-react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { ApiError, errorMessage, NetworkError, passwordFieldError, request, requestFile } from '@/lib/api';
 import { formatDateTime } from '@/lib/dates';
-import { backupWindow, clearClientData, meKey, sessionList, sessionsKey, useMe, useMeta } from '@/lib/queries';
+import { profilePatch } from '@/lib/profile';
+import { assessmentsKey, backupWindow, clearClientData, fetchAssessments, meKey, sessionList, sessionsKey, useMe, useMeta } from '@/lib/queries';
 import { useTheme, type ThemeChoice } from '@/lib/theme';
+import { nameProblem } from '@/lib/name';
+import { NameField } from '@/ui/NameField';
 import { OtpInput } from '@/ui/OtpInput';
 import { PageTitle } from '@/ui/PageTitle';
 import { PASSWORD_HINT, PasswordField } from '@/ui/PasswordField';
+import { ProfileForm } from '@/ui/ProfileForm';
 import { ResendCode } from '@/ui/ResendCode';
 import { ConfirmSheet, Sheet } from '@/ui/Sheet';
 import { SettingsGroup, SettingsRow } from '@/ui/SettingsList';
@@ -140,9 +144,12 @@ export default function Settings() {
 
 function ProfileCard({ me }: { me: Me }) {
   const initial = (me.displayName?.trim() || me.email).charAt(0).toUpperCase();
+  const avatar = avatarFor(me.profile.avatar);
   return (
     <div className="patch flex items-center gap-4">
-      <span aria-hidden="true" className="profile-initial">{initial}</span>
+      {avatar
+        ? <span role="img" aria-label={avatar.label} className="profile-initial">{avatar.emoji}</span>
+        : <span aria-hidden="true" className="profile-initial">{initial}</span>}
       <div className="min-w-0">
         <p className="font-display text-xl font-semibold leading-tight">{me.displayName || 'Your account'}</p>
         <p className="text-sm break-words text-ink-soft">{me.email}</p>
@@ -168,7 +175,7 @@ function AccountSettings({ me }: { me: Me }) {
       <AccountGroup me={me} />
       <SignInSecurity me={me} />
       <SharedSettings />
-      <YourData />
+      <YourData me={me} />
       <SignOut />
       <DeleteAccount />
     </>
@@ -196,7 +203,7 @@ function RightsOnlySettings({ me }: { me: Me }) {
       </SettingsGroup>
       <SignInSecurity me={me} />
       <SharedSettings />
-      <YourData />
+      <YourData me={me} />
       <SignOut />
       <DeleteAccount />
     </>
@@ -204,18 +211,50 @@ function RightsOnlySettings({ me }: { me: Me }) {
 }
 
 function AccountGroup({ me }: { me: Me }) {
-  const [sheet, setSheet] = useState<'name' | 'email' | null>(null);
+  const [sheet, setSheet] = useState<'name' | 'email' | 'about' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   return (
     <>
       <SettingsGroup title="Account" id="account">
-        <SettingsRow icon={User} title="Name" value={me.displayName || 'Not set'} description="Only used to greet you" onClick={() => { setNotice(null); setSheet('name'); }} />
+        <SettingsRow icon={User} title="Name" value={me.displayName || 'Not set'} description="Used to greet you" onClick={() => { setNotice(null); setSheet('name'); }} />
         <SettingsRow icon={Mail} title="Email" description={me.email} onClick={() => { setNotice(null); setSheet('email'); }} />
+        <SettingsRow icon={UserRound} title="About you" value={profileSummary(me.profile)} description="Optional. Change or remove any detail" onClick={() => { setNotice(null); setSheet('about'); }} />
       </SettingsGroup>
       <div aria-live="polite" className="-mt-3 empty:hidden">{notice && <p role="status" className="mx-1 text-sm">{notice}</p>}</div>
       <NameSheet me={me} open={sheet === 'name'} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); setNotice('Name saved'); }} />
+      <Sheet open={sheet === 'about'} onClose={() => setSheet(null)} title="About you">
+        <AboutForm me={me} onSaved={() => { setSheet(null); setNotice('Details saved'); }} />
+      </Sheet>
       <EmailSheet me={me} open={sheet === 'email'} onClose={() => setSheet(null)} onDone={() => { setSheet(null); setNotice('Email updated. Use it next time you sign in.'); }} />
     </>
+  );
+}
+
+/** A short, readable line for the row: what's set, or that nothing is. */
+function profileSummary(profile: Profile): string {
+  const words = readableProfile(profile);
+  const parts = [words.ageRange, words.gender, words.occupation].filter(Boolean) as string[];
+  if (words.stressFactors) parts.push(`${words.stressFactors.length} stress factor${words.stressFactors.length === 1 ? '' : 's'}`);
+  return parts.length ? parts.join(', ') : 'Not set';
+}
+
+function AboutForm({ me, onSaved }: { me: Me; onSaved: () => void }) {
+  const client = useQueryClient();
+  const [profile, setProfile] = useState<Profile>(me.profile);
+  const save = useMutation({
+    mutationFn: () => request('PATCH', '/me/profile', { body: profilePatch(profile) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: meKey });
+      onSaved();
+    },
+  });
+  return (
+    <form className="flex flex-col gap-4" noValidate onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+      <p className="text-ink-soft">All optional, and encrypted. Used only to show back to you, in a report if you choose, and to suggest tools. Never to compare you with anyone.</p>
+      <ProfileForm idPrefix="settings" value={profile} onChange={setProfile} />
+      {save.error && <p role="alert" className="font-medium text-madder">{errorMessage(save.error)}</p>}
+      <button type="submit" className="btn btn-primary" disabled={save.isPending}>{save.isPending ? 'Saving' : 'Save'}</button>
+    </form>
   );
 }
 
@@ -231,8 +270,11 @@ function NameSheet({ me, open, onClose, onSaved }: { me: Me; open: boolean; onCl
 function NameForm({ me, onSaved }: { me: Me; onSaved: () => void }) {
   const client = useQueryClient();
   const [name, setName] = useState(me.displayName ?? '');
+  const [problem, setProblem] = useState<string | null>(null);
+  const fieldRef = useRef<HTMLInputElement>(null);
+  // It can be changed, never removed: PATCH /me refuses an empty name too.
   const save = useMutation({
-    mutationFn: () => request('PATCH', '/me', { body: { displayName: name.trim() || null } }),
+    mutationFn: (displayName: string) => request('PATCH', '/me', { body: { displayName } }),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: meKey });
       onSaved();
@@ -241,13 +283,22 @@ function NameForm({ me, onSaved }: { me: Me; onSaved: () => void }) {
   return (
     <form
       className="flex flex-col gap-3"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        save.mutate();
+        const found = nameProblem(name);
+        setProblem(found);
+        if (found) return fieldRef.current?.focus();
+        save.mutate(name.trim());
       }}
     >
-      <label htmlFor="display-name" className="text-ink-soft">Optional. Only used to greet you.</label>
-      <input id="display-name" className="field" maxLength={60} autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} />
+      <NameField
+        ref={fieldRef}
+        value={name}
+        error={problem}
+        hint="Used to greet you, and on a report for your doctor only if you choose."
+        onChange={(value) => { setName(value); setProblem(null); }}
+      />
       {save.error && <p role="alert" className="font-medium text-madder">{errorMessage(save.error)}</p>}
       <button type="submit" className="btn btn-primary" disabled={save.isPending}>{save.isPending ? 'Saving' : 'Save name'}</button>
     </form>
@@ -785,7 +836,10 @@ function Sessions() {
   );
 }
 
-function YourData() {
+/** Download, delete all check-ins and clear profile details are rights: none of them waits on consent. */
+function YourData({ me }: { me?: Me }) {
+  const deleteAll = useDeleteCheckIns(me ?? null);
+  const clearProfile = useClearProfile(me ?? null);
   const [state, setState] = useState<'idle' | 'working' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
   const download = async () => {
@@ -815,12 +869,119 @@ function YourData() {
           disabled={state === 'working'}
           onClick={() => void download()}
         />
+        {deleteAll?.row}
+        {clearProfile?.row}
         {legalRows()}
       </SettingsGroup>
+      {deleteAll?.sheets}
+      {clearProfile?.sheets}
       <p aria-live="polite" className="sr-only">{state === 'working' ? 'Preparing' : state === 'done' ? 'Download started.' : ''}</p>
       {error && <p role="alert" className="mx-1 font-medium text-madder">{error}</p>}
     </section>
   );
+}
+
+/** Every optional detail at once. A right, so it works before the current notice is accepted (DELETE /me/profile). */
+function useClearProfile(me: Me | null) {
+  const client = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const clear = useMutation({
+    mutationFn: () => request('DELETE', '/me/profile'),
+    onSuccess: () => {
+      setConfirming(false);
+      setNotice('Profile details cleared');
+      void client.invalidateQueries({ queryKey: meKey });
+    },
+  });
+  if (!me) return null;
+  const row = <SettingsRow icon={UserRound} title="Clear my profile details" description="Your avatar, age range, gender, what you do and stress. Your name stays." onClick={() => { setNotice(null); clear.reset(); setConfirming(true); }} />;
+  const sheets = (
+    <>
+      <div aria-live="polite" className="mx-1 empty:hidden">{notice && <p role="status" className="text-sm">{notice}</p>}</div>
+      <ConfirmSheet
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={() => clear.mutate()}
+        busy={clear.isPending}
+        error={clear.error ? errorMessage(clear.error) : null}
+        title="Clear your profile details?"
+        confirmLabel="Clear details"
+        cancelLabel="Keep them"
+      >
+        Your avatar, age range, gender, what you do and what causes you stress are removed at once. Your name, check-ins and everything else stay.
+      </ConfirmSheet>
+    </>
+  );
+  return { row, sheets };
+}
+
+/** Every check-in at once, part of the right to erasure. Names the count, and asks for proof that it's them. */
+function useDeleteCheckIns(me: Me | null) {
+  const client = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+  const [reauth, setReauth] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const methods = useQuery({ queryKey: methodsKey, queryFn: () => request('GET', '/me/sign-in-methods', { schema: signInMethodsResponse }), enabled: !!me });
+  const count = useQuery({
+    queryKey: [...assessmentsKey, 'count'],
+    queryFn: async () => {
+      let n = 0;
+      let cursor: string | undefined;
+      for (let i = 0; i < 100; i += 1) {
+        const page = await fetchAssessments(cursor);
+        n += page.items.length;
+        if (!page.nextCursor) break;
+        cursor = page.nextCursor;
+      }
+      return n;
+    },
+    enabled: confirming && !!me,
+  });
+  const needsReauth = (e: unknown) => e instanceof ApiError && e.code === 'reauth_required';
+  const remove = useMutation({
+    mutationFn: () => request<{ deleted: number }>('DELETE', '/assessments'),
+    onSuccess: ({ deleted }) => {
+      setConfirming(false);
+      setNotice(`${deleted} check-in${deleted === 1 ? '' : 's'} deleted`);
+      void client.invalidateQueries({ queryKey: assessmentsKey });
+    },
+    onError: (e) => {
+      if (!needsReauth(e)) return;
+      setConfirming(false);
+      setReauth(true);
+    },
+  });
+  const n = count.data;
+  const plural = n === 1 ? 'check-in' : 'check-ins';
+  if (!me) return null;
+  const row = <SettingsRow icon={ListX} title="Delete all check-ins" description="Your GAD-7 results. Everything else stays." onClick={() => { setNotice(null); remove.reset(); setConfirming(true); }} />;
+  const sheets = (
+    <>
+      <div aria-live="polite" className="mx-1 empty:hidden">{notice && <p role="status" className="text-sm">{notice}</p>}</div>
+      <ConfirmSheet
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={() => remove.mutate()}
+        busy={remove.isPending || n === undefined || n === 0}
+        error={remove.error && !needsReauth(remove.error) ? errorMessage(remove.error) : count.error ? errorMessage(count.error) : null}
+        title="Delete all check-ins?"
+        confirmLabel={n === undefined ? 'Delete' : `Delete ${n} ${plural}`}
+        cancelLabel="Keep them"
+      >
+        {n === undefined ? 'Counting your check-ins.' : n === 0 ? 'You have no saved check-ins.' : `All ${n} of your saved ${plural} will be deleted, at once. This can't be undone. Your journal, mood log, reflections and safety plan stay.`}
+      </ConfirmSheet>
+      <ConfirmItsYou
+        open={reauth}
+        email={me.email}
+        hasPassword={!!methods.data?.password}
+        purpose="delete all your check-ins"
+        onClose={() => setReauth(false)}
+        onDone={() => { setReauth(false); remove.mutate(); }}
+      />
+    </>
+  );
+  return { row, sheets };
 }
 
 function SignOut() {

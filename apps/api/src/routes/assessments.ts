@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { assessmentCreateBody, pageQuery, scoreGad7, severityFor, type Assessment } from '@anxiocare/shared';
 import type { FastifyInstance } from 'fastify';
-import { authOf, type authHooks } from '../auth.ts';
+import { audit } from '../audit.ts';
+import { authOf, requireRecentReauth, type authHooks } from '../auth.ts';
 import type { Ctx } from '../context.ts';
 import { openJson, sealJson } from '../crypto.ts';
 import { conflict, fieldError, notFound } from '../errors.ts';
@@ -54,6 +55,19 @@ export function assessmentRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnTy
     `;
     const dek = dekFor(keys, user);
     return page(rows, limit, (row) => assessmentFromRow(dek, user.id, row), (row) => [row.taken_at, row.id]);
+  });
+
+  // Every check-in at once: part of the right to erasure, so it needs no consent, like download and delete. Destructive,
+  // so it needs a recent proof that it's them.
+  app.delete('/assessments', { preHandler: hooks.requireAuth, config: { rateLimit: { max: 10, timeWindow: '1 hour' } } }, async (request) => {
+    const auth = authOf(request);
+    requireRecentReauth(auth);
+    const deleted = await sql.begin(async (tx) => {
+      const rows = await tx`DELETE FROM app.assessments WHERE user_id = ${auth.user.id}::uuid RETURNING 1`;
+      await audit(tx, keys, 'assessments_delete', auth.user.id);
+      return rows.length;
+    });
+    return { deleted };
   });
 
   app.post('/assessments', { ...guarded, config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {

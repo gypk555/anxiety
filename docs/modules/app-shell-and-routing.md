@@ -6,7 +6,7 @@ The frame around every screen, the URL map, access guards, global error and sess
 
 ## User-facing behaviour
 
-- Header: wordmark, "Quick exit" and "Get help", plus tabs at the `md` breakpoint. Below 390px the wordmark shows only the logomark, so both buttons fit at 320px.
+- Header: wordmark, the account's avatar when one is chosen (a link to Settings, named "Settings, <avatar>", hidden below 360px), "Quick exit" and "Get help", plus tabs at the `md` breakpoint. Below 390px the wordmark shows only the logomark, so both buttons fit at 320px. The avatar reads `/me` from the cache only, so the header makes no request.
 - Quick exit is also in every open sheet, and Escape three times anywhere outside a text field does the same. See [quick exit](quick-exit.md).
 - Bottom tab bar on phones: Home, Tools, Journal, Trends, Settings. One-task screens hide it. "Get help" never goes away.
 - Real URLs, and a working back button. Focus moves to the new screen's heading after navigation, and scroll resets except on back.
@@ -19,7 +19,7 @@ Home leads with what matters today. Only that card is quilted.
 - **Signed in**: the date ("Thursday, 12 November") over the greeting; any work left half-done in this tab (resume rows, with a progress bar); then either
   - **check-in due** (14 days since the last one, or none yet): "Time for a check-in" with both choices, Anxiety check (GAD-7) and Reflection, one tap each, and "Last time: <band>, <score> out of 21. See result"; today's mood follows as one quiet line; or
   - **not due**: the mood card (one tap saves, see [mood log](mood-log.md)).
-  Then **For right now** (Breathe on the night surface, Ground, Sounds, Write), **Your check-ins** when not due (last result, a "Next <date>" badge, Check in now and See result), and **Your space**: Safety plan, Mood log, Report for your doctor.
+  Then **For right now** (Breathe on the night surface, Ground, Sounds, Write), **Tools that may help** when the person chose stress factors ("Because you mentioned sleep…", see [profile](profile.md)), **Your check-ins** when not due (last result, a "Next <date>" badge, Check in now and See result), and **Your space**: Safety plan, Mood log, Report for your doctor.
 - **First visit or guest**: the rings, "How have the last two weeks been?", a privacy line, both check-in choices, "Overwhelmed? Breathe first", the 18+ line, and a "Want to see how you change over time?" card with Sign in and Create account.
 - The Reflection choice picks its questions on tap; the question bank is loaded then, not in the first bundle.
 
@@ -60,12 +60,14 @@ Home leads with what matters today. Only that card is quilted.
 | `/forgot-password/reset` | Code and new password | No | focus |
 | `/sign-in/code` | Code | No | focus |
 | `/consent` | Consent | Handled itself | focus, wide |
+| `/name` | "What should we call you?" | Handled itself: consent first | focus |
+| `/about-you` | About you, offered once | Handled itself: consent and name first | focus |
 | `/privacy`, `/terms`, `/about` | Legal | No | wide |
 | `*` | Not found | No | |
 
 Handles (`RouteHandle`): `focus` hides the tab bar, `night` forces the dark canvas, `wide` widens the column.
 
-**Guard.** `RequireAccount` waits for `/me`, then redirects to `/sign-in?next=...` or `/consent?next=...`, or shows the error state. It doesn't treat a network failure as signed out. `safeNext` allows only same-origin paths, and never loops back into sign-in or consent.
+**Guard.** `RequireAccount` waits for `/me`, then redirects to `/sign-in?next=...`, `/consent?next=...` or, for an account with no name, `/name?next=...` (`accountStep`), or shows the error state. It never redirects to `/about-you`, which is offered only after a sign-in, consent or the name (`afterSignIn`). It doesn't treat a network failure as signed out. `safeNext` allows only same-origin paths, and never loops back into sign-in, consent, the name screen or About you.
 
 **Errors.** `RouteError` sits inside the shell, so a failing screen keeps "Get help". It recognises chunk-load errors. `RootError` is the last resort, using plain links.
 

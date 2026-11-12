@@ -24,9 +24,9 @@ const JOURNAL = [{ id: '33333333-3333-4333-8333-333333333331', situation: 'Secre
 const PLAN = { ...emptySafetyPlan(), reasonsToLive: ['SecretReason'], updatedAt: at };
 const REFLECTIONS = [{ id: '66666666-6666-4666-8666-666666666661', takenAt: iso(4), answers: [{ q: 'REF-001', a: 3 }, { q: 'REF-021', a: 2 }, { q: 'REF-041', a: 0 }, { q: 'REF-061', a: 1 }, { q: 'REF-081', a: 0 }], note: 'SecretReflectionNote' }];
 
-function setup() {
+function setup(me: object = ME) {
   const fetchMock = mockFetch({
-    'GET /me': { body: ME },
+    'GET /me': { body: me },
     'GET /assessments': { body: { items: ASSESSMENTS, nextCursor: null } },
     [`GET /moods?from=${addDays(today, -399)}&to=${today}`]: { body: { items: MOODS } },
     'GET /journal': { body: { items: JOURNAL, nextCursor: null } },
@@ -120,5 +120,28 @@ describe('doctor report', () => {
       { weekStart: '2026-11-02', days: 2, average: 3 },
       { weekStart: '2026-11-09', days: 1, average: 5 },
     ]);
+  });
+
+  it('has an About me section, off by default, with only the details that are set, in words', async () => {
+    setup({ ...ME, profile: { avatar: 'leaf', ageRange: '35-44', occupation: 'self_employed', stressFactors: ['work', 'sleep'] } });
+    await screen.findByRole('table', { name: 'GAD-7 check-ins' });
+    const box = screen.getByRole('checkbox', { name: 'About me' });
+    expect(box).not.toBeChecked();
+    expect(within(preview()).queryByRole('heading', { name: 'About me' })).not.toBeInTheDocument();
+    await userEvent.click(box);
+    const section = within(preview()).getByRole('region', { name: 'About me' });
+    expect(section).toHaveTextContent('Age range35 to 44');
+    expect(section).toHaveTextContent('OccupationSelf-employed');
+    expect(section).toHaveTextContent('Things that cause stressWork, Sleep');
+    expect(section).not.toHaveTextContent(/Gender/);
+    // The avatar is decoration, never part of a report.
+    expect(section).not.toHaveTextContent(/Gentle Leaf|🌿/);
+  });
+
+  it('says so when no details are set', async () => {
+    setup({ ...ME, profile: {} });
+    await screen.findByRole('table', { name: 'GAD-7 check-ins' });
+    await userEvent.click(screen.getByRole('checkbox', { name: 'About me' }));
+    expect(within(preview()).getByRole('region', { name: 'About me' })).toHaveTextContent(/No details added/);
   });
 });

@@ -52,6 +52,8 @@ const PAD_STEP: Readonly<Record<string, number>> = {
   'reflections.payload': 2048,
   'users.email': 512,
   'users.display_name': 256,
+  // Larger than every field set at its longest, so every profile is the same size.
+  'users.profile': 512,
   'sessions.device_label': 64,
 };
 const DEFAULT_PAD_STEP = 256;

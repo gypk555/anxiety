@@ -1,4 +1,4 @@
-import { api, expect, expectGuestHome, enterCode, seedAssessment, seedJournal, signOut, signUp, test, waitForCode } from './support';
+import { api, expect, expectGuestHome, enterCode, seedAssessment, seedJournal, signOut, signUp, test, waitForCode, giveName } from './support';
 
 test("another user's result and thought record are simply not found", async ({ page, context, newContext, guard }) => {
   guard.expectHttpError(/^\/api\/v1\/(assessments|journal)\//, 404);
@@ -107,6 +107,7 @@ test('the next person on the same tab sees nothing of the last person', async ({
   await page.getByRole('checkbox', { name: 'I am 18 or older.' }).check();
   await page.getByRole('checkbox', { name: /I agree to AnxioCare storing/ }).check();
   await page.getByRole('button', { name: 'Agree and continue' }).click();
+  await giveName(page);
   await expect(page.getByText('Your first check-in')).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Trends' }).click();
   await expect(page.getByText('Nothing to show yet.')).toBeVisible();

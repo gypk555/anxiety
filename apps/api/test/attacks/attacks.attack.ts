@@ -29,7 +29,7 @@ const PW = 'river stone quiet morning';
 async function register(email: string, password = PW) {
   const c = new Client(h);
   await c.post(`${API}/auth/register/request`, { email }); await h.app.drainBackground();
-  const r = await c.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password });
+  const r = await c.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password, displayName: 'Asha' });
   expect(r.statusCode).toBe(200); return { c, id: r.json().id };
 }
 

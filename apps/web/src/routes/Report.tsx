@@ -4,6 +4,7 @@ import {
   GAD7_ATTRIBUTION,
   GAD7_MAX_SCORE,
   moodLabel,
+  readableProfile,
   REFLECTION_OPTIONS,
   reflectionQuestion,
   SAFETY_PLAN_SECTIONS,
@@ -12,6 +13,7 @@ import {
   type JournalEntry,
   type MoodEntry,
   type PlanContact,
+  type Profile,
   type Reflection,
   type SafetyPlan,
 } from '@anxiocare/shared';
@@ -50,6 +52,7 @@ const SECTIONS = [
   { id: 'journal', label: 'Journal entries', on: false },
   { id: 'reflections', label: 'Reflections', on: false },
   { id: 'reflectionNotes', label: 'Reflection notes', on: false },
+  { id: 'about', label: 'About me', on: false },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
 
@@ -130,7 +133,7 @@ export default function Report() {
               {s.label}
             </label>
           ))}
-          <p className="text-sm text-ink-soft">Mood notes, your safety plan, journal entries and reflections are private, so they're left out unless you add them. Reflection notes appear only with reflections on.</p>
+          <p className="text-sm text-ink-soft">Mood notes, your safety plan, journal entries and reflections are private, so they're left out unless you add them. Reflection notes appear only with reflections on. About me is your age range, gender, what you do and what causes you stress, if you've added them.</p>
         </fieldset>
         <fieldset className="flex flex-col gap-2">
           <legend className="font-display text-xl font-semibold">Your name</legend>
@@ -160,6 +163,12 @@ export default function Report() {
             {showName && name.trim() && <p className="text-lg">For {name.trim()}</p>}
             <p className="text-ink-soft">{periodLabel}</p>
           </header>
+
+          {on.about && me.data && (
+            <ReportSection title="About me">
+              <AboutMe profile={me.data.profile} />
+            </ReportSection>
+          )}
 
           {on.scores && (
             <ReportSection title="GAD-7 scores">
@@ -208,6 +217,28 @@ export default function Report() {
         </section>
       )}
     </div>
+  );
+}
+
+/** The person's own optional details, in words. The avatar is decoration, so it never goes in. */
+function AboutMe({ profile }: { profile: Profile }) {
+  const words = readableProfile(profile);
+  const rows = [
+    ['Age range', words.ageRange],
+    ['Gender', words.gender],
+    ['Occupation', words.occupation],
+    ['Things that cause stress', words.stressFactors?.join(', ')],
+  ].filter((r): r is [string, string] => !!r[1]);
+  if (rows.length === 0) return <p>No details added.</p>;
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+      {rows.map(([term, value]) => (
+        <div key={term} className="contents">
+          <dt className="font-semibold">{term}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

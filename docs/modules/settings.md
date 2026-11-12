@@ -20,15 +20,17 @@ Signed out: a "You're not signed in" card with Sign in and Create an account but
 
 Signed in and consented, top to bottom:
 
-- **Profile card**: the initial in a haldi circle, the name (or "Your account") and the email.
-- **Account**: **Name** row (value is the name or "Not set") opens the "Your name" sheet: optional, up to 60 characters, used only to greet, saved with "Save name", after which the sheet closes and "Name saved" is announced. **Email** row opens "Change your email", which asks for the new address, then a code from each inbox.
+- **Profile card**: the chosen avatar (named for screen readers), or else the initial, in a haldi circle; the name (or "Your account") and the email.
+- **Account**: **Name** row (value is the name, or "Not set" for an older or Google account) opens the "Your name" sheet: **Your name or a nickname**, required, 1 to 60 characters once trimmed. It can be changed but not removed: an empty name shows "Enter your name or a nickname." under the field and nothing is sent. Saved with "Save name", after which the sheet closes and "Name saved" is announced. **About you** row (value: the age range, gender and what you do that are set, and how many stress factors, or "Not set") opens the "About you" sheet: the same choices as the one-time [About you](profile.md) screen, each with "Not set" (or "Your initial" for the avatar) to clear it, saved with **Save**, then "Details saved". **Email** row opens "Change your email", which asks for the new address, then a code from each inbox.
 - **Sign-in and security**: **Password** row ("Set" or "Not set") opens Change your password (with the current one) or Add a password (through an emailed code). **Google** row, only when Google is on or connected ("Connected" / "Not connected"): connecting first shows "Connect Google?" with the privacy note, disconnecting shows "Disconnect Google?". Each then asks the person to confirm it's them, with their password or an emailed code, unless they did in the last 10 minutes; connecting goes to Google and back to Settings, which says whether it worked (`?google=connected`, `taken` or `failed`). Disconnecting needs no password, because email codes always remain. Changing or adding a password signs out other devices. **Email codes**: "Always on", not tappable. **Signed-in devices** row ("Only this device" or "This device and N others") opens a sheet listing label, last used, and sign-out for each other device.
 - **Appearance** and **On this phone**, as above.
-- **Your data and privacy**: **Download my data** gives a JSON file (the row's description warns it isn't encrypted once downloaded, then says "Preparing" and "Download started."), followed by the legal rows.
+- **Your data and privacy**: **Download my data** gives a JSON file (the row's description warns it isn't encrypted once downloaded, then says "Preparing" and "Download started."). **Delete all check-ins** opens "Delete all check-ins?", which counts them ("All 3 of your saved check-ins will be deleted…") and confirms with "Delete 3 check-ins"; if the person hasn't proved it's them in the last 10 minutes, "Confirm it's you" comes first. Then "3 check-ins deleted". Everything else stays. Then the legal rows.
 - **Sign out** and **Sign out on all devices**, the second with a confirmation.
 - **Delete my account**, alone at the bottom in an outlined group: a sheet states what goes and how backups age out, emails a code, and deletes on confirmation. After that, the page shows "Your account and all your data have been deleted."
 
-Signed in with consent outstanding: "Your agreement is needed" first, then the email as a plain row (not changeable until they agree), Sign-in and security, Appearance, Your data and privacy, sign out and delete. No Name row.
+Signed in with consent outstanding: "Your agreement is needed" first, then the email as a plain row (not changeable until they agree), Sign-in and security, Appearance, Your data and privacy, sign out and delete. Your data and privacy there also has **Delete all check-ins** and **Clear my profile details** ("Clear your profile details?", **Clear details**, then "Profile details cleared"): both are rights and work without accepting. No Name, About you or Email rows: changing those needs consent.
+
+Signed in with no name yet: the normal page. Settings is never behind the name screen, so download, delete and sign-out are always reachable.
 
 ## How it works
 
@@ -49,7 +51,7 @@ Server behaviour is documented where it lives: [auth and sessions](auth-and-sess
 
 ## Data and API used
 
-Endpoints: `GET /me`, `PATCH /me`, `GET /me/sign-in-methods`, `POST /me/password`, `POST /me/password/set/request`, `POST /me/password/set`, `DELETE /me/identities/google`, `POST /me/email/request`, `POST /me/email/verify`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/logout`, `POST /auth/logout-all`, `GET /me/export`, `POST /me/delete/request`, `POST /me/delete/confirm`, `GET /meta`.
+Endpoints: `GET /me`, `PATCH /me`, `PATCH /me/profile`, `DELETE /assessments`, `POST /me/reauth/password`, `POST /me/reauth/code/request`, `POST /me/reauth/code`, `GET /me/sign-in-methods`, `POST /me/password`, `POST /me/password/set/request`, `POST /me/password/set`, `DELETE /me/identities/google`, `POST /me/email/request`, `POST /me/email/verify`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/logout`, `POST /auth/logout-all`, `GET /me/export`, `POST /me/delete/request`, `POST /me/delete/confirm`, `GET /meta`.
 
 Browser: `localStorage` key `anxiocare-theme`. That is the app's only `localStorage` use.
 
@@ -84,5 +86,5 @@ Browser: `localStorage` key `anxiocare-theme`. That is the app's only `localStor
 ## Known limits
 
 - **A signed-in person who hasn't accepted the current consent version sees no account sections here.** The API would let them export and delete. See [consent and privacy rights](consent-and-privacy-rights.md#known-limits).
-- The display name isn't validated beyond length.
+- The name isn't validated beyond being 1 to 60 characters once trimmed. It can be a nickname, and it isn't checked against anything.
 - Theme doesn't sync across devices.

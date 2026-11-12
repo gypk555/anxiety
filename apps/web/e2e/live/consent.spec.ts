@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { CONSENT_CHANGES } from '@anxiocare/shared';
-import { acceptConsent, api, CODE_LABEL, enterCode, expect, expectAccountHome, expectGuestHome, makeConsentStale, requestCode, rowCount, seedAssessment, seedJournal, signUp, test, uniqueEmail, waitForCode } from './support';
+import { acceptConsent, api, CODE_LABEL, enterCode, expect, expectAccountHome, expectGuestHome, makeConsentStale, requestCode, rowCount, seedAssessment, seedJournal, signUp, test, uniqueEmail, waitForCode, giveName } from './support';
 
 const REPROMPT = "We've updated our privacy notice";
 const FIRST_TIME = 'Before we save anything';
@@ -150,6 +150,7 @@ test('never consented: agreeing from Settings goes back to Settings, as a normal
   await page.goto('/settings');
   await page.getByRole('link', { name: 'Review and agree' }).click();
   await acceptConsent(page);
+  await giveName(page);
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Name', exact: true })).toBeVisible();
   await page.goto('/');

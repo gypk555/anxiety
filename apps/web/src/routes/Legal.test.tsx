@@ -115,6 +115,21 @@ describe('privacy notice for the mood log and safety plan', () => {
     expect(screen.getByText(/check-ins, reflections, thought records, the mood log and the safety plan are health information/)).toBeInTheDocument();
   });
 
+  it('says the name is needed, and can be a nickname', async () => {
+    mockFetch({ 'GET /meta': { body: META } });
+    page(<Privacy />);
+    expect(screen.getByText(/Your email address, to sign you in, and the name or nickname you give us/)).toHaveTextContent(/to greet you/);
+    expect(document.body.textContent).not.toMatch(/display name if you add one/);
+  });
+
+  it('covers the optional profile details: chosen from lists, encrypted, what each is for, and removable', async () => {
+    mockFetch({ 'GET /meta': { body: META } });
+    page(<Privacy />);
+    const item = screen.getByText(/If you add them, the optional details about you/);
+    for (const word of [/avatar/, /age range/, /gender/, /what you do/, /stress/, /chosen from lists/, /encrypted/, /remove/, /report for your doctor/, /suggest tools/, /never used to compare you/]) expect(item).toHaveTextContent(word);
+    expect(document.body.textContent).not.toMatch(/We don't ask for your age, gender, occupation/);
+  });
+
   it('Help explains quick exit, including what it cannot do', () => {
     page(<Help />);
     expect(screen.getByRole('heading', { name: 'About quick exit' })).toBeInTheDocument();

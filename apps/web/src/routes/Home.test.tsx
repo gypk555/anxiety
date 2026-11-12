@@ -156,3 +156,29 @@ describe('Home', () => {
     sessionStorage.clear();
   });
 });
+
+describe('suggestions from stress factors', () => {
+  const home = (profile: object) => {
+    mockFetch({
+      'GET /me': { body: { ...ME, profile } },
+      'GET /assessments': { body: { items: [assessment(2)], nextCursor: null } },
+      [`GET /moods?from=${todayLocal()}&to=${todayLocal()}`]: { body: { items: [] } },
+      'GET /reflections': { body: { items: [], nextCursor: null } },
+    });
+    renderRoutes(routes, '/', queryClient);
+  };
+
+  it('suggests tools that fit what the person said, and says why', async () => {
+    home({ stressFactors: ['sleep'] });
+    const section = await screen.findByRole('region', { name: 'Tools that may help' });
+    expect(within(section).getByText(/Because you mentioned sleep/)).toBeInTheDocument();
+    expect(within(section).getByRole('link', { name: /Slow-exhale breathing/ })).toHaveAttribute('href', '/tools/breathe');
+    expect(within(section).getByRole('link', { name: /Calming sounds/ })).toHaveAttribute('href', '/tools/sounds');
+  });
+
+  it('shows nothing extra without stress factors', async () => {
+    home({});
+    await screen.findByRole('heading', { name: 'For right now' });
+    expect(screen.queryByRole('region', { name: 'Tools that may help' })).not.toBeInTheDocument();
+  });
+});

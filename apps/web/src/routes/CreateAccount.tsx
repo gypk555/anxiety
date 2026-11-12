@@ -1,17 +1,19 @@
-import { displayNameSchema, emailSchema, meResponse, OTP_LENGTH, type Me } from '@anxiocare/shared';
+import { emailSchema, meResponse, OTP_LENGTH, type Me } from '@anxiocare/shared';
 import { passwordProblem } from '@anxiocare/shared/passwords';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { ApiError, errorMessage, passwordFieldError, request } from '@/lib/api';
-import { safeNext, withNext } from '@/lib/next-path';
 import { clearRegistration, holdRegistration, readRegistration } from '@/lib/pending-registration';
 import { useMe } from '@/lib/queries';
 import { GoogleButton } from '@/ui/GoogleButton';
+import { nameProblem } from '@/lib/name';
+import { NameField } from '@/ui/NameField';
 import { OtpInput } from '@/ui/OtpInput';
 import { PageTitle } from '@/ui/PageTitle';
 import { PASSWORD_HINT, PasswordField } from '@/ui/PasswordField';
-import { afterSignIn, RESEND_COOLDOWN_S, useSignedIn } from './SignIn';
+import { afterSignIn, safeNext, withNext } from '@/lib/next-path';
+import { RESEND_COOLDOWN_S, useSignedIn } from './SignIn';
 
 export function CreateAccount() {
   const [params] = useSearchParams();
@@ -23,8 +25,10 @@ export function CreateAccount() {
   const [name, setName] = useState(state?.displayName ?? '');
   const [email, setEmail] = useState(state?.email ?? '');
   const [password, setPassword] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(state?.passwordError ?? null);
   const [sends, setSends] = useState(0);
+  const nameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   // Coming back to this form means starting over, so nothing stays held.
@@ -36,7 +40,7 @@ export function CreateAccount() {
   const ask = useMutation({
     mutationFn: (address: string) => request('POST', '/auth/register/request', { body: { email: address } }),
     onSuccess: (_, address) => {
-      holdRegistration({ email: address, password, displayName: displayNameSchema.parse(name) || null });
+      holdRegistration({ email: address, password, displayName: name.trim() });
       navigate(withNext('/create-account/code', next), { state: { email: address, sentAt: Date.now() } });
     },
   });
@@ -45,6 +49,13 @@ export function CreateAccount() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    const badName = nameProblem(name);
+    setNameError(badName);
+    if (badName) {
+      setFieldError(null);
+      nameRef.current?.focus();
+      return;
+    }
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) return setFieldError(email.trim() ? "That doesn't look like an email address. Check it and try again." : 'Enter your email address.');
     const problem = passwordProblem(password, parsed.data);
@@ -66,10 +77,7 @@ export function CreateAccount() {
       <p className="mt-2 text-ink-soft">To save check-ins, see trends and keep a journal. We'll email you a code to prove the address is yours.</p>
       <div className="mt-4"><GoogleButton next={next} /></div>
       <div className="mt-5 flex flex-col gap-4">
-        <div>
-          <label htmlFor="display-name" className="mb-2 block font-medium">Your name <span className="font-normal text-ink-soft">(optional)</span></label>
-          <input id="display-name" name="name" className="field" maxLength={60} autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
+        <NameField ref={nameRef} value={name} error={nameError} onChange={(value) => { setName(value); setNameError(null); }} />
         <div>
           <label htmlFor="email" className="mb-2 block font-medium">Email address</label>
           <input
@@ -138,7 +146,7 @@ export function CreateAccountCode() {
   const verify = useMutation({
     gcTime: 0,
     mutationFn: () => request<Me>('POST', '/auth/register/verify', {
-      body: { email: pending?.email, code: codeRef.current, password: pending?.password, ...(pending?.displayName ? { displayName: pending.displayName } : {}) },
+      body: { email: pending?.email, code: codeRef.current, password: pending?.password, displayName: pending?.displayName },
       schema: meResponse,
     }),
     onSuccess: signedIn,
@@ -146,7 +154,7 @@ export function CreateAccountCode() {
       setCode('');
       const passwordError = passwordFieldError(e);
       if (passwordError && pending) {
-        navigate(withNext('/create-account', next), { replace: true, state: { email: pending.email, displayName: pending.displayName ?? '', passwordError } });
+        navigate(withNext('/create-account', next), { replace: true, state: { email: pending.email, displayName: pending.displayName, passwordError } });
       }
     },
   });

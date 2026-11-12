@@ -230,7 +230,13 @@ export function googleRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<t
         const device = deviceLabel(request.headers['user-agent']);
         ctx.background.run(request.log, 'signin_notice', () => ctx.mailer.send(newSignInNotice(emailOf(keys, user), device)));
       }
-      return reply.redirect(hasCurrentConsent(user) ? next : withNext('/consent', next), 302);
+      // Consent first. Google is never asked for a name, so an account without one is asked for it next, here. Then
+      // the optional About you, once. The app does the same after the consent and name screens.
+      const to = !hasCurrentConsent(user) ? withNext('/consent', next)
+        : !user.display_name_ct ? withNext('/name', next)
+        : !user.about_seen_at ? withNext('/about-you', next)
+        : next;
+      return reply.redirect(to, 302);
     } catch (err) {
       if (!(err instanceof GoogleRejected)) throw err;
       // A word from a fixed vocabulary. Nothing from the token, the provider or the URL.

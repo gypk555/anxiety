@@ -62,7 +62,7 @@ class Browser {
 async function register(email: string, client = new Client(h)) {
   await client.post(`${API}/auth/register/request`, { email });
   await h.app.drainBackground();
-  const r = await client.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password: PW });
+  const r = await client.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password: PW, displayName: 'Asha' });
   expect(r.statusCode).toBe(200);
   return { client, id: r.json().id as string };
 }
@@ -381,7 +381,7 @@ describe('finding 3: anyone can lock an owner out', () => {
     const c = new Client(h);
     await c.post(`${API}/auth/register/request`, { email });
     await h.app.drainBackground();
-    const r = await c.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password: PW });
+    const r = await c.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password: PW, displayName: 'Asha' });
     const cookie = (r.cookies as { name: string; value: string; httpOnly?: boolean; secure?: boolean; sameSite?: string; path?: string; maxAge?: number }[]).find((x) => x.name === DEVICE_COOKIE_SECURE)!;
     expect(cookie).toMatchObject({ httpOnly: true, secure: true, sameSite: 'Strict', path: '/' });
     expect(cookie.maxAge).toBeGreaterThanOrEqual(180 * 24 * 3600);

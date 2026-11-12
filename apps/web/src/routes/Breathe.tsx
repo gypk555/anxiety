@@ -253,6 +253,8 @@ function Session({ pattern, minutes, haptic, onEnd }: {
           count={inLeadIn ? null : breathing.secondsLeft}
         />
       </div>
+      {/* A quiet count of breaths, never a score. Announced politely, once per breath. */}
+      <p className="mb-1 min-h-6 text-center text-sm font-medium tabular-nums text-ink-soft" aria-live="polite">{inLeadIn ? '' : `Breath ${breathing.cycle + 1}`}</p>
       <p className="mb-3 text-center text-sm text-ink-soft">Dizzy or short of breath? Stop and breathe normally.</p>
       <button type="button" className="btn btn-secondary w-full" onClick={() => onEnd('setup')}>Stop</button>
     </div>

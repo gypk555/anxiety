@@ -17,7 +17,7 @@ None directly. The Privacy notice and consent screen say data is encrypted befor
 ```text
 ENCRYPTION_KEYS (env, versioned master keys)
    └── wraps each user's data key: users.wrapped_dek, users.dek_key_version
-          └── encrypts that user's columns: email_ct, display_name_ct, device_label_ct, payload_ct
+          └── encrypts that user's columns: email_ct, display_name_ct, profile_ct, device_label_ct, payload_ct
 ```
 
 A new user gets a fresh random 32-byte data key in `findOrCreateUser`. It is wrapped under the active master key. `dekFor` unwraps it when needed.
@@ -36,6 +36,7 @@ A new user gets a fresh random 32-byte data key in `findOrCreateUser`. It is wra
 | `safety_plans.payload` | 16384 | A typical plan is one step. The AAD row id is the user id |
 | `users.email` | 512 | Fixed |
 | `users.display_name` | 256 | Fixed |
+| `users.profile` | 512 | Fixed: every profile, from empty to every field set, is one step |
 | `sessions.device_label` | 64 | Fixed |
 
 **Other keys.** Each must be different, or config refuses to start.

@@ -1,26 +1,32 @@
 import { readFile } from 'node:fs/promises';
-import { CODE_LABEL, lastMail, acceptConsent, api, differentCode, enterCode, expect, expectAccountHome, expectGuestHome, mailCount, requestCode, seedAssessment, seedJournal, signIn, signOut, signUp, test, uniqueEmail, waitForCode, type SavedAssessment } from './support';
+import { CODE_LABEL, lastMail, acceptConsent, api, differentCode, enterCode, expect, expectAccountHome, expectGuestHome, mailCount, requestCode, seedAssessment, seedJournal, signIn, signOut, signUp, test, uniqueEmail, waitForCode, type SavedAssessment, giveName } from './support';
 
-test('rename: greeted by the new name, kept after a reload, and it can be removed', async ({ page, context }) => {
+test('rename: greeted by the new name, kept after a reload, and it cannot be removed', async ({ page, context }) => {
   await signUp(page, 'rename');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(', Asha.');
   await page.goto('/settings');
+  const field = page.getByRole('dialog', { name: 'Your name' }).getByLabel('Your name or a nickname');
   await page.getByRole('button', { name: 'Name', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.').fill('Asha');
+  await expect(field).toHaveValue('Asha');
+  await field.fill('Meera');
   await page.getByRole('button', { name: 'Save name' }).click();
   await expect(page.getByText('Name saved')).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(', Asha.');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(', Meera.');
 
   await page.goto('/settings');
-  await expect(page.getByRole('button', { name: 'Name', exact: true })).toHaveAccessibleDescription('Asha Only used to greet you');
+  await expect(page.getByRole('button', { name: 'Name', exact: true })).toHaveAccessibleDescription('Meera Used to greet you');
   await page.getByRole('button', { name: 'Name', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.')).toHaveValue('Asha');
-  expect((await (await api(context).get('/me')).json()) as object).toMatchObject({ displayName: 'Asha' });
+  await expect(field).toHaveValue('Meera');
+  expect((await (await api(context).get('/me')).json()) as object).toMatchObject({ displayName: 'Meera' });
 
-  await page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.').fill('');
+  await field.fill('   ');
   await page.getByRole('button', { name: 'Save name' }).click();
-  await expect(page.getByText('Name saved')).toBeVisible();
-  expect((await (await api(context).get('/me')).json()) as object).toMatchObject({ displayName: null });
+  await expect(page.getByRole('dialog', { name: 'Your name' }).getByRole('alert')).toHaveText('Enter your name or a nickname.');
+  await expect(field).toBeFocused();
+  expect((await (await api(context).get('/me')).json()) as object).toMatchObject({ displayName: 'Meera' });
+  // Nor can the API be asked to remove it.
+  expect((await api(context).send('PATCH', '/me', { displayName: null })).status()).toBe(400);
 });
 
 test('email change needs a code from each inbox; the account and its data move with it', async ({ page, context, newContext, guard }) => {
@@ -81,6 +87,7 @@ test('email change needs a code from each inbox; the account and its data move w
   const otherPage = await other.newPage();
   await enterCode(otherPage, await requestCode(otherPage, oldEmail));
   await acceptConsent(otherPage);
+  await giveName(otherPage);
   await expectAccountHome(otherPage);
   expect(await api(other).items('/assessments')).toEqual([]);
 });
@@ -153,10 +160,6 @@ test('sign out on all devices ends every session, keeps the data', async ({ page
 test('the download contains the data', async ({ page, context }) => {
   const email = await signUp(page, 'export');
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Name', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Your name' }).getByLabel('Optional. Only used to greet you.').fill('Asha');
-  await page.getByRole('button', { name: 'Save name' }).click();
-  await expect(page.getByText('Name saved')).toBeVisible();
   const assessment = await seedAssessment(context, [2, 2, 2, 1, 1, 1, 1], 2);
   const entry = await seedJournal(context, { thought: 'A thought to be exported' });
 
@@ -213,6 +216,7 @@ test('deleting the account needs a code, signs out, and signing in again is a fr
 
   await enterCode(page, await requestCode(page, email));
   await acceptConsent(page);
+  await giveName(page);
   await expectAccountHome(page);
   expect(await api(context).userId()).not.toBe(oldId);
   expect(await api(context).items('/assessments')).toEqual([]);

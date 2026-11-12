@@ -1,5 +1,18 @@
 # Test report
 
+## Required name and profile details run, 2026-11-12
+
+Branch `production-rebuild`, on top of commit `35cdc27`, on an **uncommitted working tree**. Two changes together: the owner's request to make the name required, and the [profile details spec](../superpowers/specs/2026-11-12-profile-details-design.md). One consent bump for both, to `2026-11-13`. Migration `006_profile.sql`.
+
+- typecheck clean; lint 0 errors, 17 warnings (none in new code)
+- Vitest 1,117 of 1,117: shared 134, API 640, web 343. Each new test was seen failing before its fix.
+- Playwright `npm run test:e2e`: 751 passed, 1 skipped, 0 failed (7.4 min). With `CI=1`: 750 passed, 1 skipped, 1 failed: the known-flaky `accounts.spec.ts` "open redirect" Google test on live-iphone (WebKit reports fetches cancelled by the navigation to the provider). Re-run 6 times on live-iphone under `CI=1`: 5 passed, 1 failed, its usual rate; 3 of 3 on live-pixel.
+- build succeeded
+- New e2e: `live/profile.spec.ts` (About you end to end with axe and 320px, skip remembered, delete all check-ins, the breath counter); the name and About you steps across the live and https suites; audit screens `name`, `name-missing`, `about-you`, `settings-about-you` and `home-suggestions`, in both themes and every size.
+- **Independent security review, then fixed test-first (each new test seen failing):** 1 Medium, deleting all check-ins and clearing profile details depended on consent: `DELETE /assessments` now needs only a session plus re-authentication, a new `DELETE /me/profile` needs only a session, and both are in the rights-only Settings view. 3 Low: an unknown stored profile value is now dropped field by field (fixed log line `profile_value_dropped`, no value) instead of failing `/me` and the export; an empty profile is sealed too, so `profile_ct` being set says nothing; `PATCH /me/profile` merges under `SELECT … FOR UPDATE`, so concurrent changes both land.
+- After those fixes: typecheck clean; lint 0 errors, 17 warnings; Vitest 1,124 of 1,124 (shared 134, API 646, web 344); build succeeded. `npm run test:e2e`: 750 passed, 1 skipped, 1 failed: `landscape.spec.ts` on live-iphone, a WebKit "Fetch API cannot load … due to access control checks" on a request cancelled by navigation, the same pattern as the known flaky Google test. It passed 6 of 6 when re-run (3 on each phone project). `CI=1 npm run test:e2e`: 751 passed, 1 skipped, 0 failed.
+- Not done: no lawyer has read the notice for `2026-11-13` (MT-PRO-10), no clinician the stress-factor suggestions or the breath counter (MT-PRO-09), and nothing has run with real Google, a real phone or a screen reader (MT-PRO-01 to 08). The name gate and About you are client-side only; the API doesn't refuse data routes for a missing name.
+
 ## Home and Settings redesign run, 2026-11-12
 
 Branch `production-rebuild`, on top of commit `88daae3`, on an **uncommitted working tree**. Follows the [Home and Settings redesign spec](../superpowers/specs/2026-11-12-home-settings-redesign-design.md). Web only: no API, schema or migration changes.

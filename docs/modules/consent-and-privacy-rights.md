@@ -10,7 +10,8 @@ Collect explicit, versioned consent before storing health data, and give people 
 - "Agree and continue" needs both boxes. "Not now, sign me out" ends the session.
 - Until consent, check-ins, trends and journal are not reachable. A guest check-in still works.
 - When `CONSENT_VERSION` changes, everyone sees the consent screen again before saving more.
-- Settings offers rename, email change, download, and delete. Delete needs a fresh emailed code and takes effect at once.
+- After consent, an account with no name is asked "What should we call you?" once, then offered the optional About you once. See [name gate](#the-name-gate) and [profile](profile.md).
+- Settings offers rename (not removal: a name is required), the optional details, email change, download, delete all check-ins, and delete. Account deletion needs a fresh emailed code and takes effect at once. Deleting all check-ins needs a recent re-authentication.
 - `/privacy`, `/terms` and `/about` are readable without an account. Operator name, grievance address, locations, mail provider and backup retention come from `GET /meta`. Offline, the page says these can't be loaded.
 
 ## How it works
@@ -19,15 +20,21 @@ Collect explicit, versioned consent before storing health data, and give people 
 
 **The gate never blocks rights.** `Me.acceptedConsentVersion` tells the screen which conversation it's having. Null is first-time consent: the screen says that if they don't agree, this new account is deleted after 24 hours. Anything else is a re-prompt: it shows `CONSENT_CHANGES` under "What changed", and says that existing data is kept. Both link to Settings, which for anyone with `consentRequired: true` shows `RightsOnlySettings`: their email, devices, download, sign-out and delete, with a prompt to review. Only the name and email change wait for consent, because the server refuses those until then.
 
+**The name gate.** <a id="the-name-gate"></a>A name (or nickname) is required from 2026-11-13: Create account asks for it, and `registerVerifyBody` refuses an account without one. Accounts made with Google, which is never asked for a name, by email code, or before the change have none, so after consent they are asked once at `/name`. It works like the consent gate, on the client only: `accountStep` (consent first, then the name) is used by `RequireAccount`, Home, every sign-in and the consent screen, and the Google callback redirects to `/name?next=…` itself. It keeps `next`. It never stands in front of Help, Quick exit, Settings (download, delete, sign out) or the tools, and the screen offers sign-out and a link to Settings. Guests never see it. The server does not refuse data routes for a missing name: it is a courtesy, not a legal condition.
+
+**About you** is offered once after the name, by `afterSignIn` only, and is never a gate: see [profile](profile.md).
+
 **Recording.** `POST /me/consent` in one transaction inserts into `consents` (`ON CONFLICT DO NOTHING`), updates `users`, and adds an audit row. The body must have the current version and two literal `true` values.
 
 **Unconsented accounts.** Removed by the hourly [purge](background-jobs.md) once 24 hours old, so 24 to about 25 hours after they were created. An account that once consented but is behind on the version is kept.
 
-**Export.** `GET /me/export` decrypts and returns account, sign-in methods (not Google's subject value, and not the password hash), consents, assessments, journal, `moods`, `safetyPlan` (or null) and sessions, then adds an audit row. The filename is `account-data-YYYY-MM-DD.json`, which does not name the service. The client's `requestFile` accepts only a safe filename.
+**Export.** `GET /me/export` decrypts and returns account, sign-in methods (not Google's subject value, and not the password hash), consents, assessments, journal, `moods`, `safetyPlan` (or null) and sessions, with `profile` resolved to words (`readableProfile`), then adds an audit row. The filename is `account-data-YYYY-MM-DD.json`, which does not name the service. The client's `requestFile` accepts only a safe filename.
+
+**Deleting all check-ins, and clearing profile details.** Both are rights, so neither needs consent, and both are in `RightsOnlySettings`. `DELETE /me/profile` seals an empty profile. `DELETE /assessments` needs a re-authentication in the last 10 minutes, deletes only this account's rows, answers `{ deleted: n }` and writes an `assessments_delete` audit row.
 
 **Deletion.** `POST /me/delete/request` mails a code. `POST /me/delete/confirm` checks it, then in one transaction deletes the user (cascading to sessions, consents, assessments, journal, mood entries, the safety plan, the Google identity and the user's codes, and taking the password hash with the row), deletes codes, code failures and password failures for the address, and writes an `account_delete` audit row. The client then clears its cache, guest data, drafts and the encrypted device copy of the safety plan. A guest plan made before signing in stays, because it was never part of the account. Signing in again later with that address starts a new, empty account.
 
-**Audit.** [audit.ts](../../apps/api/src/audit.ts) writes `actor_hmac`, `action` and the UTC day. Actions: `login`, `logout`, `logout_all`, `session_revoke`, `consent`, `export`, `email_change`, `account_delete`, `password_change`, `password_set`, `password_reset`, `google_link`, `google_unlink`. The runtime role cannot read these rows back. Retention is a year.
+**Audit.** [audit.ts](../../apps/api/src/audit.ts) writes `actor_hmac`, `action` and the UTC day. Actions: `login`, `logout`, `logout_all`, `session_revoke`, `consent`, `export`, `email_change`, `account_delete`, `password_change`, `password_set`, `password_reset`, `google_link`, `google_unlink`, `assessments_delete` (migration 006). The runtime role cannot read these rows back. Retention is a year.
 
 ## Key files
 

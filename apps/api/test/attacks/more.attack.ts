@@ -8,7 +8,7 @@ const PW = 'river stone quiet morning';
 async function register(email: string) {
   const c = new Client(h);
   await c.post(`${API}/auth/register/request`, { email }); await h.app.drainBackground();
-  const r = await c.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password: PW });
+  const r = await c.post(`${API}/auth/register/verify`, { email, code: h.mailer.codeFor(email, 'register'), password: PW, displayName: 'Asha' });
   expect(r.statusCode).toBe(200); return c;
 }
 it('timing interleaved', async () => {

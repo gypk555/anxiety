@@ -64,6 +64,22 @@ describe('re-prompt', () => {
     expect(screen.getByText(/your account and data stay as they are/)).toBeInTheDocument();
   });
 
+  it('says a name or a nickname is stored, not that the name is optional', async () => {
+    mockFetch({ 'GET /me': { body: NEVER } });
+    renderRoutes(routes, '/consent', queryClient);
+    expect(await screen.findByText('Your email address, and your name or a nickname')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/if you choose to add one/);
+  });
+
+  it('lists the optional profile details honestly, instead of saying they are never asked', async () => {
+    mockFetch({ 'GET /me': { body: NEVER } });
+    renderRoutes(routes, '/consent', queryClient);
+    const item = await screen.findByText(/If you add them: an avatar, an age range, your gender, what you do/);
+    expect(item).toHaveTextContent(/optional/i);
+    expect(item).toHaveTextContent(/encrypted/);
+    expect(document.body.textContent).not.toMatch(/Nothing about your age, gender or job/);
+  });
+
   it('accepting posts the current version and carries on to the destination', async () => {
     const fetchMock = mockFetch({
       'GET /me': () => ({ body: fetchMock.calls.some((c) => c.key === 'POST /me/consent') ? { ...ME, acceptedConsentVersion: CONSENT_VERSION } : STALE }),

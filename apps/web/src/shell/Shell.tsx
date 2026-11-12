@@ -1,7 +1,10 @@
 import { Suspense, useEffect, useLayoutEffect, type ReactNode } from 'react';
 import { LifeBuoy, Home, Wind, NotebookPen, LineChart, Settings as SettingsIcon, WifiOff } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useMatches, useNavigationType } from 'react-router';
+import { avatarFor, type Me } from '@anxiocare/shared';
+import { useQuery } from '@tanstack/react-query';
 import { useOnline } from '@/lib/online';
+import { meKey } from '@/lib/queries';
 import { syncThemeColor } from '@/lib/theme';
 import { Logomark } from '@/ui/Rings';
 import { PageSkeleton } from '@/ui/States';
@@ -103,6 +106,21 @@ function useScrollReset() {
   }, [pathname, type]);
 }
 
+/**
+ * The chosen avatar, as a way to Settings. Reads only what a screen already loaded, so the header makes no request.
+ * Hidden on the narrowest phones, where Quick exit and Get help need the room.
+ */
+function HeaderAvatar() {
+  const me = useQuery<Me | null>({ queryKey: meKey, enabled: false });
+  const avatar = me.data && !me.data.consentRequired ? avatarFor(me.data.profile.avatar) : undefined;
+  if (!avatar) return null;
+  return (
+    <Link to="/settings" aria-label={`Settings, ${avatar.label}`} className="no-print grid size-11 shrink-0 place-items-center rounded-full border-2 border-line text-xl max-[359px]:hidden">
+      <span aria-hidden="true">{avatar.emoji}</span>
+    </Link>
+  );
+}
+
 export function Shell({ children }: { children?: ReactNode }) {
   const matches = useMatches();
   const handle = Object.assign({}, ...matches.map((m) => m.handle as RouteHandle | undefined)) as RouteHandle;
@@ -130,6 +148,7 @@ export function Shell({ children }: { children?: ReactNode }) {
             </nav>
           )}
           <div className="flex shrink-0 items-center gap-2">
+            <HeaderAvatar />
             <QuickExitButton />
             <GetHelpLink />
           </div>

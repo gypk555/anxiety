@@ -97,7 +97,7 @@ describe('safeNext, shared by the client and the server', () => {
   it.each([
     'https://evil.example', '//evil.example', '///evil.example', '/\\evil.example', '\\\\evil.example', '/\t/evil.example', '/\n/evil.example',
     'javascript:alert(1)', 'journal', '', '/.//evil.example', '/x/..//evil.example', '/api/v1/auth/google/start', '/sign-in', '/sign-in/code', '/consent',
-    '/create-account', '/create-account/code', '/forgot-password', '/forgot-password/reset', `/${'x'.repeat(2100)}`,
+    '/create-account', '/create-account/code', '/forgot-password', '/forgot-password/reset', '/name', '/name?next=%2Ftrends', '/about-you', '/about-you?next=%2F', `/${'x'.repeat(2100)}`,
   ])('refuses %j', (path) => expect(safeNext(path)).toBe('/'));
 
   it('uses the given fallback', () => expect(safeNext(null, '/settings')).toBe('/settings'));

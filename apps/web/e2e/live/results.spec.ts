@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { scoreGad7, severityFor } from '@anxiocare/shared';
-import { api, enterCode, acceptConsent, expect, expectAccountHome, readGuestResult, resultHeading, seedAssessment, signUp, takeCheckin, test, uniqueEmail, waitForCode, type SavedAssessment } from './support';
+import { api, enterCode, acceptConsent, expect, expectAccountHome, readGuestResult, resultHeading, seedAssessment, signUp, takeCheckin, test, uniqueEmail, waitForCode, type SavedAssessment, giveName } from './support';
 import type { Page } from '@playwright/test';
 
 const SEVEN = [2, 1, 2, 1, 2, 1, 1];
@@ -15,6 +15,7 @@ async function guestThenSignUp(page: Page, answers = SEVEN, difficulty = 1) {
   await page.getByRole('button', { name: 'Email me a code instead' }).click();
   await enterCode(page, await waitForCode(email, 'login'));
   await acceptConsent(page);
+  await giveName(page);
   await expect(page).toHaveURL(/\/result$/);
   return email;
 }

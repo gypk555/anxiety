@@ -1,4 +1,4 @@
-import { acceptConsent, answerItems, enterCode, expect, expectAccessible, expectNoOverflowAt320, localDay, requestCode, seedAssessment, seedJournal, seedMood, seedPlan, signUp, test, uniqueEmail } from './support';
+import { acceptConsent, answerItems, enterCode, expect, expectAccessible, expectNoOverflowAt320, localDay, requestCode, seedAssessment, seedJournal, seedMood, seedPlan, signUp, test, uniqueEmail, giveName, skipAboutYou } from './support';
 import type { Page } from '@playwright/test';
 
 async function check(page: Page, label: string) {
@@ -41,6 +41,12 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page).toHaveURL(/\/consent/);
     await check(page, 'consent');
     await acceptConsent(page);
+    await expect(page).toHaveURL(/\/name/);
+    await check(page, 'name');
+    await giveName(page, 'Asha', { about: 'stay' });
+    await expect(page).toHaveURL(/\/about-you/);
+    await check(page, 'about you');
+    await skipAboutYou(page);
     await expect(page.getByText('Your first check-in')).toBeVisible();
     await check(page, 'empty home');
     await page.goto('/trends');

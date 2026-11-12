@@ -226,6 +226,20 @@ export async function acceptConsent(page: Page) {
   await page.getByRole('button', { name: 'Agree and continue' }).click();
 }
 
+/** The one-time "What should we call you?" screen, for an account with no name: by email code, Google, or older. */
+export async function giveName(page: Page, name = 'Asha', { about = 'skip' }: { about?: 'skip' | 'stay' } = {}) {
+  await expect(page.getByRole('heading', { level: 1, name: 'What should we call you?' })).toBeVisible();
+  await page.getByLabel('Your name or a nickname').fill(name);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  if (about === 'skip') await skipAboutYou(page);
+}
+
+/** The one-time, optional "About you" screen that follows the name: skipped, as most tests don't need it. */
+export async function skipAboutYou(page: Page) {
+  await expect(page.getByRole('heading', { level: 1, name: 'About you' })).toBeVisible();
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+}
+
 /** Signing in from the page already open. A page load would lose what is held in memory across a sign-out. */
 export async function signInHere(page: Page, email: string) {
   const after = mailCount(email, 'login');
@@ -234,11 +248,12 @@ export async function signInHere(page: Page, email: string) {
   await enterCode(page, await waitForCode(email, 'login', after));
 }
 
-/** A new account, consent accepted, on Home. */
+/** A new account by email code, consent accepted, a name given and About you skipped, on Home. */
 export async function signUp(page: Page, tag = 'user', email = uniqueEmail(tag)) {
   const code = await requestCode(page, email);
   await enterCode(page, code);
   await acceptConsent(page);
+  await giveName(page);
   await expectAccountHome(page);
   return email;
 }
@@ -255,6 +270,7 @@ export const NEW_PASSWORD = 'mango season on the terrace';
 /** Fills in Create account and sends it, stopping at the code screen. `path` lets a test start with a `next`. */
 export async function startCreateAccount(page: Page, email: string, password = PASSWORD, path = '/create-account') {
   await page.goto(path);
+  await page.getByLabel('Your name or a nickname').fill('Asha');
   await page.getByLabel('Email address').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -267,6 +283,7 @@ export async function createAccount(page: Page, tag = 'pw', password = PASSWORD)
   await startCreateAccount(page, email, password);
   await enterCode(page, await waitForCode(email, 'register'));
   await acceptConsent(page);
+  await skipAboutYou(page);
   await expectAccountHome(page);
   return email;
 }

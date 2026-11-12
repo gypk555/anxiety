@@ -1,4 +1,4 @@
-import { CODE_LABEL, FAKE_OIDC, GOOGLE_OFF_ORIGIN, NEW_PASSWORD, PASSWORD, acceptConsent, api, continueAtProvider, createAccount, differentCode, enterCode, expect, fillLoginFailures, expectAccessible, expectAccountHome, expectFocusedHeading, expectGuestHome, expectNoOverflowAt320, expectNoPasswordKept, lastMail, mailCount, requestCode, shiftTabKey, signInWithPassword, signOut, signUp, startCreateAccount, tabKey, tabTo, takeCheckin, test, uniqueEmail, uniqueGmail, waitForCode, watchUrls } from './support';
+import { CODE_LABEL, FAKE_OIDC, GOOGLE_OFF_ORIGIN, NEW_PASSWORD, PASSWORD, acceptConsent, api, continueAtProvider, createAccount, differentCode, enterCode, expect, fillLoginFailures, expectAccessible, expectAccountHome, expectFocusedHeading, expectGuestHome, expectNoOverflowAt320, expectNoPasswordKept, lastMail, mailCount, requestCode, shiftTabKey, signInWithPassword, signOut, signUp, startCreateAccount, tabKey, tabTo, takeCheckin, test, uniqueEmail, uniqueGmail, waitForCode, watchUrls, giveName, skipAboutYou } from './support';
 import type { Page } from '@playwright/test';
 
 const SEVEN = [1, 1, 1, 1, 1, 1, 1];
@@ -28,6 +28,7 @@ test.describe('create account', () => {
 
     await enterCode(page, code);
     await acceptConsent(page);
+    await skipAboutYou(page);
     await expectAccountHome(page);
     await expect(page.getByText('Asha')).toBeVisible();
     await expectNoPasswordKept(page, urls, PASSWORD);
@@ -63,6 +64,7 @@ test.describe('create account', () => {
   test('a weak password is caught in plain words before any mail goes out', async ({ page }) => {
     const email = uniqueEmail('weak');
     await page.goto('/create-account');
+    await page.getByLabel('Your name or a nickname').fill('Asha');
     await page.getByLabel('Email address').fill(email);
     for (const [password, message] of [['short', /at least 10/], ['password1234', /too common/], [`${email.split('@')[0]}-long`, /first part of your email/]] as const) {
       await page.getByLabel('Password', { exact: true }).fill(password);
@@ -91,6 +93,7 @@ test.describe('create account', () => {
     await expect(page.getByLabel(CODE_LABEL)).toBeFocused();
     await enterCode(page, code);
     await acceptConsent(page);
+    await skipAboutYou(page);
     await expectAccountHome(page);
   });
 
@@ -101,6 +104,7 @@ test.describe('create account', () => {
     await page.getByRole('link', { name: 'Create an account' }).click();
     await expect(page).toHaveURL(/\/create-account\?next=%2Fjournal$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Create an account' })).toBeVisible();
+    await page.getByLabel('Your name or a nickname').fill('Asha');
     await page.getByLabel('Email address').fill(email);
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Continue' }).click();
@@ -108,6 +112,8 @@ test.describe('create account', () => {
     await enterCode(page, await waitForCode(email, 'register'));
     await expect(page).toHaveURL(/\/consent\?next=%2Fjournal$/);
     await acceptConsent(page);
+    await expect(page).toHaveURL(/\/about-you\?next=%2Fjournal$/);
+    await skipAboutYou(page);
     await expect(page).toHaveURL(/\/journal$/);
   });
 
@@ -333,9 +339,13 @@ test.describe('Google, through the fake provider', () => {
     await continueAtProvider(page, email);
     await expect(page).toHaveURL(/\/consent\?next=%2Fjournal$/);
     await acceptConsent(page);
-    await expect(page).toHaveURL(/\/journal$/);
+    // Google was never asked for a name, so the app asks, once, still on the way to the journal.
+    await expect(page).toHaveURL(/\/name\?next=%2Fjournal$/);
     const me = (await (await api(context).get('/me')).json()) as { email: string; displayName: string | null };
     expect(me).toMatchObject({ email, displayName: null });
+    await giveName(page, 'Ash');
+    await expect(page).toHaveURL(/\/journal$/);
+    expect((await (await api(context).get('/me')).json()) as object).toMatchObject({ displayName: 'Ash' });
     expect((await (await api(context).get('/me/sign-in-methods')).json())).toEqual({ password: false, google: true });
     for (const url of urls) expect(url).not.toContain('id_token=');
     await expect.poll(() => context.cookies().then((all) => all.map((c) => c.name).sort())).toEqual(['device', 'session']);
@@ -426,6 +436,7 @@ test.describe('Google, through the fake provider', () => {
     await page.getByRole('link', { name: 'Continue with Google' }).click();
     await continueAtProvider(page, email);
     await acceptConsent(page);
+    await giveName(page);
     await page.goto('/settings');
     await expect(page.getByRole('button', { name: 'Google', exact: true })).toHaveAccessibleDescription('Connected');
     await expect(page.getByRole('button', { name: 'Password', exact: true })).toHaveAccessibleDescription('Not set');
@@ -459,6 +470,7 @@ test.describe('Google, through the fake provider', () => {
     await page.getByRole('link', { name: 'Continue with Google' }).click();
     await continueAtProvider(page, email);
     await acceptConsent(page);
+    await giveName(page);
     await signOut(page);
     await page.goto(`/api/v1/auth/google/start?next=${encodeURIComponent('//evil.example/phish')}`);
     await continueAtProvider(page, email);
@@ -539,11 +551,13 @@ test.describe('a guest result stays on offer after every way in', () => {
     await page.getByRole('link', { name: 'Create an account' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Create an account' })).toBeVisible();
     const email = uniqueEmail('guest-create');
+    await page.getByLabel('Your name or a nickname').fill('Asha');
     await page.getByLabel('Email address').fill(email);
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Continue' }).click();
     await enterCode(page, await waitForCode(email, 'register'));
     await acceptConsent(page);
+    await skipAboutYou(page);
     await expect(page).toHaveURL(/\/result$/);
     await offeredToSave(page);
   });
@@ -597,6 +611,7 @@ test.describe('a guest result stays on offer after every way in', () => {
     await page.getByRole('link', { name: 'Continue with Google' }).click();
     await continueAtProvider(page, uniqueGmail('guestgoogle'));
     await acceptConsent(page);
+    await giveName(page);
     await expect(page).toHaveURL(/\/result$/);
     await offeredToSave(page);
     await page.getByRole('button', { name: 'Save result' }).click();
@@ -610,6 +625,7 @@ test.describe('screens', () => {
     ['sign-in after a Google failure', '/sign-in?error=google'],
     ['create account', '/create-account'],
     ['create account code', '/create-account', async (page) => {
+      await page.getByLabel('Your name or a nickname').fill('Asha');
       await page.getByLabel('Email address').fill(uniqueEmail('screens'));
       await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
       await page.getByRole('button', { name: 'Continue' }).click();
@@ -684,6 +700,8 @@ test.describe('keyboard', () => {
     await tabTo(page, browserName, page.getByRole('link', { name: 'Create an account' }));
     await page.keyboard.press('Enter');
     await expectFocusedHeading(page, 'Create an account');
+    await tabTo(page, browserName, page.getByLabel('Your name or a nickname'));
+    await page.keyboard.type('Asha');
     await tabTo(page, browserName, page.getByLabel('Email address'));
     await page.keyboard.type(email);
     await tabTo(page, browserName, page.getByLabel('Password', { exact: true }));

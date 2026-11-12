@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Required name, and optional profile details
+
+From the owner's request (name) and [the profile details spec](docs/superpowers/specs/2026-11-12-profile-details-design.md).
+
+- **The name is required.** Create account asks for "Your name or a nickname", 1 to 60 characters once trimmed, with the error under the field. `POST /auth/register/verify` refuses an account without one (400, nothing echoed), before the code is spent. `PATCH /me` takes a non-null name: it can be changed, never removed.
+- **"What should we call you?"** (`/name`), asked once after consent of an account with no name: Google (never asked for a name), email-code and older accounts. Gated like consent, on the client, keeping `next`; never in front of Help, Quick exit, Settings, export, delete or sign-out. The Google callback redirects there itself. Guests are unaffected.
+- **About you** (`/about-you`), offered once after the name: avatar, age range, gender, what you do, stress factors, all optional, from fixed lists. **Skip for now** and **Save**; either is remembered (`aboutSeen`). Never a gate. Editable and clearable in Settings → About you. The avatar shows in Settings and the header.
+- Stress factors suggest existing tools on Home ("Tools that may help") and in the GAD-7 result's next steps. No comparison, scoring or insight.
+- The doctor report has an **About me** section, off by default.
+- Breathing shows a quiet "Breath N" counter.
+- **Delete all check-ins** in Settings → Your data, naming the count, after a recent re-authentication. `DELETE /assessments`.
+- API: `PATCH /me/profile`, `POST /me/about-seen`, `DELETE /assessments`; `Me` gains `profile` and `aboutSeen`; the export has `profile` in words. Migration `006_profile.sql` (`users.profile_ct`, sealed and padded to 512 bytes; `users.about_seen_at`; audit action `assessments_delete`).
+- `CONSENT_VERSION` is now `2026-11-13`, one bump for both changes: the notice no longer calls the name optional (it can be a nickname), and lists the optional details honestly instead of "Nothing about your age, gender or job". See [decision 014](docs/decisions/014-profile-details-and-what-was-left-out.md) for what was not brought back.
+
 ### Home and Settings redesign
 
 From [the Home and Settings redesign spec](docs/superpowers/specs/2026-11-12-home-settings-redesign-design.md). Web only; no API or data changes.

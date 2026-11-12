@@ -2,7 +2,7 @@
 
 > **This is not legal advice, and it must be reviewed by an Indian lawyer before launch.** It was written from the code and from public sources by someone who is not a lawyer, to help the owner brief one. Where it says "done", it means the app behaves that way, not that the behaviour satisfies the law.
 
-Checked on 2026-11-06, and updated on 2026-11-11 for the mood log, safety plan and doctor report. Sources are listed at the end. Law and vendor terms change, so re-check before relying on anything here.
+Checked on 2026-11-06, and updated on 2026-11-11 for the mood log, safety plan and doctor report, and on 2026-11-12 for the required name and the optional profile details. Sources are listed at the end. Law and vendor terms change, so re-check before relying on anything here.
 
 ## The five things to take to the lawyer first
 
@@ -41,7 +41,7 @@ Status meanings: **Done** means the app already behaves this way. **Owner action
 | **Withdrawal** as easy as giving consent | s.6(4), r.3(c)(i) | Withdrawal is by deleting the account, in Settings, with a code mailed to the person. There is no withdrawal without deletion. | **Needs lawyer**: consent takes two ticks, while withdrawal needs an emailed code and removes everything. |
 | Stop processing after withdrawal, processors too | s.6(6), s.8(7) | Rows removed at once. Backups age out. Mail logs at the provider are not reachable by the app. | Done for the database. Owner action for the provider's retention. |
 | **Erasure** when consent is withdrawn or the purpose ends | s.8(7), s.12 | `/me/delete/confirm`. Cascades, then codes and failed-guess rows, tested in `erasure.test.ts:103`. | Done. See the conflict [below](#retention-and-rule-83). |
-| Correction and completion | s.12 | Name and email in Settings. Journal entries editable. Assessments can only be deleted, not edited. | Done. Needs lawyer on assessments. |
+| Correction and completion | s.12 | Name, email and the optional profile details in Settings. Clearing every detail, and deleting all check-ins, work without accepting a new notice. Journal entries editable. Assessments can only be deleted, not edited. | Done. Needs lawyer on assessments. |
 | Access: summary of data and processing, and who it is shared with | s.11 | Export JSON, tested in `erasure.test.ts:29`. Processors are named in the notice, not the export. | Done. Needs lawyer: is this enough for s.11(1)(b)? |
 | Publish how to make rights requests, and what identifier is needed | r.14(1) | Notice says Settings. It does not say a request by email must come from the account's address. | Owner action, with the lawyer. |
 | **Grievance** redressal, with a published period of up to 90 days | s.8(10), s.13, r.14(3) | Notice: contact from `GRIEVANCE_EMAIL`, "We aim to respond within 7 days". Process in [OPERATIONS.md](OPERATIONS.md#rights-requests-and-grievances). | Owner action: set up and monitor the mailbox. Needs lawyer: may also need a named Grievance Officer under SPDI. |
@@ -104,7 +104,9 @@ The Government can notify a fiduciary or class as "significant", considering vol
 | Re-authentication time | `sessions.reauth_at` | A time | Connecting or disconnecting Google needs a password or code within 10 minutes | Life of the session | As the session |
 | Used Google state | `oauth_state_uses` | SHA-256 of a random value, and an expiry | Stops replay | 10 minutes, then purge. Not linked to a person | Purge |
 | Password, in transit | Browser memory, then server memory | Plaintext for the moment it is in use. Never stored, logged, or in the URL, `sessionStorage`, `localStorage` or history | Sign-in | Until the screen closes, or the request ends | Automatic |
-| Display name, optional | `users.display_name_ct` | Encrypted | Greeting | Life of account | Person, deletion |
+| Name or nickname, required (it can be a nickname) | `users.display_name_ct` | Encrypted | Greeting; the doctor report only if the person ticks "Put my name at the top" | Life of account. Can be changed in Settings, not removed | Person (change), deletion |
+| Optional profile details: avatar, age range, gender, occupation, stress factors | `users.profile_ct` | Encrypted as one blob, padded to 512 bytes so every profile is the same size. An empty profile is sealed too once About you is seen, so whether the column is set says nothing about whether details were given. Each value from a fixed list, never free text; a range, never a birth date. Never logged, never sent to Google or the mail provider | Shown back to the person; the doctor report only if "About me" is ticked; stress factors suggest existing tools. **Never** scoring, comparison, insight text or analytics | Until changed or removed in Settings, or the account is deleted | Person (each field can be cleared, or all at once with "Clear my profile details", which needs no consent), deletion |
+| When About you was seen | `users.about_seen_at` | **Plaintext** time. Shows only that the screen was seen (saved or skipped), not whether any detail was given | Offer the optional screen only once | Life of account | Deletion |
 | Wrapped data key | `users.wrapped_dek`, `dek_key_version` | Encrypted under master key | Encryption | Life of account | Deletion |
 | Consent state | `users.consent_version`, `consent_at`, `consents.*` | Plaintext flags and dates | Lawful basis | Life of account | Deletion |
 | GAD-7 answers, difficulty, score, severity | `assessments.payload_ct` | Encrypted, padded | Show history | Until deleted | Person, deletion |
@@ -139,7 +141,7 @@ The Government can notify a fiduciary or class as "significant", considering vol
 | Signed-in data | Browser memory | Plaintext | Display | Until reload or sign-out | Automatic |
 | Downloaded export, printout, saved doctor report | Person's device | Plaintext | Person's own copy | Person decides | Person |
 
-**Not collected:** age, gender, occupation, the person's own phone number, location, raw User-Agent, IP address in the database, analytics.
+**Not collected:** a birth date or exact age (an age range is optional), the person's own phone number, location, raw User-Agent, IP address in the database, analytics.
 
 ## Other people's data in a safety plan
 
@@ -150,6 +152,19 @@ A safety plan can hold the names and phone numbers of people the person trusts. 
 - **Notice.** The privacy notice has a part, "Other people in your safety plan", which asks the person to add only people who would expect to be called.
 
 **Needs lawyer:** is this the person's own processing for personal purposes, outside the Act under s.3(c)(i), or the operator's processing of a third party's data? If it is the operator's, what basis applies to a contact who never consented, and does the notice need to say more?
+
+## Consent version 2026-11-13
+
+`CONSENT_VERSION` went from `2026-11-12` to `2026-11-13`, one bump for two changes made together: the name became required, and optional profile details were added. Everyone with an account is asked again, and sees `CONSENT_CHANGES`:
+
+1. "An account now needs a name: what you'd like us to call you. It can be a nickname. It is encrypted, used to greet you, and put on a report for your doctor only if you choose."
+2. "You can change it in Settings at any time, but not remove it. It is deleted with your account."
+3. "You can now add a few optional details about you: an avatar, an age range, your gender, what you do, and what tends to cause you stress. Each is picked from a list. They are encrypted, and you can change or remove any of them in Settings at any time."
+4. "They are used only to show back to you, in a report for your doctor if you choose to include them, and (for stress) to suggest tools that may help. They are never used to compare you with anyone, and never shared."
+
+Changed in the notice in `Legal.tsx`: "What we store" now says "the name or nickname you give us, to greet you", that it needn't be a real name, can be changed in Settings and goes on a report only if chosen; a new item lists the optional details, chosen from lists, encrypted, what each is used for, never used to compare or for analytics, and removable; "We don't ask for your age, gender, occupation…" became "We never ask for your birth date, your exact age or your own phone number."; the purpose sentence and "How it's protected" include the optional details. `Consent.tsx`'s "What is stored" says "Your email address, and your name or a nickname", lists the optional details, and no longer says "Nothing about your age, gender or job".
+
+Dated the day after the previous version, as before. **Owner action: have the lawyer review this text before the deploy**, with questions 19 and 20 below.
 
 ## Consent version 2026-11-12
 
@@ -246,6 +261,8 @@ In addition to those above:
 16. Review the safe harbour wording in [SECURITY.md](../SECURITY.md).
 17. Other people's names and numbers in a safety plan: whose processing is it, and is the notice enough? See [above](#other-peoples-data-in-a-safety-plan).
 18. Is the doctor report, which the person prints or saves themselves, any new duty? Is the footer "Self-reported. A screening, not a diagnosis." enough?
+19. Gender stored alongside health data: is it sensitive under SPDI or any other rule, and is the optional, list-only, encrypted design and the notice wording enough? Same for occupation and the stress factors.
+20. The name is now required (a nickname is fine). Is requiring it proportionate to the purpose (greeting, and the report if chosen) under data minimisation, s.6(1)?
 
 ## Sources
 

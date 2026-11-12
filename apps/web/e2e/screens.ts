@@ -91,6 +91,7 @@ export const SCREENS: Screen[] = [
     name: 'create-account-password-problem',
     path: '/create-account',
     act: async (p) => {
+      await p.getByLabel('Your name or a nickname').fill('Asha');
       await p.getByLabel('Email address').fill('asha.menon@example.in');
       await p.getByLabel('Password', { exact: true }).fill('short');
       await p.getByRole('button', { name: 'Continue' }).click();
@@ -100,6 +101,7 @@ export const SCREENS: Screen[] = [
     name: 'create-account-code',
     path: '/create-account',
     act: async (p) => {
+      await p.getByLabel('Your name or a nickname').fill('Asha');
       await p.getByLabel('Email address').fill('asha.menon@example.in');
       await p.getByLabel('Password', { exact: true }).fill('river stone quiet morning');
       await p.getByRole('button', { name: 'Continue' }).click();
@@ -118,6 +120,27 @@ export const SCREENS: Screen[] = [
     },
   },
   { name: 'consent', path: '/consent', api: { signedIn: true, consentRequired: true } },
+  { name: 'name', path: '/name?next=%2Ftrends', api: { signedIn: true, unnamed: true } },
+  { name: 'about-you', path: '/about-you?next=%2F', api: { signedIn: true, aboutUnseen: true } },
+  {
+    name: 'settings-about-you',
+    path: '/settings',
+    api: { signedIn: true, profile: { avatar: 'leaf', ageRange: '25-34', gender: 'na', occupation: 'self_employed', stressFactors: ['work', 'sleep', 'screens'] } },
+    act: async (p) => {
+      await p.getByRole('button', { name: 'About you' }).click();
+      await p.getByRole('dialog', { name: 'About you' }).waitFor();
+    },
+  },
+  { name: 'home-suggestions', path: '/', api: { signedIn: true, profile: { avatar: 'sage', stressFactors: ['sleep', 'work', 'screens'] } } },
+  {
+    name: 'name-missing',
+    path: '/name',
+    api: { signedIn: true, unnamed: true },
+    act: async (p) => {
+      await p.getByRole('button', { name: 'Continue' }).click();
+      await p.getByRole('alert').waitFor();
+    },
+  },
   { name: 'consent-reprompt', path: '/consent', api: { signedIn: true, consentRequired: true, acceptedConsentVersion: '2000-01-01' } },
   { name: 'settings-consent-reprompt', path: '/settings', api: { signedIn: true, consentRequired: true, acceptedConsentVersion: '2000-01-01' } },
   { name: 'settings-consent-new', path: '/settings', api: { signedIn: true, consentRequired: true } },

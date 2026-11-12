@@ -6,7 +6,7 @@
 export interface PendingRegistration {
   email: string;
   password: string;
-  displayName: string | null;
+  displayName: string;
 }
 
 let pending: PendingRegistration | null = null;

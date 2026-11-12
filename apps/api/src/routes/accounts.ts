@@ -164,7 +164,7 @@ export function accountRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<
     // No account yet, so no device can be known for it.
     const from = { clientKey: client(request), deviceId: null };
     const passwordHash = await spendCodeThenHash(ctx, () => consumeOtp(sql, keys, otpTarget(keys, 'register', email, null), code, from), password);
-    const user = await createUserWithPassword(sql, keys, { email, emailHash: emailBlindIndex(keys, email), passwordHash, displayName: displayName || null });
+    const user = await createUserWithPassword(sql, keys, { email, emailHash: emailBlindIndex(keys, email), passwordHash, displayName });
     if (!user) throw invalidCode();
     const token = await sql.begin(async (tx) => {
       const created = await createSession(tx, keys, user, request.headers['user-agent'], true);

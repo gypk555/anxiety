@@ -1,6 +1,6 @@
 # Manual test cases
 
-Step-by-step human tests for AnxioCare. 286 cases: 103 P0, 141 P1, 41 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-07, and on 2026-11-11 for MT-QX and MT-SP. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
+Step-by-step human tests for AnxioCare. 302 cases: 109 P0, 150 P1, 42 P2, 1 P3. UI labels are in **bold**, and are exactly what the app shows, checked against the source on 2026-11-07, on 2026-11-11 for MT-QX and MT-SP, and on 2026-11-12 for MT-SET-02 and MT-PRO. `<n>` or `<date>` inside a label is a value that varies. Bold lead-ins such as **Known issue** are not labels.
 
 **None of these has been run yet.** The Result lines are blank on purpose. See `docs/testing/TEST-REPORT.md` for what has and hasn't been tested, and `docs/testing/TEST-CASES.md` for the automated catalogue.
 
@@ -30,6 +30,7 @@ Automation is green and proves a lot on localhost. It does not prove the followi
 | Quick exit really hides the app | Tested in emulation with a stubbed weather page. No real back button, tab switcher or installed app | MT-QX-01 to 10 | Tester, two phones |
 | The safety plan opens offline and dials | Tested with a browser switch and `tel:` attributes | MT-SP-01 to 12 | Tester, a test contact's phone |
 | Production headers survive the edge | Tested behind a local TLS terminator, not Cloudflare | MT-SEC-01 to 14 | Owner or engineer |
+| The name screen and About you with real Google, screen readers, a clinician and a lawyer | Tested with a fake Google provider, axe and emulation only | MT-PRO-01 to 10 | Tester, clinician, lawyer |
 
 ### Order of work
 
@@ -3095,12 +3096,12 @@ Guest and account states.
 
 **Steps:**
 
-1. Tap the **Name** row. In **Your name**, type a name and tap **Save name**.
+1. Tap the **Name** row. In **Your name**, change **Your name or a nickname** and tap **Save name**.
 2. See **Name saved** and the row's new value. Check Home and the profile card. Reload.
-3. Open it again, clear it, **Save name**.
+3. Open it again, clear the field (or type only spaces), tap **Save name**.
 4. Try 61 characters, Hindi and emoji.
 
-**Expected result:** The sheet starts with the saved name each time. Home greets by name, and greets without one after clearing; the row then says **Not set**. The field stops at 60. Scripts round-trip.
+**Expected result:** The sheet starts with the saved name each time. Home greets by the new name. Clearing it shows **Enter your name or a nickname.** under the field, focus goes back to it, and nothing is saved: the name can't be removed. The field stops at 60. Scripts round-trip.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 
@@ -5427,6 +5428,178 @@ Automation proves the plan opens offline after one load, that nothing readable i
 1. Give a clinician the 100 questions and the result wording in [CLINICAL-SAFETY.md](../CLINICAL-SAFETY.md#reflection-questions), and the app.
 
 **Expected result:** Items 24 to 28 of the clinician sign-off are completed.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+## Name and profile details on real phones (MT-PRO)
+
+The required name, the one-time name screen, About you, and the uses of the details. Checked against the source on 2026-11-12.
+
+### MT-PRO-01: Create account needs a name
+
+**Priority:** P1 | **Device:** Any phone
+
+**Preconditions:** Signed out.
+
+**Steps:**
+
+1. Open **Create an account**. Leave **Your name or a nickname** empty, fill the rest, tap **Continue**.
+2. Type a nickname and continue to the end.
+
+**Expected result:** **Enter your name or a nickname.** shows under the field, focus moves to it, and no email is sent. With a nickname, the account is made, and Home greets by that nickname.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-02: A Google account is asked once what to call it
+
+**Priority:** P0 | **Device:** Any phone, staging with Google on
+
+**Preconditions:** A Gmail address with no account.
+
+**Steps:**
+
+1. **Continue with Google** from `/journal`, then agree.
+2. On **What should we call you?**, tap **Get help**, come back, then **Quick exit**, and reopen the app.
+3. Tap **Download or delete my data**, then come back and give a name.
+
+**Expected result:** Consent first, then **What should we call you?**, keeping the way to the journal. Get help, Quick exit and Settings (download, delete, sign out) all work without a name. After the name: About you once, then the journal. Google was never asked for a name.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-03: An older account without a name
+
+**Priority:** P1 | **Device:** Any phone, staging
+
+**Preconditions:** An account made before 2026-11-13 by email code, with no name.
+
+**Steps:**
+
+1. Sign in.
+2. Choose **Not now, sign me out** once, then sign in again and give a name.
+
+**Expected result:** The name screen comes after sign-in (and after consent if it was re-prompted). Signing out works from it. Once named, it is never shown again.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-04: About you: save, skip, never again
+
+**Priority:** P1 | **Device:** Any phone
+
+**Preconditions:** A new account just named.
+
+**Steps:**
+
+1. On **About you**, choose an avatar, an age range and two stress factors. Tap **Save**.
+2. Sign out and in again.
+3. With a second new account, tap **Skip for now**.
+
+**Expected result:** Save and Skip for now are equal buttons. Every group is optional. After saving, Home shows **Tools that may help** and the avatar in the header. Neither account is shown About you again. Get help and Quick exit are always in the header.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-05: About you with TalkBack and VoiceOver
+
+**Priority:** P1 | **Device:** Android with TalkBack, iPhone with VoiceOver
+
+**Preconditions:** A new account at About you.
+
+**Steps:**
+
+1. Move through the screen by swipe.
+
+**Expected result:** Each group is announced with its name (Avatar, Age range, Gender, What you do, What tends to cause you stress?). Avatars are read by name only, never the emoji. Chips say checked or not.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-06: Settings: change and clear every detail
+
+**Priority:** P1 | **Device:** Any phone
+
+**Preconditions:** Signed in, with details set.
+
+**Steps:**
+
+1. **Settings → About you**. Set each group to **Not set** (avatar: **Your initial**) and clear the stress factors. **Save**.
+2. Download your data before and after.
+
+**Expected result:** **Details saved**. The row says **Not set**, the header avatar goes, Home's suggestions go. The export lists the details in words before, and `{}` after.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-07: About me in the report
+
+**Priority:** P1 | **Device:** Any phone, then paper
+
+**Preconditions:** Details set.
+
+**Steps:**
+
+1. Open **Report for your doctor**. Check **About me** is off. Tick it. Print or save as PDF.
+
+**Expected result:** Off by default. When ticked: age range, gender, occupation and things that cause stress, in words, only those set. No avatar. Nothing else changes.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-08: Delete all check-ins
+
+**Priority:** P0 | **Device:** Any phone, staging
+
+**Preconditions:** Signed in more than 10 minutes ago, with 3 check-ins, a journal entry and a mood.
+
+**Steps:**
+
+1. **Settings → Delete all check-ins**. Read the sheet, confirm.
+2. Confirm it's you with a password or code.
+
+**Expected result:** The sheet names the count (**Delete 3 check-ins**). It asks to confirm it's you, then shows **3 check-ins deleted**. Trends is empty; the journal and mood log are untouched.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-09: A clinician reads the suggestions and the breath counter
+
+**Priority:** P0 | **Device:** Paper or screen
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Give a clinician [suggestions.ts](../../apps/web/src/lib/suggestions.ts), Home's **Tools that may help**, the result's next steps, and a breathing session with its **Breath N** counter.
+
+**Expected result:** They agree the wording makes no comparison, score or claim, and that the counter is not a goal.
+
+**Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
+
+**Notes:** ____________
+
+### MT-PRO-10: A lawyer reads the notice for consent version 2026-11-13
+
+**Priority:** P0 | **Device:** Paper or screen
+
+**Preconditions:** None.
+
+**Steps:**
+
+1. Give the lawyer the privacy notice, the consent screen and [PRIVACY-COMPLIANCE.md](../PRIVACY-COMPLIANCE.md#consent-version-2026-11-13), questions 19 and 20.
+
+**Expected result:** They accept the wording on the required name (a nickname is fine) and the optional details, or say what must change.
 
 **Result:** ☐ Pass ☐ Fail ☐ Blocked ☐ N/A, device and build: ____________
 

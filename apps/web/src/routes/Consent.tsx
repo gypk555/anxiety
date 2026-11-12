@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage, request } from '@/lib/api';
 import { formatDate } from '@/lib/dates';
-import { safeNext, withNext } from '@/lib/next-path';
+import { afterSignIn, safeNext, withNext } from '@/lib/next-path';
 import { clearClientData, fetchMe, meKey, useMe } from '@/lib/queries';
 import { PageTitle } from '@/ui/PageTitle';
 import { ErrorState, PageSkeleton } from '@/ui/States';
@@ -26,9 +26,12 @@ export default function Consent() {
       await request('POST', '/me/consent', {
         body: { version: CONSENT_VERSION, adultConfirmed: true, healthDataConsent: true },
       });
-      client.setQueryData(meKey, await fetchMe());
+      const me = await fetchMe();
+      client.setQueryData(meKey, me);
+      return me;
     },
-    onSuccess: () => navigate(next, { replace: true }),
+    // A name may still be missing, and is asked next.
+    onSuccess: (me) => navigate(me ? afterSignIn(me, next) : next, { replace: true }),
   });
 
   const decline = useMutation({
@@ -45,7 +48,7 @@ export default function Consent() {
   // First-time and re-prompt need different words, and only the server knows which is true.
   if (me.data === undefined) return <ErrorState error={me.error} onRetry={() => void me.refetch()} />;
   if (me.data === null) return <Navigate to={withNext('/sign-in', next)} replace />;
-  if (!me.data.consentRequired) return <Navigate to={next} replace />;
+  if (!me.data.consentRequired) return <Navigate to={afterSignIn(me.data, next)} replace />;
   const reprompt = me.data.acceptedConsentVersion !== null;
 
   const submit = (e: React.FormEvent) => {
@@ -88,17 +91,18 @@ export default function Consent() {
       <section aria-labelledby="stored">
         <h2 id="stored" className="text-xl">What is stored</h2>
         <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-5 text-ink-soft">
-          <li>Your email address, and a name if you choose to add one</li>
+          <li>Your email address, and your name or a nickname</li>
+          <li>If you add them: an avatar, an age range, your gender, what you do and what tends to cause you stress. All optional, chosen from lists, encrypted, and removable at any time in Settings</li>
           <li>Your check-in answers, scores and dates</li>
           <li>Thought records you write</li>
           <li>Which devices are signed in, and when they were last used</li>
         </ul>
-        <p className="mt-1.5 text-ink-soft">Nothing about your age, gender or job. No ads, no trackers, no selling your data.</p>
+        <p className="mt-1.5 text-ink-soft">Never a birth date or an exact age. No ads, no trackers, no selling your data.</p>
       </section>
 
       <section aria-labelledby="why">
         <h2 id="why" className="text-xl">Why</h2>
-        <p className="mt-1.5 text-ink-soft">Only to show these back to you, so you can see how things change. Your check-ins and journal are encrypted before storage. No doctor, employer or anyone else gets access.</p>
+        <p className="mt-1.5 text-ink-soft">Only to show these back to you, so you can see how things change. The optional details also go in a report for your doctor if you choose, and stress suggests tools; they are never used to compare you with anyone. Your check-ins and journal are encrypted before storage. No doctor, employer or anyone else gets access.</p>
       </section>
 
       <section aria-labelledby="rights">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GAD7_ITEMS, GAD7_OPTIONS, SEVERITY_BANDS, scoreGad7, severityFor } from './gad7.ts';
-import { assessmentCreateBody, CONSENT_CHANGES, CONSENT_VERSION, journalBody, meResponse } from './schemas.ts';
+import { assessmentCreateBody, CONSENT_CHANGES, CONSENT_VERSION, displayNameSchema, journalBody, meResponse, profilePatchBody, registerVerifyBody } from './schemas.ts';
 import { HELPLINES, HELPLINES_CHECK_METHOD, HELPLINES_CHECKED_ON, helplinesCheckNote } from './helplines.ts';
 
 describe('GAD-7', () => {
@@ -78,19 +78,49 @@ describe('helplines', () => {
 });
 
 describe('consent changes', () => {
-  it('this version adds reflections to the notice, and says so to people asked again', () => {
-    expect(CONSENT_VERSION).toBe('2026-11-12');
-    expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/Reflection/);
-    expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/note you add is kept only while the app is open/);
+  it('this version makes the name required, and says so to people asked again', () => {
+    expect(CONSENT_VERSION).toBe('2026-11-13');
+    expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/name/);
+    expect(CONSENT_CHANGES.summary.join(' ')).toMatch(/nickname/);
+  });
+  it('the same version adds the optional profile details, and says what they are for', () => {
+    const text = CONSENT_CHANGES.summary.join(' ');
+    for (const word of [/age range/, /gender/, /occupation|what you do/, /stress/, /avatar/, /optional/i, /encrypted/, /remove/]) expect(text).toMatch(word);
+    expect(text).toMatch(/never used to compare you/);
   });
   it('the summary shown at a re-prompt is written for the current version', () => {
     expect(CONSENT_CHANGES.version, 'Bumped CONSENT_VERSION? Rewrite CONSENT_CHANGES: docs/OPERATIONS.md#consent-version-bump').toBe(CONSENT_VERSION);
     expect(CONSENT_CHANGES.summary.length).toBeGreaterThan(0);
   });
   it('the API says what was last accepted, which may be nothing', () => {
-    const me = { id: 'a0000000-0000-4000-8000-000000000000', email: 'a@example.com', displayName: null, createdAt: '2026-11-06T00:00:00.000Z', consentRequired: true, consentVersion: CONSENT_VERSION };
+    const me = { id: 'a0000000-0000-4000-8000-000000000000', email: 'a@example.com', displayName: null, createdAt: '2026-11-06T00:00:00.000Z', consentRequired: true, consentVersion: CONSENT_VERSION, profile: {}, aboutSeen: false };
     expect(meResponse.safeParse({ ...me, acceptedConsentVersion: null }).success).toBe(true);
     expect(meResponse.safeParse({ ...me, acceptedConsentVersion: '2000-01-01' }).success).toBe(true);
     expect(meResponse.safeParse(me).success).toBe(false);
+  });
+});
+
+describe('the name', () => {
+  const register = { email: 'a@example.com', code: '123456', password: 'river stone quiet morning' };
+
+  it('is 1 to 60 characters after trimming', () => {
+    expect(displayNameSchema.parse('  Asha  ')).toBe('Asha');
+    expect(displayNameSchema.safeParse('x'.repeat(60)).success).toBe(true);
+    for (const bad of ['', '   ', '\t\n', 'x'.repeat(61), null, undefined, 7]) expect(displayNameSchema.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
+  });
+
+  it('is required to create an account', () => {
+    expect(registerVerifyBody.safeParse({ ...register, displayName: 'Asha' }).success).toBe(true);
+    for (const displayName of [undefined, null, '', '  ']) expect(registerVerifyBody.safeParse({ ...register, displayName }).success).toBe(false);
+  });
+
+  it('can be changed in Settings but not removed', () => {
+    expect(profilePatchBody.parse({ displayName: ' Meera ' })).toEqual({ displayName: 'Meera' });
+    for (const displayName of [undefined, null, '', '   ', 'x'.repeat(61)]) expect(profilePatchBody.safeParse({ displayName }).success).toBe(false);
+  });
+
+  it('may still be missing on an account made before it was required, or with Google', () => {
+    const me = { id: 'a0000000-0000-4000-8000-000000000000', email: 'a@example.com', displayName: null, createdAt: '2026-11-06T00:00:00.000Z', consentRequired: false, consentVersion: CONSENT_VERSION, acceptedConsentVersion: CONSENT_VERSION, profile: {}, aboutSeen: false };
+    expect(meResponse.safeParse(me).success).toBe(true);
   });
 });

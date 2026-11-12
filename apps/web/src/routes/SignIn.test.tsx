@@ -200,15 +200,37 @@ describe('create account', () => {
     });
     const view = renderRoutes(accountRoutes, path, queryClient);
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText('Email address'), 'asha@example.in');
+    await user.type(await screen.findByLabelText('Your name or a nickname'), 'Asha');
+    await user.type(screen.getByLabelText('Email address'), 'asha@example.in');
     return { ...mocks, ...view, user };
   };
+
+  it('needs a name or a nickname, says so beside the field, and asks for no code without one', async () => {
+    const { user, calls } = await start();
+    const name = screen.getByLabelText('Your name or a nickname');
+    expect(name).toBeRequired();
+    expect(name).toHaveAttribute('maxlength', '60');
+    await user.clear(name);
+    await user.type(name, '   ');
+    await user.type(screen.getByLabelText('Password'), PASSWORD);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter your name or a nickname.');
+    expect(name).toHaveAttribute('aria-invalid', 'true');
+    expect(name).toHaveAccessibleDescription(/Enter your name or a nickname\./);
+    expect(name).toHaveFocus();
+    expect(calls.some((c) => c.key === 'POST /auth/register/request')).toBe(false);
+
+    await user.type(name, ' Asha ');
+    expect(name).not.toHaveAttribute('aria-invalid', 'true');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByRole('heading', { name: 'Check your email' });
+  });
 
   it('has the attributes password managers need', async () => {
     await start();
     expect(screen.getByLabelText('Email address')).toHaveAttribute('autocomplete', 'username');
     expect(screen.getByLabelText('Password')).toHaveAttribute('autocomplete', 'new-password');
-    expect(screen.getByLabelText(/Your name/)).toHaveAttribute('autocomplete', 'given-name');
+    expect(screen.getByLabelText('Your name or a nickname')).toHaveAttribute('autocomplete', 'given-name');
   });
 
   it('checks the password first, in plain words, and asks for no code until it is fine', async () => {
@@ -229,7 +251,6 @@ describe('create account', () => {
 
   it('sends only the address at first, then the password with the code, and holds it nowhere but memory', async () => {
     const { user, calls, router } = await start('/create-account?next=%2Fresult');
-    await user.type(screen.getByLabelText(/Your name/), 'Asha');
     await user.type(screen.getByLabelText('Password'), PASSWORD);
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('heading', { name: 'Check your email' });
@@ -269,7 +290,8 @@ describe('create account', () => {
     });
     renderRoutes(accountRoutes, '/create-account', queryClient);
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText('Email address'), 'asha@example.in');
+    await user.type(await screen.findByLabelText('Your name or a nickname'), 'Asha');
+    await user.type(screen.getByLabelText('Email address'), 'asha@example.in');
     await user.type(screen.getByLabelText('Password'), PASSWORD);
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.type(await screen.findByLabelText('6-digit code'), '123456');
@@ -285,7 +307,8 @@ describe('create account', () => {
     const mocks = mockFetch({ 'POST /auth/register/request': { status: 202 }, 'POST /auth/register/verify': problem(400, 'invalid_code') });
     renderRoutes(accountRoutes, '/create-account', queryClient);
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText('Email address'), 'asha@example.in');
+    await user.type(await screen.findByLabelText('Your name or a nickname'), 'Asha');
+    await user.type(screen.getByLabelText('Email address'), 'asha@example.in');
     await user.type(screen.getByLabelText('Password'), PASSWORD);
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     const box = await screen.findByLabelText('6-digit code');

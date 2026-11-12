@@ -39,6 +39,8 @@ const CreateAccountCode = page(() => import('@/routes/CreateAccount').then((m) =
 const ForgotPassword = page(() => import('@/routes/ForgotPassword').then((m) => ({ default: m.ForgotPassword })));
 const ResetPassword = page(() => import('@/routes/ForgotPassword').then((m) => ({ default: m.ResetPassword })));
 const Consent = page(() => import('@/routes/Consent'));
+const Name = page(() => import('@/routes/Name'));
+const AboutYou = page(() => import('@/routes/AboutYou'));
 const Privacy = page(() => import('@/routes/Legal').then((m) => ({ default: m.Privacy })));
 const Terms = page(() => import('@/routes/Legal').then((m) => ({ default: m.Terms })));
 const About = page(() => import('@/routes/Legal').then((m) => ({ default: m.About })));
@@ -76,6 +78,10 @@ export const routes = [
           { path: '/forgot-password', element: <ForgotPassword />, handle: focus },
           { path: '/forgot-password/reset', element: <ResetPassword />, handle: focus },
           { path: '/consent', element: <Consent />, handle: { focus: true, wide: true } satisfies RouteHandle },
+          // Asked after consent of an account with no name. Outside RequireAccount, like consent, so it can't loop.
+          { path: '/name', element: <Name />, handle: focus },
+          // Offered once after the name, and skippable: never a gate.
+          { path: '/about-you', element: <AboutYou />, handle: focus },
           { path: '/privacy', element: <Privacy />, handle: reading },
           { path: '/terms', element: <Terms />, handle: reading },
           { path: '/about', element: <About />, handle: reading },

@@ -20,12 +20,14 @@ import { ApiError, errorMessage, isNotFound, request } from '@/lib/api';
 import { formatDate, nextCheckInDate } from '@/lib/dates';
 import { clearGuestResult, loadGuestResult, type GuestResult } from '@/lib/guest';
 import { withNext } from '@/lib/next-path';
+import { suggestionsFor } from '@/lib/suggestions';
 import { assessmentsKey, useMe } from '@/lib/queries';
 import { NotFound } from '@/shell/RouteError';
 import { PageTitle } from '@/ui/PageTitle';
 import { ConfirmSheet } from '@/ui/Sheet';
 import { ErrorState, PageSkeleton } from '@/ui/States';
-import { assessmentResponse } from '@anxiocare/shared';
+import { SuggestionList } from '@/ui/SuggestionList';
+import { assessmentResponse, readableProfile } from '@anxiocare/shared';
 import { SelfHarmGuidance } from './Help';
 import { saveResult } from './CheckIn';
 
@@ -236,12 +238,29 @@ function NextSteps({ score, takenAt }: { score: number; takenAt: string }) {
             <span className="text-ink-soft">If this starts getting in the way of work, home or relationships, it's worth talking to a doctor.</span>
           </li>
         )}
+        <FittingTools />
         <li>
           <strong className="block font-semibold">Check in again around {formatDate(nextCheckInDate(takenAt))}</strong>
           <span className="text-ink-soft">The questions cover two weeks, so that's the soonest a new answer tells you something new.</span>
         </li>
       </ul>
     </section>
+  );
+}
+
+/** For an account that chose stress factors: the tools that fit them. Nothing for anyone else. */
+function FittingTools() {
+  const me = useMe();
+  const profile = me.data && !me.data.consentRequired ? me.data.profile : undefined;
+  const items = suggestionsFor(profile?.stressFactors);
+  if (!profile || !items.length) return null;
+  const words = readableProfile(profile).stressFactors!.map((w) => w.toLowerCase()).join(', ');
+  return (
+    <li className="flex flex-col gap-2">
+      <strong className="block font-semibold">Tools that may help</strong>
+      <span className="text-ink-soft">Because you mentioned {words}.</span>
+      <SuggestionList items={items} />
+    </li>
   );
 }
 

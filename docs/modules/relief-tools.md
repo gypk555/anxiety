@@ -10,7 +10,7 @@ The thought record is listed on the Tools screen too, but needs an account. See 
 
 **`/tools`.** A link to each tool.
 
-**`/tools/breathe`.** Choose a rhythm (slow exhale: in 4, out 6; box: 4-4-4-4; 4-7-8), a length (1, 3 or 5 minutes), and optionally a sound and vibration. "Begin" gives 3 seconds of "Settle in", then rings that grow and shrink, with the word and a seconds count. "Stop" is always there, and so is "Dizzy or short of breath? Stop and breathe normally." It ends with a neutral note. It always uses the dark "night" canvas. The manifest lists it as a home-screen shortcut.
+**`/tools/breathe`.** Choose a rhythm (slow exhale: in 4, out 6; box: 4-4-4-4; 4-7-8), a length (1, 3 or 5 minutes), and optionally a sound and vibration. "Begin" gives 3 seconds of "Settle in", then rings that grow and shrink, with the word and a seconds count, and under them a quiet "Breath 3" cycle counter in a polite live region. It is never a score, goal or streak. "Stop" is always there, and so is "Dizzy or short of breath? Stop and breathe normally." It ends with a neutral note. It always uses the dark "night" canvas. The manifest lists it as a home-screen shortcut.
 
 **`/tools/ground`.** The 5-4-3-2-1 senses in five steps, with India-specific hints such as a pressure cooker. Tap once per thing. "Next sense" works whether or not all are ticked.
 

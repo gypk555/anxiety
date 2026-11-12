@@ -65,7 +65,7 @@ Check order for a guarded route: CSRF, rate limit, body parse, session, consent,
 
 ## Shared contract versus not
 
-In [`packages/shared/src/schemas.ts`](../packages/shared/src/schemas.ts): all request bodies (`otpRequestBody`, `otpVerifyBody`, `registerRequestBody`, `registerVerifyBody`, `loginBody`, `passwordForgotBody`, `passwordResetBody`, `passwordChangeBody`, `passwordSetBody`, `consentBody`, `emailChangeRequestBody`, `emailChangeVerifyBody`, `accountDeleteConfirmBody`, `profilePatchBody`, `assessmentCreateBody`, `journalBody`), the `pageQuery`, the responses `meResponse`, `signInMethodsResponse`, `sessionResponse`, `assessmentResponse`, `journalResponse`, `metaResponse`, `problemResponse`, the `pageOf` wrapper, and `ERROR_CODES`, `CONSENT_VERSION`, `CSRF_HEADER`, `CSRF_HEADER_VALUE`, `OTP_LENGTH`.
+In [`packages/shared/src/schemas.ts`](../packages/shared/src/schemas.ts): all request bodies (`otpRequestBody`, `otpVerifyBody`, `registerRequestBody`, `registerVerifyBody`, `loginBody`, `passwordForgotBody`, `passwordResetBody`, `passwordChangeBody`, `passwordSetBody`, `consentBody`, `emailChangeRequestBody`, `emailChangeVerifyBody`, `accountDeleteConfirmBody`, `profilePatchBody`, `assessmentCreateBody`, `journalBody`), the `pageQuery`, the responses `meResponse`, `signInMethodsResponse`, `sessionResponse`, `assessmentResponse`, `journalResponse`, `metaResponse`, `problemResponse`, the `pageOf` wrapper, and `ERROR_CODES`, `CONSENT_VERSION`, `CSRF_HEADER`, `CSRF_HEADER_VALUE`, `OTP_LENGTH`. The profile lists and schemas (`AVATARS`, `AGE_RANGES`, `GENDERS`, `OCCUPATIONS`, `STRESS_FACTORS`, `profileSchema`, `profileDetailsPatchBody`, `readableProfile`) are in [`packages/shared/src/profile.ts`](../packages/shared/src/profile.ts).
 
 Only in the API, with no shared schema:
 
@@ -163,7 +163,7 @@ Body: `{ "email": string }`. 202 with an empty body, always. A new address gets 
 
 #### `POST /auth/register/verify`
 
-Body: `{ "email", "code", "password", "displayName"? }`. 200 `Me`, plus `Set-Cookie`, with `consentRequired: true`. This is what creates the account. If the address has an account by now, 400 `invalid_code`, and nothing about it changes. Errors: 400 `invalid_code`, 400 `validation_failed`, 429.
+Body: `{ "email", "code", "password", "displayName" }`. `displayName` is required: the name or a nickname, 1 to 60 characters once trimmed. A missing, null or blank one is 400 `validation_failed` with `fieldErrors.displayName`, checked before the code is spent, and the body echoes none of the input. 200 `Me`, plus `Set-Cookie`, with `consentRequired: true`. This is what creates the account. If the address has an account by now, 400 `invalid_code`, and nothing about it changes. Errors: 400 `invalid_code`, 400 `validation_failed`, 429.
 
 #### `POST /auth/login`
 
@@ -185,7 +185,7 @@ A plain navigation, not a fetch. For signing in only; connecting is `POST /me/id
 
 From Google. Checks state, single use and the cookie, exchanges the code server to server, then checks the signature, `iss`, `aud`, `azp`, `exp`, `iat`, `nonce` and `email_verified=true`. Then, by the mode sealed in the state cookie:
 
-- **Sign-in.** Finds the account by Google subject only, and **never links by address**. An address that already has an account goes to `/sign-in?error=google_link` (sign in another way, then connect Google in Settings). With no account, it creates one only for a `gmail.com` or `googlemail.com` address, or a token with an `hd` claim; otherwise `/sign-in?error=google_new`. Success: 302 to `next`, or `/consent?next=` if consent is outstanding, with `Set-Cookie` for the session and device cookie. The session does not count as a re-authentication.
+- **Sign-in.** Finds the account by Google subject only, and **never links by address**. An address that already has an account goes to `/sign-in?error=google_link` (sign in another way, then connect Google in Settings). With no account, it creates one only for a `gmail.com` or `googlemail.com` address, or a token with an `hd` claim; otherwise `/sign-in?error=google_new`. Success: 302 to `next`, or `/consent?next=` if consent is outstanding, or `/name?next=` if consent is done but the account has no name (Google is never asked for one), or `/about-you?next=` once if About you hasn't been seen, with `Set-Cookie` for the session and device cookie. The session does not count as a re-authentication.
 - **Connect.** Links the Google login to the account that started it, only if that session still exists. 302 to `/settings?google=connected`, or `taken` if the Google login belongs to another account or this account has a different one, or `failed` for anything else. Mails a notice and audits on a new link.
 
 Any other failure: 302 to `/sign-in?error=google`, plus `next` if it was valid (or `/settings?google=failed` for a connect), with no detail in the URL.
@@ -217,8 +217,10 @@ Errors: 401.
 `Me`:
 
 ```json
-{ "id": "uuid", "email": "a@example.com", "displayName": null, "createdAt": "ISO", "consentRequired": false, "consentVersion": "2026-11-07", "acceptedConsentVersion": "2026-11-06" }
+{ "id": "uuid", "email": "a@example.com", "displayName": "Asha", "createdAt": "ISO", "consentRequired": false, "consentVersion": "2026-11-13", "acceptedConsentVersion": "2026-11-12", "profile": { "avatar": "leaf", "stressFactors": ["sleep"] }, "aboutSeen": true }
 ```
+
+`displayName` is null only for an account made with Google, by email code, or before the name was required, until the person gives one. `profile` holds only the optional details that are set (`{}` when none): `avatar` (`sage`, `leaf`, `spark`, `ocean`, `mountain`), `ageRange` (`18-24`, `25-34`, `35-44`, `45-59`, `60+`, `na`), `gender` (`woman`, `man`, `nonbinary`, `na`), `occupation` (`student`, `employed`, `self_employed`, `homemaker`, `looking`, `retired`, `other`, `na`), `stressFactors` (any of `work`, `studies`, `money`, `family`, `relationships`, `health`, `sleep`, `screens`, each once). `aboutSeen` says whether the one-time About you screen was saved or skipped.
 
 `consentVersion` is the current version the server requires. `acceptedConsentVersion` is the one the person last accepted, or null if they never have, so the client can tell first-time consent from a re-prompt.
 
@@ -228,7 +230,19 @@ Errors: 401.
 
 #### `PATCH /me`
 
-Body: `{ "displayName": string | null }`, trimmed, at most 60 characters. An empty string or null clears it. 200 `Me`. Errors: 400, 401, 403 `consent_required`.
+Body: `{ "displayName": string }`, the name or a nickname, 1 to 60 characters once trimmed. It can be changed, never removed: null, an empty or blank string, or a missing field is 400 `validation_failed`. 200 `Me`. Errors: 400, 401, 403 `consent_required`.
+
+#### `PATCH /me/profile`
+
+Body: any of `avatar`, `ageRange`, `gender`, `occupation`, `stressFactors`, from the lists under `Me`. A field left out stays as it was; `null`, or `[]` for `stressFactors`, clears it. Unknown fields and values off the lists are 400 `validation_failed`, echoing nothing. Read and merged under a row lock, so two changes at once both land. Stored as one sealed JSON blob (`users.profile`, padded to 512 bytes), an empty profile included. Never logged; a stored value no longer on its list is dropped when read, with a fixed `profile_value_dropped` log line and no value. 200 `Me`. Errors: 400, 401, 403 `consent_required`, 429.
+
+#### `POST /me/about-seen`
+
+No body. Records that About you was saved or skipped, once (a repeat keeps the first time). 200 `Me` with `aboutSeen: true`. Errors: 400 if a body was sent, 401, 403 `consent_required`. A skip seals an empty profile, so `profile_ct` is set for every account that has seen the screen.
+
+#### `DELETE /me/profile`
+
+Clears every optional detail at once. A right, so it needs only a session, not consent: it works before the current notice is accepted. Seals an empty profile (the same size as a full one). 200 `Me`. Errors: 401, 429.
 
 #### `POST /me/consent`
 
@@ -295,8 +309,9 @@ Needs a recent re-authentication, not a password: email codes always remain. 204
 ```json
 {
   "exportedAt": "ISO",
-  "account": { "id": "uuid", "email": "...", "displayName": null, "createdAt": "ISO" },
+  "account": { "id": "uuid", "email": "...", "displayName": "Asha", "createdAt": "ISO" },
   "signInMethods": { "password": true, "google": false },
+  "profile": { "avatar": "Gentle Leaf", "ageRange": "25 to 34", "stressFactors": ["Sleep", "Studies and exams"] },
   "consents": [{ "version": "...", "adultConfirmed": true, "healthDataConsent": true, "acceptedAt": "ISO" }],
   "assessments": ["Assessment, newest first"],
   "journal": ["JournalEntry, newest first"],
@@ -362,6 +377,10 @@ Errors: 400, 401, 403 `consent_required`, 409 `conflict` at 1,000 saved rows.
 #### `DELETE /assessments/:id`
 
 204. Errors: 401, 403 `consent_required`, 404.
+
+#### `DELETE /assessments`
+
+Deletes every check-in of this account, and only this account's. A right, so it needs no consent: it works before the current notice is accepted. Needs a re-authentication in the last 10 minutes, like other destructive actions. 200 `{ "deleted": 3 }`. Audited as `assessments_delete`. Errors: 401, 403 `reauth_required`, 429 (10 an hour).
 
 ### Journal
 

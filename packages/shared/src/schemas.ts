@@ -1,19 +1,22 @@
 import { z } from 'zod';
 import { GAD7_ITEMS } from './gad7.ts';
 import { passwordLength, PASSWORD_MAX, PASSWORD_MIN } from './password-length.ts';
+import { profileSchema } from './profile.ts';
 
 /** Bump when the privacy notice changes materially; users are asked to accept again. */
-export const CONSENT_VERSION = '2026-11-12';
+export const CONSENT_VERSION = '2026-11-13';
 
 /**
  * Shown to everyone asked to accept again, so it must be rewritten with every bump: a test fails while
  * `version` differs from CONSENT_VERSION. Plain words, and only what really changed from the last version.
  */
 export const CONSENT_CHANGES = {
-  version: '2026-11-12',
+  version: '2026-11-13',
   summary: [
-    'You can now do a Reflection: five short questions, different each time, with no score. If you save one, we keep which questions you were asked, your answers, the date and any note. They are encrypted, like your check-ins.',
-    'Without an account, a reflection\'s answers stay in this browser tab and are gone when you close it. A note you add is kept only while the app is open, and is lost if you reload it before saving.',
+    'An account now needs a name: what you\'d like us to call you. It can be a nickname. It is encrypted, used to greet you, and put on a report for your doctor only if you choose.',
+    'You can change it in Settings at any time, but not remove it. It is deleted with your account.',
+    'You can now add a few optional details about you: an avatar, an age range, your gender, what you do, and what tends to cause you stress. Each is picked from a list. They are encrypted, and you can change or remove any of them in Settings at any time.',
+    'They are used only to show back to you, in a report for your doctor if you choose to include them, and (for stress) to suggest tools that may help. They are never used to compare you with anyone, and never shared.',
   ],
 } as const;
 /** Every state-changing API request must carry this header (CSRF defence in depth). */
@@ -37,12 +40,13 @@ export const passwordSchema = z.string().refine((value) => {
 }, { message: `must be ${PASSWORD_MIN} to ${PASSWORD_MAX} characters` });
 /** For checking a password someone already has. Shape only: a rule added later must not lock out an older password. */
 const existingPassword = z.string().min(1).max(PASSWORD_MAX * 4);
-export const displayNameSchema = trimmed(60);
+/** What to call the person. Required: a real name or a nickname, 1 to 60 characters once trimmed. */
+export const displayNameSchema = trimmed(60).min(1);
 
 export const otpRequestBody = z.strictObject({ email: emailSchema });
 export const otpVerifyBody = z.strictObject({ email: emailSchema, code: otpCodeSchema });
 export const registerRequestBody = z.strictObject({ email: emailSchema });
-export const registerVerifyBody = z.strictObject({ email: emailSchema, code: otpCodeSchema, password: passwordSchema, displayName: displayNameSchema.nullable().optional() });
+export const registerVerifyBody = z.strictObject({ email: emailSchema, code: otpCodeSchema, password: passwordSchema, displayName: displayNameSchema });
 export const loginBody = z.strictObject({ email: emailSchema, password: existingPassword });
 export const passwordForgotBody = z.strictObject({ email: emailSchema });
 export const passwordResetBody = z.strictObject({ email: emailSchema, code: otpCodeSchema, password: passwordSchema });
@@ -62,7 +66,8 @@ export const emailChangeRequestBody = z.strictObject({ newEmail: emailSchema });
 /** `currentCode` was mailed to the address on the account, `code` to the new address. */
 export const emailChangeVerifyBody = z.strictObject({ newEmail: emailSchema, currentCode: otpCodeSchema, code: otpCodeSchema });
 export const accountDeleteConfirmBody = z.strictObject({ code: otpCodeSchema });
-export const profilePatchBody = z.strictObject({ displayName: trimmed(60).nullable() });
+/** The name can be changed, never removed. */
+export const profilePatchBody = z.strictObject({ displayName: displayNameSchema });
 
 export const meResponse = z.object({
   id: uuidSchema,
@@ -73,6 +78,10 @@ export const meResponse = z.object({
   consentVersion: z.string(),
   /** What this person last agreed to. Null means never, which is a different conversation from a re-prompt. */
   acceptedConsentVersion: z.string().nullable(),
+  /** Optional details, all from fixed lists. Empty when none are set. */
+  profile: profileSchema,
+  /** Whether the one-time "About you" screen has been saved or skipped. */
+  aboutSeen: z.boolean(),
 });
 export type Me = z.infer<typeof meResponse>;
 

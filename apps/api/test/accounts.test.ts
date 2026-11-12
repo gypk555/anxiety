@@ -29,12 +29,12 @@ const observable = (r: { statusCode: number; body: string; headers: Record<strin
   return { status: r.statusCode, body: r.body ? strip(r.body) : null, headers };
 };
 
-async function register(email = uniqueEmail('reg'), password = PASSWORD, client = new Client(h), displayName?: string) {
+async function register(email = uniqueEmail('reg'), password = PASSWORD, client = new Client(h), displayName = 'Asha') {
   const asked = await client.post(`${API}/auth/register/request`, { email });
   if (asked.statusCode !== 202) throw new Error(`register request failed: ${asked.statusCode}`);
   await h.app.drainBackground();
   const code = h.mailer.codeFor(email, 'register');
-  const done = await client.post(`${API}/auth/register/verify`, { email, code, password, ...(displayName ? { displayName } : {}) });
+  const done = await client.post(`${API}/auth/register/verify`, { email, code, password, displayName });
   if (done.statusCode !== 200) throw new Error(`register verify failed: ${done.statusCode} ${done.body}`);
   return { client, email, id: done.json().id as string, password };
 }
@@ -142,13 +142,36 @@ describe('create account: verify', () => {
     expect(hash).not.toContain(PASSWORD);
   });
 
+  it('refuses an account with no name, echoing nothing back, and leaves the code to use with one', async () => {
+    const email = uniqueEmail('noname');
+    const client = new Client(h);
+    await client.post(`${API}/auth/register/request`, { email });
+    await h.app.drainBackground();
+    const code = h.mailer.codeFor(email, 'register');
+    const long = 'NameMarker'.repeat(7);
+    for (const displayName of [undefined, null, '', '   ', long]) {
+      const r = await client.post(`${API}/auth/register/verify`, { email, code, password: PASSWORD, ...(displayName === undefined ? {} : { displayName }) });
+      expect(r.statusCode, JSON.stringify(displayName)).toBe(400);
+      expect(r.json().code).toBe('validation_failed');
+      expect(r.json().fieldErrors.displayName).toHaveLength(1);
+      expect(r.body).not.toContain('NameMarker');
+      expect(r.body).not.toContain(PASSWORD);
+      expect(r.body).not.toContain(email);
+    }
+    expect(await userCount(email)).toBe(0);
+    expect(client.cookie).toBeNull();
+    const done = await client.post(`${API}/auth/register/verify`, { email, code, password: PASSWORD, displayName: '  Asha  ' });
+    expect(done.statusCode).toBe(200);
+    expect(done.json().displayName).toBe('Asha');
+  });
+
   it('a wrong code creates nothing', async () => {
     const email = uniqueEmail('wrongcode');
     const client = new Client(h);
     await client.post(`${API}/auth/register/request`, { email });
     await h.app.drainBackground();
     const code = h.mailer.codeFor(email, 'register');
-    const r = await client.post(`${API}/auth/register/verify`, { email, code: code === '000000' ? '111111' : '000000', password: PASSWORD });
+    const r = await client.post(`${API}/auth/register/verify`, { email, code: code === '000000' ? '111111' : '000000', password: PASSWORD, displayName: 'Asha' });
     expect(r.statusCode).toBe(400);
     expect(r.json().code).toBe('invalid_code');
     expect(await userCount(email)).toBe(0);
@@ -162,13 +185,13 @@ describe('create account: verify', () => {
     await h.app.drainBackground();
     const code = h.mailer.codeFor(email, 'register');
     for (const bad of ['password1234', `${email.split('@')[0]}-long-enough`, 'short']) {
-      const r = await client.post(`${API}/auth/register/verify`, { email, code, password: bad });
+      const r = await client.post(`${API}/auth/register/verify`, { email, code, password: bad, displayName: 'Asha' });
       expect(r.statusCode).toBe(400);
       expect(r.json().code).toBe('validation_failed');
       expect(r.json().fieldErrors.password).toHaveLength(1);
       expect(r.body).not.toContain(bad);
     }
-    expect((await client.post(`${API}/auth/register/verify`, { email, code, password: PASSWORD })).statusCode).toBe(200);
+    expect((await client.post(`${API}/auth/register/verify`, { email, code, password: PASSWORD, displayName: 'Asha' })).statusCode).toBe(200);
   });
 
   it('a code from before the account existed cannot set a password on it, or sign in to it', async () => {
@@ -180,7 +203,7 @@ describe('create account: verify', () => {
     // The address gets its account another way while that code is live.
     const { client: first } = await signIn(h, email);
     expect(first.cookie).toBeTruthy();
-    const r = await late.post(`${API}/auth/register/verify`, { email, code, password: PASSWORD });
+    const r = await late.post(`${API}/auth/register/verify`, { email, code, password: PASSWORD, displayName: 'Asha' });
     expect(r.statusCode).toBe(400);
     expect(r.json().code).toBe('invalid_code');
     expect(late.cookie).toBeNull();
@@ -207,7 +230,7 @@ describe('create account: verify', () => {
     await client.post(`${API}/auth/register/request`, { email });
     await h.app.drainBackground();
     const code = h.mailer.codeFor(email, 'register');
-    const results = await Promise.all([1, 2, 3].map(() => new Client(h).post(`${API}/auth/register/verify`, { email, code, password: PASSWORD })));
+    const results = await Promise.all([1, 2, 3].map(() => new Client(h).post(`${API}/auth/register/verify`, { email, code, password: PASSWORD, displayName: 'Asha' })));
     expect(results.filter((r) => r.statusCode === 200)).toHaveLength(1);
     expect(await userCount(email)).toBe(1);
   });
@@ -730,7 +753,7 @@ describe('code purposes are not interchangeable', () => {
   const routes = (s: Awaited<ReturnType<typeof allCodes>>) =>
     ({
       login: (code: string) => new Client(h).post(`${API}/auth/otp/verify`, { email: s.email, code }),
-      register: (code: string) => new Client(h).post(`${API}/auth/register/verify`, { email: s.email, code, password: PASSWORD }),
+      register: (code: string) => new Client(h).post(`${API}/auth/register/verify`, { email: s.email, code, password: PASSWORD, displayName: 'Asha' }),
       password_reset: (code: string) => new Client(h).post(`${API}/auth/password/reset`, { email: s.email, code, password: PASSWORD }),
       password_set: (code: string) => s.client.post(`${API}/me/password/set`, { code, password: PASSWORD }),
       account_delete: (code: string) => s.client.post(`${API}/me/delete/confirm`, { code }),
@@ -768,7 +791,7 @@ describe('code purposes are not interchangeable', () => {
     expect((await client.post(`${API}/me/password/set`, { code, password: PASSWORD })).json().code).toBe('invalid_code');
     expect((await client.post(`${API}/me/delete/confirm`, { code })).json().code).toBe('invalid_code');
     expect(await userCount(email)).toBe(0);
-    expect((await new Client(h).post(`${API}/auth/register/verify`, { email, code, password: PASSWORD })).statusCode).toBe(200);
+    expect((await new Client(h).post(`${API}/auth/register/verify`, { email, code, password: PASSWORD, displayName: 'Asha' })).statusCode).toBe(200);
   });
 
   it('the database refuses a purpose it does not know, and a subject that does not fit the purpose', async () => {
@@ -911,11 +934,11 @@ describe('the password never reaches a log or an error body', () => {
     await send('/auth/register/request', { email });
     await h.app.drainBackground();
     const code = h.mailer.codeFor(email, 'register');
-    await send('/auth/register/verify', { email, code: code === '000000' ? '111111' : '000000', password: MARK });
-    await send('/auth/register/verify', { email, code, password: `${MARK}`.slice(0, 5) });
+    await send('/auth/register/verify', { email, code: code === '000000' ? '111111' : '000000', password: MARK, displayName: 'Asha' });
+    await send('/auth/register/verify', { email, code, password: `${MARK}`.slice(0, 5), displayName: 'Asha' });
     await send('/auth/register/verify', { email, code, password: 12345, displayName: MARK });
-    await send('/auth/register/verify', { email, code, password: MARK, extra: MARK });
-    await send('/auth/register/verify', { email, code, password: MARK });
+    await send('/auth/register/verify', { email, code, password: MARK, extra: MARK, displayName: 'Asha' });
+    await send('/auth/register/verify', { email, code, password: MARK, displayName: 'Asha' });
     await send('/auth/login', { email, password: `${MARK}-wrong` });
     await send('/auth/login', { email, password: `${MARK}-wrong`, [MARK]: 1 });
     await send('/auth/login', { password: MARK });

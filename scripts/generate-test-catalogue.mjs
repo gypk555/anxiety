@@ -78,6 +78,10 @@ function level(file) {
 }
 
 const DESCRIBE_AREAS = [
+  [/^profile\.test.*at rest/, 'Security: encryption'],
+  [/^profile\.test.*(deleting all check-ins)/, 'Privacy: rights'],
+  [/^(profile|AboutYou|Name|suggestions)\.test|^profile\.spec/, 'Product: name and profile'],
+  [/^Home\.test.*suggestions from stress/, 'Product: name and profile'],
   [/^reflections\.test.*at rest/, 'Security: encryption'],
   [/^reflections\.test.*access/, 'Security: authorisation'],
   [/^(questions|released-questions|reflections|reflection-store|Reflection)\.test|^reflection\.spec/, 'Product: reflections'],
@@ -463,8 +467,29 @@ const REQUIREMENTS = [
     R('RF-12', 'API: auth, consent, cross-user 404, idempotency, refusals that echo nothing, per-user limit', 'Covered', [T('reflections.test', /^reflections: access > /), T('reflections.test', /replays it by clientRequestId/), T('reflections.test', /refuses unknown, inactive and GAD-7 ids/)], ''),
     R('RF-13', 'Encrypted at rest with AAD, ids and notes not visible, same size, swap fails', 'Covered', [T('reflections.test', /^reflections: at rest > /), T('encryption.test', /raw SELECT of every table/)], ''),
     R('RF-14', 'History, Trends theme count (not a score) and the doctor report section, off by default', 'Covered', [T('Trends.test', /lists reflections by date/), T('Report.test', /Reflections section/), T('live/reflection.spec', /appears in history/)], '', ['MT-RF-04']),
-    R('RF-15', 'Export with question text resolved, and erasure; consent bumped with the notice', 'Covered', [T('erasure.test', /downloads all decrypted data/), T('erasure.test', /hard-deletes every row/), T('gad7.test', /adds reflections to the notice/), T('Legal.test', /covers reflections/)], 'Notice text needs legal review.'),
+    R('RF-15', 'Export with question text resolved, and erasure; consent bumped with the notice', 'Covered', [T('erasure.test', /downloads all decrypted data/), T('erasure.test', /hard-deletes every row/), T('gad7.test', /written for the current version/), T('Legal.test', /covers reflections/)], 'Notice text needs legal review. The version has since moved on to 2026-11-13.'),
     R('RF-16', 'Every reflection screen: axe, 320px, landscape, no CSP violations', 'Covered', [T('audit.spec', /^(checkin-choice|reflection-)/), T('live/reflection.spec', /axe and 320px/), T('live/landscape.spec', /fit a small phone on its side/)], ''),
+  ]},
+  // The owner's required-name request, and docs/superpowers/specs/2026-11-12-profile-details-design.md
+  { section: 'Required name and profile details (2026-11-12)', rows: [
+    R('PN-01', 'Create account: "Your name or a nickname", required, 1 to 60 characters trimmed, inline error', 'Covered', [T('gad7.test', /is 1 to 60 characters after trimming/), T('SignIn.test', /needs a name or a nickname/)], '', ['MT-PRO-01']),
+    R('PN-02', 'The API refuses a registration with no name: 400, echoing no input, code not spent', 'Covered', [T('accounts.test', /refuses an account with no name/), T('gad7.test', /is required to create an account/)], ''),
+    R('PN-03', 'An account with no name is asked once after sign-in and consent, keeping next; Google is never asked for a name', 'Covered', [T('Name.test', /asks before an account screen/), T('Name.test', /comes after consent/), T('Name.test', /signing in with a code/), T('google.test', /is never asked of Google/), T('live/accounts.spec', /no name stored/)], '', ['MT-PRO-02', 'MT-PRO-03']),
+    R('PN-04', 'The name screen never blocks Get help, Quick exit, sign out, export or delete; guests unaffected', 'Covered', [T('Name.test', /^the name screen never stands in the way > /), T('Name.test', /a guest is never asked/), T('live/safety.spec', /Get help is on every signed-in route/)], '', ['MT-PRO-02']),
+    R('PN-05', 'Settings: the name can be changed, never removed; PATCH /me takes a non-null name', 'Covered', [T('Settings.test', /can be changed but not removed/), T('data.test', /never removes it/), T('gad7.test', /can be changed in Settings but not removed/), T('live/settings.spec', /it cannot be removed/)], '', ['MT-SET-02']),
+    R('PN-06', 'The notice and consent screen no longer call the name optional; one consent bump for both changes', 'Covered', [T('Consent.test', /not that the name is optional/), T('Legal.test', /can be a nickname/), T('gad7.test', /makes the name required/)], 'Needs legal review.', ['MT-PRO-10']),
+    R('PD-01', 'Profile details from fixed lists only, all optional, strict schema, null clears', 'Covered', [T('profile.test', /^profile choices > /), T('profile.test', /^the stored profile > /), T('profile.test', /^changing the profile > /)], ''),
+    R('PD-02', 'About you after the name, once: Save and Skip for now, remembered, never a gate', 'Covered', [T('AboutYou.test', /^About you > /), T('live/profile.spec', /About you after the name/), T('live/profile.spec', /Skip for now is remembered/)], '', ['MT-PRO-04', 'MT-PRO-05']),
+    R('PD-03', 'Settings edits or clears every field; avatar in Settings and the header', 'Covered', [T('Settings.test', /every detail can be changed or cleared/), T('Shell.test', /^the avatar in the header > /)], '', ['MT-PRO-06']),
+    R('PD-04', 'API: consent gate, cross-user, refusals echo nothing, sealed and padded, AAD swap fails, export in words, erasure', 'Covered', [T('api/test/profile.test', /^profile details > /)], ''),
+    R('PD-05', 'Stress factors suggest existing tools on Home and the result; no comparison or scoring', 'Covered', [T('suggestions.test', /^tools suggested from stress factors > /), T('Home.test', /^suggestions from stress factors > /), T('CheckIn.test', /suggests tools that fit/)], 'Wording needs clinician review.', ['MT-PRO-09']),
+    R('PD-06', 'Report "About me", off by default, only what is set, no avatar', 'Covered', [T('Report.test', /About me section/), T('Report.test', /no details are set/)], '', ['MT-PRO-07']),
+    R('PD-07', 'Breathing: a quiet, politely announced cycle counter', 'Covered', [T('Breathe.test', /counts breaths quietly/), T('live/profile.spec', /counts breaths/)], ''),
+    R('PD-08', 'Delete all check-ins: count named, user-scoped, needs re-authentication, not consent', 'Covered', [T('api/test/profile.test', /^deleting all check-ins > /), T('Settings.test', /Delete all check-ins names the count/), T('live/profile.spec', /Delete all check-ins/)], '', ['MT-PRO-08']),
+    R('PD-09', 'The notice lists the details honestly; one CONSENT_VERSION bump', 'Covered', [T('Legal.test', /optional profile details/), T('Consent.test', /optional profile details honestly/), T('gad7.test', /adds the optional profile details/)], 'Needs legal review.', ['MT-PRO-10']),
+    R('PD-11', 'Rights without consent: delete all check-ins and clear profile details, in the rights-only Settings view', 'Covered', [T('api/test/profile.test', /is a right: it works without accepting/), T('api/test/profile.test', /^clearing the profile is a right > /), T('Settings.test', /are rights too, without accepting/)], ''),
+    R('PD-12', 'Robust and private storage: unknown stored values dropped without failing, empty profiles sealed, no lost concurrent updates', 'Covered', [T('api/test/profile.test', /^a stored profile from an older list > /), T('api/test/profile.test', /^the stored profile says nothing by its presence > /), T('api/test/profile.test', /^two changes at once > /)], ''),
+    R('PD-10', 'New screens: axe, 320px, no CSP violations', 'Covered', [T('audit.spec', /^(name|about-you|settings-about-you|home-suggestions)/), T('live/a11y.spec', /signed-in screens with long real data/), T('live/profile.spec', /About you after the name/)], ''),
   ]},
 ];
 
@@ -516,7 +541,7 @@ function render(tests) {
 
 <!-- Generated by scripts/generate-test-catalogue.mjs. Do not edit by hand: change the script or the tests, then regenerate. -->
 
-Every automated test in the repository, as the test runners themselves list them, and a matrix from each requirement in \`${SPEC}\`, the accounts spec \`docs/superpowers/specs/2026-11-07-accounts-and-database-design.md\`, and the safety and tracking spec \`docs/superpowers/specs/2026-11-11-safety-and-tracking-design.md\`, to the tests that cover it.
+Every automated test in the repository, as the test runners themselves list them, and a matrix from each requirement in \`${SPEC}\`, the accounts spec \`docs/superpowers/specs/2026-11-07-accounts-and-database-design.md\`, the safety and tracking spec \`docs/superpowers/specs/2026-11-11-safety-and-tracking-design.md\`, the reflections spec, and the profile details spec \`docs/superpowers/specs/2026-11-12-profile-details-design.md\` with the required name, to the tests that cover it.
 
 **Regenerate** after changing tests, from the repository root. It needs only \`npm ci\`: it does not start a browser or a database, and it does not run anything.
 

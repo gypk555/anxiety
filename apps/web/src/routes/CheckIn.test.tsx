@@ -1,5 +1,5 @@
 import { DIFFICULTY_STEM, GAD7_ATTRIBUTION, GAD7_ITEMS, GAD7_OPTIONS, GAD7_STEM, type Assessment } from '@anxiocare/shared';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadCheckin, loadGuestResult } from '@/lib/guest';
@@ -150,6 +150,21 @@ describe('check-in flow', () => {
     const post = calls.find((c) => c.key === 'POST /assessments')!;
     expect(post.body).toMatchObject({ clientRequestId: id, answers: [1, 1, 1, 1, 1, 1, 1], difficulty: 1 });
     expect(loadGuestResult()).toBeNull();
+  });
+
+  it('a saved result suggests tools that fit the stress factors chosen, and none without them', async () => {
+    const saved: Assessment = { id: '22222222-2222-4222-8222-222222222229', takenAt: '2026-11-06T04:00:00.000Z', answers: [1, 1, 1, 1, 1, 1, 1], difficulty: 1, score: 7, severity: 'mild' };
+    mockFetch({ 'GET /me': { body: { ...ME, profile: { stressFactors: ['work'] } } }, [`GET /assessments/${saved.id}`]: { body: saved } });
+    const view = renderRoutes(routes, `/result/${saved.id}`, queryClient);
+    const next = await screen.findByRole('region', { name: 'What you could do next' });
+    expect(await within(next).findByRole('link', { name: /A thought record/ })).toHaveAttribute('href', '/journal/new');
+    expect(within(next).getByText(/Because you mentioned work/)).toBeInTheDocument();
+    view.unmount();
+    queryClient.clear();
+    mockFetch({ 'GET /me': { body: ME }, [`GET /assessments/${saved.id}`]: { body: saved } });
+    renderRoutes(routes, `/result/${saved.id}`, queryClient);
+    const plain = await screen.findByRole('region', { name: 'What you could do next' });
+    expect(within(plain).queryByText(/Because you mentioned/)).not.toBeInTheDocument();
   });
 
   it('keeps the result in the tab if saving fails, and offers to save it', async () => {

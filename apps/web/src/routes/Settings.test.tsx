@@ -37,6 +37,28 @@ describe('rights while consent is outstanding', () => {
     expect(screen.getByRole('link', { name: 'Review and agree' })).toHaveAttribute('href', '/consent?next=%2Fsettings');
   });
 
+  it('deleting all check-ins and clearing profile details are rights too, without accepting', async () => {
+    const user = userEvent.setup();
+    let profile: object = { avatar: 'leaf', gender: 'woman' };
+    const { calls } = mockFetch({
+      'GET /me': () => ({ body: { ...STALE, profile } }),
+      'DELETE /me/profile': () => {
+        profile = {};
+        return { body: { ...STALE, profile } };
+      },
+      'GET /assessments': { body: { items: [], nextCursor: null } },
+      'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META },
+    });
+    renderRoutes(routes, '/settings', queryClient);
+    expect(await screen.findByRole('button', { name: 'Delete all check-ins' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear my profile details' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Clear your profile details?' });
+    await user.click(within(confirm).getByRole('button', { name: 'Clear details' }));
+    expect(await screen.findByText('Profile details cleared')).toBeInTheDocument();
+    expect(calls.some((c) => c.key === 'DELETE /me/profile')).toBe(true);
+    expect(calls.some((c) => c.key === 'PATCH /me/profile')).toBe(false);
+  });
+
   it('holds back only what the server refuses until consent: changing the name and email', async () => {
     open(STALE);
     await screen.findByRole('button', { name: 'Download my data' });
@@ -61,7 +83,7 @@ describe('rights while consent is outstanding', () => {
     renderRoutes(routes, '/settings', queryClient);
     await screen.findByRole('button', { name: 'Download my data' });
     expect(screen.queryByRole('link', { name: 'Review and agree' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Name' })).toHaveAccessibleDescription('Asha Only used to greet you');
+    expect(screen.getByRole('button', { name: 'Name' })).toHaveAccessibleDescription('Asha Used to greet you');
     expect(screen.getByRole('button', { name: 'Email' })).toHaveAccessibleDescription(ME.email);
   });
 
@@ -101,13 +123,98 @@ describe('rights while consent is outstanding', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Name' }));
     const sheet = await screen.findByRole('dialog', { name: 'Your name' });
-    const field = within(sheet).getByLabelText(/Only used to greet you/);
+    const field = within(sheet).getByLabelText('Your name or a nickname');
     await user.clear(field);
     await user.type(field, 'Meera');
     await user.click(within(sheet).getByRole('button', { name: 'Save name' }));
     expect(calls.find((c) => c.key === 'PATCH /me')?.body).toEqual({ displayName: 'Meera' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Name' })).toHaveAccessibleDescription('Meera Only used to greet you'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Name' })).toHaveAccessibleDescription('Meera Used to greet you'));
     expect(await screen.findByText('Name saved')).toBeInTheDocument();
+  });
+});
+
+describe('the name in Settings', () => {
+  it('can be changed but not removed', async () => {
+    const { calls } = mockFetch({
+      'GET /me': { body: ME }, 'PATCH /me': { body: ME },
+      'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META },
+    });
+    renderRoutes(routes, '/settings', queryClient);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Name' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Your name' });
+    const field = within(sheet).getByLabelText('Your name or a nickname');
+    expect(field).toBeRequired();
+    expect(field).toHaveValue('Asha');
+    await user.clear(field);
+    await user.click(within(sheet).getByRole('button', { name: 'Save name' }));
+    expect(within(sheet).getByRole('alert')).toHaveTextContent('Enter your name or a nickname.');
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveFocus();
+    expect(calls.some((c) => c.key === 'PATCH /me')).toBe(false);
+    expect(within(sheet).queryByRole('button', { name: /Remove|Clear/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('About you in Settings', () => {
+  const open = (profile: object, extra: Record<string, unknown> = {}) => {
+    let me = { ...ME, profile };
+    const mocks = mockFetch({
+      'GET /me': () => ({ body: me }),
+      'PATCH /me/profile': (body) => {
+        const next: Record<string, unknown> = { ...me.profile };
+        for (const [k, v] of Object.entries(body as object)) {
+          if (v === null || (Array.isArray(v) && v.length === 0)) delete next[k];
+          else next[k] = v;
+        }
+        me = { ...me, profile: next };
+        return { body: me };
+      },
+      'GET /auth/sessions': { body: SESSIONS }, 'GET /me/sign-in-methods': { body: { password: true, google: false } }, 'GET /meta': { body: META },
+      ...extra,
+    });
+    renderRoutes(routes, '/settings', queryClient);
+    return mocks;
+  };
+
+  it('shows the avatar in the profile card, and every detail can be changed or cleared', async () => {
+    const user = userEvent.setup();
+    const { calls } = open({ avatar: 'ocean', gender: 'woman', stressFactors: ['work'] });
+    expect(await screen.findByRole('img', { name: 'Ocean Breeze' })).toBeInTheDocument();
+    const row = screen.getByRole('button', { name: 'About you' });
+    expect(row).toHaveAccessibleDescription(/Woman/);
+    await user.click(row);
+    const sheet = await screen.findByRole('dialog', { name: 'About you' });
+    expect(within(within(sheet).getByRole('radiogroup', { name: 'Gender' })).getByRole('radio', { name: 'Woman' })).toBeChecked();
+    await user.click(within(within(sheet).getByRole('radiogroup', { name: 'Gender' })).getByRole('radio', { name: 'Not set' }));
+    await user.click(within(within(sheet).getByRole('radiogroup', { name: 'Avatar' })).getByRole('radio', { name: 'Your initial' }));
+    await user.click(within(sheet).getByRole('checkbox', { name: 'Work' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }));
+    expect(calls.find((c) => c.key === 'PATCH /me/profile')!.body).toEqual({ avatar: null, ageRange: null, gender: null, occupation: null, stressFactors: [] });
+    expect(await screen.findByText('Details saved')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('img', { name: 'Ocean Breeze' })).not.toBeInTheDocument());
+  });
+
+  it('Delete all check-ins names the count, and asks to confirm it is you first', async () => {
+    const user = userEvent.setup();
+    let fresh = false;
+    const { calls } = open({}, {
+      'GET /assessments': { body: { items: [{}, {}, {}].map((_, i) => ({ id: `22222222-2222-4222-8222-22222222222${i}`, takenAt: '2026-11-01T04:00:00.000Z', answers: [1, 1, 1, 1, 1, 1, 1], difficulty: 1, score: 7, severity: 'mild' })), nextCursor: null } },
+      'DELETE /assessments': () => (fresh ? { body: { deleted: 3 } } : { status: 403, body: { type: 'about:blank', title: 'x', status: 403, code: 'reauth_required' } }),
+      'POST /me/reauth/password': () => {
+        fresh = true;
+        return { status: 204 };
+      },
+    });
+    await user.click(await screen.findByRole('button', { name: 'Delete all check-ins' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Delete all check-ins?' });
+    expect(confirm).toHaveTextContent('All 3 of your saved check-ins will be deleted');
+    await user.click(within(confirm).getByRole('button', { name: 'Delete 3 check-ins' }));
+    const reauth = await screen.findByRole('dialog', { name: "Confirm it's you" });
+    await user.type(within(reauth).getByLabelText('Your password'), 'river stone quiet morning');
+    await user.click(within(reauth).getByRole('button', { name: 'Confirm' }));
+    expect(await screen.findByText('3 check-ins deleted')).toBeInTheDocument();
+    expect(calls.filter((c) => c.key === 'DELETE /assessments')).toHaveLength(2);
   });
 });
 

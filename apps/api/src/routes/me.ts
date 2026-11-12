@@ -3,8 +3,11 @@ import {
   consentBody,
   emailChangeRequestBody,
   emailChangeVerifyBody,
+  applyProfilePatch,
+  profileDetailsPatchBody,
   profilePatchBody,
   questionById,
+  readableProfile,
   REFLECTION_OPTIONS,
   type Reflection,
 } from '@anxiocare/shared';
@@ -18,7 +21,7 @@ import { clearDeviceCookie } from '../devices.ts';
 import { ApiError, invalidCode } from '../errors.ts';
 import { emailChangedNotice } from '../mail.ts';
 import { consumeOtp, consumeOtps, deliverOtp, emailQuotaKey, loginQuotaKey, otpTarget } from '../otp.ts';
-import { dekFor, emailOf, loadUser, toMe } from '../users.ts';
+import { dekFor, emailOf, loadUser, profileOf, sealProfile, toMe, type UserRow } from '../users.ts';
 import { emptyBody, parse } from '../validate.ts';
 import { signInMethods } from './accounts.ts';
 import { assessmentFromRow, type AssessmentRow } from './assessments.ts';
@@ -49,13 +52,45 @@ export function meRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typeo
   const signedIn = { preHandler: hooks.requireAuth };
   const consented = { preHandler: [hooks.requireAuth, hooks.requireConsent] };
 
-  app.get('/me', signedIn, async (request) => toMe(keys, authOf(request).user));
+  app.get('/me', signedIn, async (request) => toMe(keys, authOf(request).user, request.log));
 
   app.patch('/me', consented, async (request) => {
     const { user } = authOf(request);
     const { displayName } = parse(profilePatchBody, request.body);
-    const value = displayName ? sealText(dekFor(keys, user), displayName, 'users.display_name', user.id, user.id) : null;
+    const value = sealText(dekFor(keys, user), displayName, 'users.display_name', user.id, user.id);
     await sql`UPDATE app.users SET display_name_ct = ${value}, updated_at = now() WHERE id = ${user.id}::uuid`;
+    return toMe(keys, await loadUser(sql, user.id));
+  });
+
+  // Optional details: a change to any part of them. Null, or an empty list, clears a field.
+  app.patch('/me/profile', consented, async (request) => {
+    const { user } = authOf(request);
+    const patch = parse(profileDetailsPatchBody, request.body);
+    const dek = dekFor(keys, user);
+    // Read and write under a row lock, so two changes at once both land rather than one undoing the other.
+    await sql.begin(async (tx) => {
+      const [row] = await tx<UserRow[]>`SELECT id, profile_ct FROM app.users WHERE id = ${user.id}::uuid FOR UPDATE`;
+      const value = sealProfile(dek, user.id, applyProfilePatch(profileOf(dek, row!, request.log), patch));
+      await tx`UPDATE app.users SET profile_ct = ${value}, updated_at = now() WHERE id = ${user.id}::uuid`;
+    });
+    return toMe(keys, await loadUser(sql, user.id), request.log);
+  });
+
+  // Rights: clearing every detail at once needs no consent, like download and delete.
+  app.delete('/me/profile', signedIn, async (request) => {
+    const { user } = authOf(request);
+    const empty = sealProfile(dekFor(keys, user), user.id, {});
+    await sql`UPDATE app.users SET profile_ct = ${empty}, updated_at = now() WHERE id = ${user.id}::uuid`;
+    return toMe(keys, await loadUser(sql, user.id), request.log);
+  });
+
+  // "About you" saved or skipped: it is offered once, and never again.
+  app.post('/me/about-seen', consented, async (request) => {
+    parse(emptyBody, request.body);
+    const { user } = authOf(request);
+    // A skip seals an empty profile too, so a stored profile looks the same whether or not details were given.
+    const empty = sealProfile(dekFor(keys, user), user.id, {});
+    await sql`UPDATE app.users SET about_seen_at = coalesce(about_seen_at, now()), profile_ct = coalesce(profile_ct, ${empty}) WHERE id = ${user.id}::uuid`;
     return toMe(keys, await loadUser(sql, user.id));
   });
 
@@ -159,11 +194,13 @@ export function meRoutes(app: FastifyInstance, ctx: Ctx, hooks: ReturnType<typeo
         SELECT version, adult_confirmed, health_data, accepted_at FROM app.consents WHERE user_id = ${user.id}::uuid ORDER BY accepted_at
       `,
     ]);
-    const { consentRequired: _consentRequired, consentVersion: _consentVersion, acceptedConsentVersion: _accepted, ...account } = toMe(keys, user);
+    const { consentRequired: _consentRequired, consentVersion: _consentVersion, acceptedConsentVersion: _accepted, profile, aboutSeen: _seen, ...account } = toMe(keys, user, request.log);
     const body = {
       exportedAt: new Date().toISOString(),
       account,
       signInMethods: await signInMethods(sql, user),
+      // In words, so the download reads on its own.
+      profile: readableProfile(profile),
       consents: consents.map((c) => ({
         version: c.version,
         adultConfirmed: c.adult_confirmed,

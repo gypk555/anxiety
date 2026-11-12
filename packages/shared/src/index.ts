@@ -6,3 +6,4 @@ export * from './password-length.ts';
 export * from './tracking.ts';
 export * from './questions.ts';
 export * from './reflections.ts';
+export * from './profile.ts';

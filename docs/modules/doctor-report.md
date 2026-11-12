@@ -20,9 +20,11 @@ A clear summary to take to a doctor, made from the person's own data, which they
   | Journal entries | Off |
   | Reflections | Off |
   | Reflection notes | Off |
+  | About me | Off |
 
   A line explains that private writing is left out unless it's added.
-- "Put my name at the top" is off by default. When on, it shows a name field filled from the display name.
+- "Put my name at the top" is off by default. When on, it shows a name field filled from the account's name (required since 2026-11-13, and possibly a nickname), which can be changed for this report only.
+- **About me**, off by default: the age range, gender, what the person does ("Occupation") and "Things that cause stress", in words, only those that are set, or "No details added.". The avatar never goes in. See [profile](profile.md).
 - The preview below, labelled "Report preview", is what prints:
   - a header, "Anxiety check-in summary", with the name if chosen and the period
   - each section in large type

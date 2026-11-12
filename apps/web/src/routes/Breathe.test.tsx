@@ -39,6 +39,22 @@ describe('Breathe', () => {
     await vi.advanceTimersByTimeAsync(ms);
   });
 
+  it('counts breaths quietly, announced politely, with no score', async () => {
+    const u = user();
+    open();
+    await u.click(screen.getByRole('button', { name: 'Begin' }));
+    expect(screen.queryByText(/^Breath \d+$/)).not.toBeInTheDocument(); // not during the lead-in
+    await advance(3200);
+    expect(screen.getByText('Breath 1')).toBeInTheDocument();
+    // Slow exhale is a 10-second cycle.
+    await advance(10_000);
+    expect(screen.getByText('Breath 2')).toBeInTheDocument();
+    await advance(10_000);
+    const counter = screen.getByText('Breath 3');
+    expect(counter.closest('[aria-live]')).toHaveAttribute('aria-live', 'polite');
+    expect(document.body.textContent).not.toMatch(/score|well done|streak/i);
+  });
+
   it('Go again brings back the sound that was chosen', async () => {
     const u = user();
     open();

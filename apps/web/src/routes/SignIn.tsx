@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { ApiError, errorMessage, request } from '@/lib/api';
-import { safeNext, withNext } from '@/lib/next-path';
+import { afterSignIn, safeNext, withNext } from '@/lib/next-path';
 import { hasHeldWork } from '@/lib/held';
 import { meKey, reconcileHeld, useMe } from '@/lib/queries';
 import { forgetOtherAccounts } from '@/lib/vault';
@@ -28,9 +28,6 @@ const GOOGLE_PROBLEMS: Record<string, string> = {
   google_new: "We can't start a new account with Google for this address. Create an account with your email address instead.",
 };
 
-export function afterSignIn(me: Me, next: string): string {
-  return me.consentRequired ? withNext('/consent', next) : next;
-}
 
 /** Everything a sign-in of any kind does on success. */
 export function useSignedIn(next: string) {

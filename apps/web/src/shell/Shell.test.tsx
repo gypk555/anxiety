@@ -2,7 +2,8 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Outlet } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderRoutes, mockFetch } from '@/test/render';
+import { meKey, queryClient } from '@/lib/queries';
+import { ME, renderRoutes, mockFetch } from '@/test/render';
 import { RouteError } from './RouteError';
 import { Shell } from './Shell';
 import * as exit from '@/lib/quick-exit';
@@ -114,5 +115,30 @@ describe('shell', () => {
     await screen.findByRole('heading', { name: 'Home' });
     await user.keyboard('{Escape}{Escape}{Escape}');
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the avatar in the header', () => {
+  afterEach(() => queryClient.clear());
+
+  it('shows the chosen avatar, by name, linking to Settings', async () => {
+    // The header never asks the server itself: it shows what the screens have already loaded.
+    const { calls } = mockFetch({});
+    queryClient.setQueryData(meKey, { ...ME, profile: { avatar: 'mountain' } });
+    renderRoutes(routes, '/', queryClient);
+    const banner = screen.getByRole('banner');
+    const link = await within(banner).findByRole('link', { name: 'Settings, Mountain Peak' });
+    expect(link).toHaveAttribute('href', '/settings');
+    expect(within(link).getByText('🏔️')).toHaveAttribute('aria-hidden', 'true');
+    expect(calls).toEqual([]);
+  });
+
+  it('shows nothing for a guest, or an account without an avatar', async () => {
+    mockFetch({});
+    queryClient.setQueryData(meKey, ME);
+    renderRoutes(routes, '/', queryClient);
+    await screen.findByRole('heading', { name: 'Home' });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(within(screen.getByRole('banner')).queryByRole('link', { name: /^Settings,/ })).not.toBeInTheDocument();
   });
 });

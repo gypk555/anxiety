@@ -40,6 +40,13 @@ test('sign-in and consent, with the keyboard alone', async ({ page, browserName 
   await page.keyboard.press('Space');
   await tabTo(page, browserName, page.getByRole('button', { name: 'Agree and continue' }));
   await page.keyboard.press('Enter');
+  await expectFocusedHeading(page, 'What should we call you?');
+  await tabTo(page, browserName, page.getByLabel('Your name or a nickname'));
+  await page.keyboard.type('Asha');
+  await page.keyboard.press('Enter');
+  await expectFocusedHeading(page, 'About you');
+  await tabTo(page, browserName, page.getByRole('button', { name: 'Skip for now' }));
+  await page.keyboard.press('Enter');
   await expectAccountHome(page);
 });
 

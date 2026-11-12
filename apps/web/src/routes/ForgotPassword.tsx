@@ -4,12 +4,12 @@ import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage, passwordFieldError, request } from '@/lib/api';
-import { safeNext, withNext } from '@/lib/next-path';
+import { afterSignIn, safeNext, withNext } from '@/lib/next-path';
 import { useMe } from '@/lib/queries';
 import { OtpInput } from '@/ui/OtpInput';
 import { PageTitle } from '@/ui/PageTitle';
 import { PASSWORD_HINT, PasswordField } from '@/ui/PasswordField';
-import { afterSignIn, RESEND_COOLDOWN_S, useSignedIn } from './SignIn';
+import { RESEND_COOLDOWN_S, useSignedIn } from './SignIn';
 
 export function ForgotPassword() {
   const [params] = useSearchParams();
