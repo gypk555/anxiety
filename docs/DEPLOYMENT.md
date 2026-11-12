@@ -303,6 +303,7 @@ Open **Logs**. Good signs: a listening line, and `purge_completed` about a minut
 | `the sender name and address must not reveal the nature of the service` | Your sender matches the pattern above. | Change `MAIL_FROM` or the name. |
 | `must use the least-privilege runtime role` | `DATABASE_URL` uses an admin user, or the role is too powerful. | Use `anxiocare_runtime.<project-ref>`. |
 | `database_check_failed` | The server cannot reach the database, or a query failed. Check password, host, port, username format and CA. | See below. |
+| `database_check_failed` with `"code":"28P01"` right after running `db:setup` | The runtime role's password was set again, and Supabase's pooler still holds the old one. `db:setup` before 2026-11-12 always re-set it. It now leaves a working password alone. | In Supabase, **Project Settings → General → Restart project**, then restart the Render service. If it still fails, paste `DATABASE_URL` from `.env.secrets` into Render again. |
 | `SELF_SIGNED_CERT_IN_CHAIN`, `DEPTH_ZERO_SELF_SIGNED_CERT` | CA does not match. | Repeat the `psql` test in step 2. |
 | `ERR_TLS_CERT_ALTNAME_INVALID` | Hostname doesn't match. | Use the host from **Connect**, not an IP address. |
 | Fails with a role or tenant error on the pooler | Username format. | It must be `anxiocare_runtime.<project-ref>`. **A custom role through the pooler, while documented by Supabase, has not been tested live.** |

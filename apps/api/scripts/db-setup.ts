@@ -4,7 +4,7 @@
 import { createSql } from '../src/db.ts';
 import { printChecks, verifyDatabase } from '../src/db-checks.ts';
 import { migrate } from '../src/migrate.ts';
-import { describeConnectionError, ensureRuntimeRole, ensureSecrets, readSetupFile, SetupError } from '../src/setup.ts';
+import { canLogIn, describeConnectionError, ensureRuntimeRole, ensureSecrets, readSetupFile, SetupError } from '../src/setup.ts';
 
 const showSecrets = process.argv.includes('--show-secrets');
 
@@ -35,7 +35,7 @@ try {
   console.log(secrets.created.length ? `Secrets: generated ${secrets.created.join(', ')} in ${setup.secretsFile}` : `Secrets: already in ${setup.secretsFile}, left untouched`);
 
   const runtimePassword = new URL(secrets.values.DATABASE_URL!).password;
-  console.log(`Runtime role: ${await ensureRuntimeRole(sql, decodeURIComponent(runtimePassword))}`);
+  console.log(`Runtime role: ${await ensureRuntimeRole(sql, decodeURIComponent(runtimePassword), () => canLogIn(secrets!.values.DATABASE_URL!, setup.caCert))}`);
 
   const ran = await migrate(sql);
   console.log(ran.length ? `Applied: ${ran.join(', ')}` : 'No pending migrations');

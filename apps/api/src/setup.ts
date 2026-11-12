@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { isSecretKey, isMasterKeyList } from './config.ts';
-import { RUNTIME_ROLE, type Sql } from './db.ts';
+import { createSql, RUNTIME_ROLE, type Sql } from './db.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -134,11 +134,38 @@ export function scramVerifier(password: string, iterations = 4096): string {
  * Creates or updates the runtime role. It sets only what a non-superuser admin may set, as Supabase's `postgres` is:
  * an existing role with broader attributes is left for db:verify to report, rather than failing here on ALTER.
  */
-export async function ensureRuntimeRole(sql: Sql, password: string): Promise<'created' | 'updated'> {
+export async function ensureRuntimeRole(
+  sql: Sql,
+  password: string,
+  passwordWorks: () => Promise<boolean> = async () => false,
+): Promise<'created' | 'updated' | 'unchanged'> {
   const verifier = scramVerifier(password);
   if (!/^[A-Za-z0-9+/=:$-]+$/.test(verifier)) throw new SetupError('Could not build the role password.');
   const [existing] = await sql`SELECT 1 FROM pg_roles WHERE rolname = ${RUNTIME_ROLE}`;
-  const attributes = `LOGIN NOINHERIT CONNECTION LIMIT 40 PASSWORD '${verifier}'`;
-  await sql.unsafe(existing ? `ALTER ROLE ${RUNTIME_ROLE} ${attributes}` : `CREATE ROLE ${RUNTIME_ROLE} ${attributes}`);
-  return existing ? 'updated' : 'created';
+  const base = 'LOGIN NOINHERIT CONNECTION LIMIT 40';
+  if (!existing) {
+    await sql.unsafe(`CREATE ROLE ${RUNTIME_ROLE} ${base} PASSWORD '${verifier}'`);
+    return 'created';
+  }
+  // A password that already works is left alone. Setting it again stores a new SCRAM salt, and a connection pooler
+  // that cached the old verifier (Supabase's does) then refuses the running app with 28P01 until it refreshes.
+  if (await passwordWorks()) {
+    await sql.unsafe(`ALTER ROLE ${RUNTIME_ROLE} ${base}`);
+    return 'unchanged';
+  }
+  await sql.unsafe(`ALTER ROLE ${RUNTIME_ROLE} ${base} PASSWORD '${verifier}'`);
+  return 'updated';
+}
+
+/** True if this URL logs in, with TLS verified against `caCert`. Any failure, of any kind, is false. */
+export async function canLogIn(url: string, caCert: string): Promise<boolean> {
+  const sql = createSql(url, { caCert, max: 1 });
+  try {
+    await sql`SELECT 1`;
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await sql.end({ timeout: 1 }).catch(() => {});
+  }
 }
